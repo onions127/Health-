@@ -4,15 +4,15 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import android.util.Log
 import com.jcwear.coach.ble.J2208Protocol.HrRecord
 import com.jcwear.coach.ble.J2208Protocol.HrvRecord
 import com.jcwear.coach.ble.J2208Protocol.SleepBlockRecord
 import com.jcwear.coach.ble.J2208Protocol.Spo2Record
 import com.jcwear.coach.ble.J2208Protocol.StepEpochRecord
 import com.jcwear.coach.ble.J2208Protocol.TempRecord
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+import java.io.File
+import java.io.FileNotFoundException
 
 class LocalHealthDatabase(private val appContext: Context) :
     SQLiteOpenHelper(appContext, "jcwear_local_health.db", null, 2) {
@@ -309,132 +309,85 @@ class LocalHealthDatabase(private val appContext: Context) :
     }
 
     /**
-     * Seeds initial 14-day baseline data if the database is completely empty,
-     * including a sleep session that crosses 12:00 (noon military time) to demonstrate
-     * the Post-12:00 Noon Sleep Stitcher before the first BLE sync, and ensures
-     * all 14 days in the rolling window have daily HRV/RHR records (including a physiological outlier).
+     * Result of merging an external band-history database into this one.
+     * [insertedByTable] counts only rows that were new; rows whose device_time already exists
+     * locally are left untouched (the local row always wins).
      */
-    fun seedInitialBaselineIfEmpty() {
-        if (getAllSleepBlocks().size < 50) {
-            try {
-                close()
-                val dbFile = appContext.getDatabasePath("jcwear_local_health.db")
-                dbFile.parentFile?.mkdirs()
-                appContext.assets.open("jcwear_local_health.db").use { input ->
-                    dbFile.outputStream().use { output ->
-                        input.copyTo(output)
-                    }
-                }
-            } catch (_: Exception) {
-                // Fall back to synthetic seed if asset copy fails
-            }
-        }
-        ensureFourteenDayWindowPopulated()
+    data class ImportResult(val insertedByTable: Map<String, Int>) {
+        val totalInserted: Int get() = insertedByTable.values.sum()
     }
 
-    private fun ensureFourteenDayWindowPopulated() {
-        val fmt = DateTimeFormatter.ISO_LOCAL_DATE_TIME
-        val today = LocalDate.now()
-        val existingHrvDates = getAllHrvRecords().mapNotNull {
-            runCatching { LocalDate.parse(it.deviceTime.take(10)) }.getOrNull()
-        }.toSet()
-        val existingSleepDates = getAllSleepBlocks().mapNotNull {
-            runCatching { LocalDate.parse(it.deviceTime.take(10)) }.getOrNull()
-        }.toSet()
-
-        val hrvBaselinePattern = listOf(58, 60, 56, 61, 59, 62, 57, 42, 59, 63, 61, 65, 62, 64)
-        val rhrBaselinePattern = listOf(55, 55, 56, 54, 55, 54, 55, 61, 55, 54, 54, 53, 54, 54)
-
-        val hrvList = mutableListOf<HrvRecord>()
-        val hrList = mutableListOf<HrRecord>()
-        val spo2List = mutableListOf<Spo2Record>()
-        val tempList = mutableListOf<TempRecord>()
-        val stepList = mutableListOf<StepEpochRecord>()
-        val sleepList = mutableListOf<SleepBlockRecord>()
-
-        for (d in 13 downTo 0) {
-            val date = today.minusDays(d.toLong())
-            if (date !in existingHrvDates) {
-                val patternIdx = (13 - d).coerceIn(0, hrvBaselinePattern.lastIndex)
-                val hrvVal = hrvBaselinePattern[patternIdx]
-                val rhrVal = rhrBaselinePattern[patternIdx]
-                hrvList.add(
-                    HrvRecord(
-                        deviceTime = date.atTime(6, 30).format(fmt),
-                        hrvMs = hrvVal,
-                        vascularAging = 1,
-                        hrBpm = rhrVal,
-                        stress = if (hrvVal < 48) 54 else 28,
-                        bpSys = 116,
-                        bpDia = 74,
-                        rawHex = "seed"
-                    )
-                )
-                hrList.add(HrRecord(date.atTime(5, 0).format(fmt), rhrVal, "seed"))
-                hrList.add(HrRecord(date.atTime(12, 15).format(fmt), rhrVal + 1, "seed"))
-                hrList.add(HrRecord(date.atTime(17, 30).format(fmt), 118, "seed"))
-                spo2List.add(Spo2Record(date.atTime(6, 0).format(fmt), 97 + (d % 2), "seed"))
-                tempList.add(TempRecord(date.atTime(6, 0).format(fmt), 36.2 + (if (d == 0) 0.2 else 0.0), "seed"))
-                stepList.add(
-                    StepEpochRecord(
-                        deviceTime = date.atTime(12, 10).format(fmt),
-                        steps = if (d == 0) 0 else 450,
-                        caloriesKcal = 18.0,
-                        distanceKm = 0.35,
-                        subMinuteSteps = List(10) { 0 },
-                        rawHex = "seed"
-                    )
-                )
-                stepList.add(
-                    StepEpochRecord(
-                        deviceTime = date.atTime(18, 0).format(fmt),
-                        steps = 7200 + (d % 4) * 900,
-                        caloriesKcal = 310.0,
-                        distanceKm = 5.4,
-                        subMinuteSteps = List(10) { 80 },
-                        rawHex = "seed"
-                    )
-                )
+    /**
+     * Merges the band-history dump bundled in assets ([BUNDLED_HISTORY_ASSET], the owner's real
+     * J2208 data) into the live database with INSERT OR IGNORE. Never overwrites or deletes.
+     *
+     * Android can't open an asset as a SQLite file directly, so it is copied to the cache dir,
+     * ATTACHed, merged and then deleted. Returns null if the asset isn't packaged (it is
+     * gitignored, so a fresh clone builds without it).
+     */
+    fun importBundledHistory(): ImportResult? {
+        val tmp = File(appContext.cacheDir, "bundled_history_import.db")
+        try {
+            appContext.assets.open(BUNDLED_HISTORY_ASSET).use { input ->
+                tmp.outputStream().use { output -> input.copyTo(output) }
             }
+        } catch (e: FileNotFoundException) {
+            Log.i(TAG, "No bundled history asset packaged; skipping import")
+            return null
         }
+        try {
+            return importHistoryFrom(tmp)
+        } finally {
+            tmp.delete()
+        }
+    }
 
-        if (today !in existingSleepDates) {
-            // Seed today's sleep ending right at 12:00 noon + post-12:00 0-step/low-HR until 12:50
-            val sleepStart = today.atTime(6, 0)
-            val stages360 = MutableList(360) { idx ->
-                when {
-                    idx % 90 in 15..35 -> 1 // Deep
-                    idx % 90 in 65..85 -> 3 // REM
-                    else -> 2               // Light
+    /** Merges every known table from [source] into this DB; a local row with the same key wins. */
+    fun importHistoryFrom(source: File): ImportResult {
+        val db = writableDatabase
+        val inserted = linkedMapOf<String, Int>()
+        db.execSQL("ATTACH DATABASE ? AS src", arrayOf(source.absolutePath))
+        try {
+            val sourceTables = db.rawQuery(
+                "SELECT name FROM src.sqlite_master WHERE type = 'table'", null
+            ).use { c -> buildSet { while (c.moveToNext()) add(c.getString(0)) } }
+
+            db.beginTransaction()
+            try {
+                for ((table, columns) in HISTORY_TABLE_COLUMNS) {
+                    if (table !in sourceTables) {
+                        inserted[table] = 0
+                        continue
+                    }
+                    val cols = columns.joinToString(", ")
+                    db.execSQL("INSERT OR IGNORE INTO main.$table ($cols) SELECT $cols FROM src.$table")
+                    inserted[table] = db.rawQuery("SELECT changes()", null)
+                        .use { c -> if (c.moveToFirst()) c.getInt(0) else 0 }
                 }
+                db.setTransactionSuccessful()
+            } finally {
+                db.endTransaction()
             }
-            sleepList.add(
-                SleepBlockRecord(
-                    deviceTime = sleepStart.format(fmt),
-                    unitMinutes = 1,
-                    count = 360,
-                    deepMin = stages360.count { it == 1 },
-                    lightMin = stages360.count { it == 2 },
-                    remMin = stages360.count { it == 3 },
-                    awakeMin = 0,
-                    stages = stages360,
-                    rawHex = "seed"
-                )
-            )
-            for (m in 0..40 step 10) {
-                val ts = today.atTime(12, m).format(fmt)
-                stepList.add(StepEpochRecord(ts, 0, 0.0, 0.0, List(10) { 0 }, "seed"))
-                hrList.add(HrRecord(ts, 55, "seed"))
-            }
-            stepList.add(StepEpochRecord(today.atTime(13, 0).format(fmt), 180, 8.0, 0.14, List(10) { 18 }, "seed"))
-            hrList.add(HrRecord(today.atTime(13, 0).format(fmt), 86, "seed"))
+        } finally {
+            db.execSQL("DETACH DATABASE src")
         }
+        val result = ImportResult(inserted)
+        Log.i(TAG, "History import inserted ${result.totalInserted} rows: $inserted")
+        return result
+    }
 
-        if (sleepList.isNotEmpty()) upsertSleepBlocks(sleepList)
-        if (hrvList.isNotEmpty()) upsertHrvRecords(hrvList)
-        if (hrList.isNotEmpty()) upsertHrRecords(hrList)
-        if (spo2List.isNotEmpty()) upsertSpo2Records(spo2List)
-        if (tempList.isNotEmpty()) upsertTempRecords(tempList)
-        if (stepList.isNotEmpty()) upsertStepRecords(stepList)
+    companion object {
+        private const val TAG = "LocalHealthDatabase"
+        const val BUNDLED_HISTORY_ASSET = "jcwear_local_health.db"
+
+        /** Column lists must match onCreate; used so the merge never depends on column order. */
+        private val HISTORY_TABLE_COLUMNS = linkedMapOf(
+            "sleep_blocks" to listOf("device_time", "unit_minutes", "count", "deep_min", "light_min", "rem_min", "awake_min", "stages_csv", "raw_hex"),
+            "hrv_logs" to listOf("device_time", "hrv_ms", "vascular_aging", "hr_bpm", "stress", "bp_sys", "bp_dia", "raw_hex"),
+            "hr_logs" to listOf("device_time", "bpm", "raw_hex"),
+            "spo2_logs" to listOf("device_time", "spo2_pct", "raw_hex"),
+            "temp_logs" to listOf("device_time", "temp_c", "raw_hex"),
+            "step_logs" to listOf("device_time", "steps", "calories_kcal", "distance_km", "sub_steps_csv", "raw_hex")
+        )
     }
 }

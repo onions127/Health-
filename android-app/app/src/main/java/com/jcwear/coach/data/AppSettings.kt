@@ -23,8 +23,14 @@ class AppSettings(context: Context) {
         get() = prefs.getString(KEY_ANTHROPIC_KEY, "") ?: ""
         set(value) = prefs.edit().putString(KEY_ANTHROPIC_KEY, value.trim()).apply()
 
+    /** True once the bundled band-history dump has been merged into the live DB (Phase 0 import). */
+    var bundledHistoryImported: Boolean
+        get() = prefs.getBoolean(KEY_BUNDLED_HISTORY_IMPORTED, false)
+        set(value) = prefs.edit().putBoolean(KEY_BUNDLED_HISTORY_IMPORTED, value).apply()
+
     companion object {
         const val PREFS_NAME = "app_settings"
+        private const val KEY_BUNDLED_HISTORY_IMPORTED = "bundled_history_imported"
         const val DEFAULT_HOMELAB_URL = "https://sterver.tail24d7a.ts.net:8443"
         private const val KEY_HOMELAB_URL = "homelab_base_url"
         private const val KEY_HOMELAB_TOKEN = "homelab_api_token"

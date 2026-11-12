@@ -355,7 +355,7 @@ The touched files (MainDashboardScreen.kt, LocalHealthDatabase.kt, J2208BleManag
 ## Implementation Tasks
 Synthesized from this review's findings. Each task derives from a specific finding above. Checkbox them as you ship.
 
-- [ ] **T0 (P1, human: ~1h / CC: ~10min)** — data — Phase 0 hotfix: remove the fake seeder call; make the asset copy an INSERT OR IGNORE one-time import
+- [x] **T0 (P1, human: ~1h / CC: ~10min)** — data — Phase 0 hotfix: remove the fake seeder call; make the asset copy an INSERT OR IGNORE one-time import
   - Surfaced by: Outside voice #3, D17
   - Files: MainActivity.kt, data/LocalHealthDatabase.kt, data/AppSettings.kt
   - Verify: fresh install shows July–Nov history; a second launch adds 0 rows
