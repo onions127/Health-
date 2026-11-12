@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Health++ Companion</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0" rel="stylesheet" />
+  <script src="data.js"></script>
+  <style>
+    :root {
+      --bg-deep: #0B1020;
+      --bg-navy: #111833;
+      --bg-card: #151E3F;
+      --bg-card-elevated: #1B2650;
+      --border-hairline: rgba(255, 255, 255, 0.06);
+      --text-primary: #F8FAFC;
+      --text-secondary: #A8B8D0;
+      --accent-amber: #FFB86B;
+      --score-green: #34D399;
+      --score-amber: #FBBF24;
+      --score-coral: #FB7185;
+      --alert-red: #EF4444;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #070B16;
+      color: var(--text-primary);
+      font-family: 'Manrope', sans-serif;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+      scrollbar-width: none;
+    }
+    ::-webkit-scrollbar {
+      display: none;
+    }
+    /* Strict 360x800 Android viewport container */
+    #app-frame {
+      width: 100%;
+      max-width: 360px;
+      min-height: 800px;
+      background: linear-gradient(180deg, #0B1020 0%, #111833 100%);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow-x: hidden;
+    }
+    #screen-content {
+      flex: 1;
+      padding: 16px 16px 88px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    /* Cards: lighter navy, 1px hairline white@6%, radius 20px, 8pt grid padding */
+    .h-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-hairline);
+      border-radius: 20px;
+      padding: 16px;
+      position: relative;
+      transition: background 0.15s ease;
+    }
+    .h-card-interactive {
+      cursor: pointer;
+    }
+    .h-card-interactive:active {
+      background: var(--bg-card-elevated);
+    }
+    .h-alert-card {
+      background: #2A121B;
+      border: 1px solid rgba(239, 68, 68, 0.45);
+      border-radius: 20px;
+      padding: 16px;
+      cursor: pointer;
+    }
+    /* Strictly 3 font sizes per screen: 48px hero, 16px title, 13px label */
+    .t-hero {
+      font-size: 48px;
+      line-height: 1.0;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text-primary);
+      font-variant-numeric: tabular-nums;
+    }
+    .t-title {
+      font-size: 16px;
+      line-height: 1.35;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .t-label {
+      font-size: 13px;
+      line-height: 1.35;
+      font-weight: 500;
+      color: var(--text-secondary);
+      font-variant-numeric: tabular-nums;
+    }
+    /* Soft radial glow behind main Daily Score ring ONLY */
+    .daily-ring-glow {
+      position: relative;
+    }
+    .daily-ring-glow::before {
+      content: '';
+      position: absolute;
+      inset: -12px;
+      border-radius: 9999px;
+      background: radial-gradient(circle, rgba(52, 211, 153, 0.24) 0%, rgba(52, 211, 153, 0) 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    /* Minimum 48px tap targets */
+    .tap-48 {
+      min-height: 48px;
+      min-width: 48px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .btn-amber {
+      background: var(--accent-amber);
+      color: #0B1020;
+      border-radius: 14px;
+      min-height: 48px;
+      padding: 0 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.07);
+      color: var(--text-primary);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      min-height: 48px;
+      padding: 0 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      font-size: 13px;
+      line-height: 1.25;
+      font-weight: 500;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+    .chip-green {
+      background: rgba(52, 211, 153, 0.14);
+      color: #6EE7B7;
+    }
+    .chip-amber {
+      background: rgba(251, 191, 36, 0.15);
+      color: #FDE68A;
+    }
+    .chip-coral {
+      background: rgba(251, 113, 133, 0.16);
+      color: #FDA4AF;
+    }
+    /* Bottom Navigation Bar (64px height, 4x 48px+ tap targets) */
+    #bottom-nav {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      max-width: 360px;
+      height: 64px;
+      background: rgba(11, 16, 32, 0.96);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border-hairline);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      padding: 0 8px;
+      z-index: 30;
+    }
+    .nav-btn {
+      height: 64px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 0;
+    }
+    .nav-btn.active {
+      color: var(--accent-amber);
+    }
+    /* Bottom Sheet Overlay */
+    #sheet-backdrop {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      max-width: 360px;
+      height: 800px;
+      background: rgba(6, 9, 20, 0.72);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: flex-end;
+      z-index: 50;
+    }
+    #sheet-backdrop.open {
+      display: flex;
+    }
+    .bottom-sheet {
+      width: 100%;
+      max-width: 360px;
+      background: #151E3F;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 24px 24px 0 0;
+      padding: 16px 16px 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .material-symbols-rounded {
+      font-size: 20px;
+      line-height: 1;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <div id="app-frame">
+    <!-- Dynamic Screen Content -->
+    <main id="screen-content"></main>
+
+    <!-- Bottom Sheet Modal -->
+    <div id="sheet-backdrop" onclick="handleBackdropClick(event)">
+      <div class="bottom-sheet" id="sheet-body" onclick="event.stopPropagation()"></div>
+    </div>
+
+    <!-- Bottom Navigation: Today · Trends · Coach · Settings -->
+    <nav id="bottom-nav" aria-label="Primary">
+      <button class="nav-btn active" id="nav-today" onclick="navigateTab('today')">
+        <span class="material-symbols-rounded">wb_twilight</span>
+        <span class="t-label" style="color: inherit;">Today</span>
+      </button>
+      <button class="nav-btn" id="nav-trends" onclick="navigateTab('trends')">
+        <span class="material-symbols-rounded">timeline</span>
+        <span class="t-label" style="color: inherit;">Trends</span>
+      </button>
+      <button class="nav-btn" id="nav-coach" onclick="navigateTab('coach')">
+        <span class="material-symbols-rounded">chat_bubble</span>
+        <span class="t-label" style="color: inherit;">Coach</span>
+      </button>
+      <button class="nav-btn" id="nav-settings" onclick="navigateTab('settings')">
+        <span class="material-symbols-rounded">tune</span>
+        <span class="t-label" style="color: inherit;">Settings</span>
+      </button>
+    </nav>
+  </div>
+
+  <script>
+    // Application state
+    const STATE = {
+      tab: 'today',            // 'today' | 'trends' | 'coach' | 'settings' | 'detail' | 'check'
+      morningCheckDone: false, // false in morning, true once completed
+      dailyExpanded: false,    // Today Daily Score inline drawer
+      recoveryExpanded: false, // Today Recovery Score inline drawer
+      spo2Alert: false,        // Today abnormal SpO2 alert banner state
+      viewingHistoryDate: false, // true when viewing Tue 4 Nov from Trends Calendar
+      checkStep: 'intro',      // 'intro' | 'measuring' | 'result'
+      checkSeconds: 42,
+      detailMetric: 'hrv',     // 'hrv' | 'rhr' | 'sleep' | 'readiness' | 'strain' | 'spo2' | 'skinTemp' | 'steps'
+      detailRange: 'Month',    // 'Week' | 'Month' | '3M' | 'Year'
+      selectedDayIndex: 89,    // Tapped dot on Detail chart (default Today = 89, or 81 for Tue 4 Nov)
+      activeSheet: null,       // null | 'sync' | 'verdict' | 'calendar'
+      serverBackupOn: true,
+      autoSyncOn: true,
+      units: 'Metric',
+      chatMessages: [
+        { role: 'coach', lines: [
+          'Your recovery hit 86 this morning.',
+          'HRV is 64 ms, 8% above normal.',
+          'Great day for intervals or heavy strength.'
+        ]}
+      ]
+    };
+
+    let checkTimer = null;
+
+    function scoreColor(val) {
+      if (val >= 70) return '#34D399';
+      if (val >= 40) return '#FBBF24';
+      return '#FB7185';
+    }
+
+    function scoreChipClass(val) {
+      if (val >= 70) return 'chip chip-green';
+      if (val >= 40) return 'chip chip-amber';
+      return 'chip chip-coral';
+    }
+
+    // SVG Helpers (Every chart, ring, and gauge is inline SVG)
+    function renderScoreRingSVG(score, size, showGlow) {
+      const stroke = size >= 72 ? 7 : 6;
+      const r = (size - stroke * 2) / 2;
+      const c = 2 * Math.PI * r;
+      const offset = c - (score / 100) * c;
+      const color = scoreColor(score);
+      return `
+        <div class="${showGlow ? 'daily-ring-glow' : ''} flex items-center justify-center" style="width:${size}px;height:${size}px;">
+          <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" class="relative z-10">
+            <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="${stroke}" />
+            <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}"
+              stroke-linecap="round" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${offset.toFixed(1)}"
+              transform="rotate(-90 ${size/2} ${size/2})" />
+          </svg>
+        </div>
+      `;
+    }
+
+    function renderMiniBarSVG(val, normalMin, normalMax, color) {
+      const w = 120;
+      const h = 8;
+      const nLeft = Math.round((normalMin / 100) * w);
+      const nWidth = Math.round(((normalMax - normalMin) / 100) * w);
+      const fillW = Math.min(w, Math.max(8, Math.round((val / 100) * w)));
+      return `
+        <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" class="overflow-visible">
+          <rect x="0" y="1" width="${w}" height="6" rx="3" fill="rgba(255,255,255,0.08)" />
+          <rect x="${nLeft}" y="-1" width="${nWidth}" height="10" rx="2" fill="rgba(255,255,255,0.16)" />
+          <rect x="0" y="1" width="${fillW}" height="6" rx="3" fill="${color}" />
+        </svg>
+      `;
+    }
+
+    function renderStepsBarSVG(steps, normalMin, normalMax) {
+      const maxScale = 13000;
+      const w = 296;
+      const h = 16;
+      const nLeft = Math.round((normalMin / maxScale) * w);
+      const nWidth = Math.round(((normalMax - normalMin) / maxScale) * w);
+      const fillW = Math.min(w, Math.max(12, Math.round((steps / maxScale) * w)));
+      const color = steps >= normalMin ? '#34D399' : '#FBBF24';
+      return `
+        <svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}">
+          <!-- Track -->
+          <rect x="0" y="4" width="${w}" height="8" rx="4" fill="rgba(255,255,255,0.08)" />
+          <!-- Shaded Normal Band (7k - 10k) -->
+          <rect x="${nLeft}" y="0" width="${nWidth}" height="16" rx="4" fill="rgba(255,255,255,0.14)" />
+          <!-- Current Progress Fill -->
+          <rect x="0" y="4" width="${fillW}" height="8" rx="4" fill="${color}" />
+          <!-- Current Marker Dot -->
+          <circle cx="${fillW}" cy="8" r="5" fill="#F8FAFC" stroke="${color}" stroke-width="2.5" />
+        </svg>
+      `;
+    }
+
+    function renderSparklineSVG(values, normalMin, normalMax, color, width = 104, height = 32) {
+      const minV = Math.min(...values, normalMin) - 2;
+      const maxV = Math.max(...values, normalMax) + 2;
+      const range = Math.max(1, maxV - minV);
+      const pad = 4;
+      const innerW = width - pad * 2;
+      const innerH = height - pad * 2;
+
+      const yFor = (v) => pad + innerH - ((v - minV) / range) * innerH;
+      const xFor = (i) => pad + (i / Math.max(1, values.length - 1)) * innerW;
+
+      const pts = values.map((v, i) => `${xFor(i).toFixed(1)},${yFor(v).toFixed(1)}`).join(' ');
+      const lastX = xFor(values.length - 1).toFixed(1);
+      const lastY = yFor(values[values.length - 1]).toFixed(1);
+      const bandTop = yFor(normalMax).toFixed(1);
+      const bandH = Math.max(4, yFor(normalMin) - yFor(normalMax)).toFixed(1);
+
+      return `
+        <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+          <rect x="0" y="${bandTop}" width="${width}" height="${bandH}" rx="2" fill="rgba(255,255,255,0.06)" />
+          <polyline fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" points="${pts}" />
+          <circle cx="${lastX}" cy="${lastY}" r="3" fill="${color}" />
+        </svg>
+      `;
+    }
+
+    // 1. TODAY SCREEN
+    function renderTodayScreen() {
+      const D = window.HEALTH_DATA;
+      const isHist = STATE.viewingHistoryDate;
+      const day = isHist ? D.historyDayNov4 : D.today;
+
+      const dailyScore = STATE.morningCheckDone && !isHist ? 86 : day.dailyScore;
+      const recoveryScore = STATE.morningCheckDone && !isHist ? 88 : day.recovery;
+      const hrvVal = STATE.morningCheckDone && !isHist ? 66 : day.hrv;
+      const rhrVal = STATE.morningCheckDone && !isHist ? 51 : day.rhr;
+
+      const last7Hrv = D.days.slice(83, 90).map(d => d.hrv);
+      const last7Rhr = D.days.slice(83, 90).map(d => d.rhr);
+
+      return `
+        <!-- 1. Greeting, Date, and Sync Status Dot -->
+        <header class="flex items-center justify-between" style="min-height: 48px;">
+          <div class="flex flex-col">
+            <span class="t-title">${isHist ? 'Tue 4 Nov' : 'Morning, Alex'}</span>
+            <span class="t-label">${isHist ? 'Historical snapshot' : 'Thu 12 Nov'}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            ${isHist ? `
+              <button class="btn-amber" onclick="exitHistoryDate()" style="min-height: 48px; padding: 0 12px;">
+                <span class="material-symbols-rounded" style="font-size: 18px;">undo</span>
+                <span>Back to today</span>
+              </button>
+            ` : ''}
+            <button class="tap-48 rounded-full" onclick="openSheet('sync')" aria-label="Sync status" style="background: rgba(255,255,255,0.04);">
+              <span class="relative flex items-center justify-center" style="width: 12px; height: 12px;">
+                <span class="rounded-full" style="width: 10px; height: 10px; background: #34D399;"></span>
+              </span>
+            </button>
+          </div>
+        </header>
+
+        <!-- 2. Morning Check Prompt Card (only in morning until done, hidden on historical days) -->
+        ${(!STATE.morningCheckDone && !isHist && !STATE.spo2Alert) ? `
+          <section class="h-card flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-rounded" style="color: #FFB86B;">vital_signs</span>
+              <span class="t-title" style="white-space: nowrap;">Morning check</span>
+            </div>
+            <button class="btn-amber" onclick="startMorningCheck()">
+              <span>Start 60-sec check</span>
+            </button>
+          </section>
+        ` : ''}
+
+        <!-- 3. Coach Verdict Card (1 line + 1 action, tap opens 2-3 reasons sheet) -->
+        <section class="h-card h-card-interactive flex items-center justify-between gap-3" onclick="openSheet('verdict')" role="button" tabindex="0">
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-rounded" style="color: ${isHist ? '#FBBF24' : '#34D399'};">auto_awesome</span>
+            <span class="t-title">${isHist ? 'Low recovery. Keep effort light.' : 'Well recovered. Good for hard training.'}</span>
+          </div>
+          <span class="material-symbols-rounded" style="color: var(--text-secondary);">chevron_right</span>
+        </section>
+
+        <!-- 7. Out-of-bounds Alert Card (above Daily Score when SpO2 is out of bounds) -->
+        ${STATE.spo2Alert ? `
+          <section class="h-alert-card flex items-center justify-between gap-3" onclick="openDetail('spo2')" role="button" tabindex="0">
+            <div class="flex items-center gap-3">
+              <span class="material-symbols-rounded" style="color: #F87171;">warning</span>
+              <div>
+                <div class="t-title" style="color: #FECACA;">Blood oxygen low overnight: 91%</div>
+                <div class="t-label" style="color: #FCA5A5;">↓ 7% vs normal · Tap for details</div>
+              </div>
+            </div>
+            <span class="material-symbols-rounded" style="color: #FCA5A5;">chevron_right</span>
+          </section>
+        ` : ''}
+
+        <!-- 4. Daily Score Card (1 big score with ring + soft glow + trend chip; expands in place) -->
+        <section class="h-card flex flex-col gap-3">
+          <div class="flex items-center justify-between cursor-pointer" style="min-height: 76px;" onclick="toggleDailyExpand()">
+            <div class="flex flex-col gap-2">
+              <span class="t-title">Daily Score</span>
+              <div class="flex items-baseline gap-3">
+                <span class="t-hero">${dailyScore}</span>
+                <span class="${scoreChipClass(dailyScore)}">${isHist ? '↓ 22 vs normal' : '↑ 6 vs normal'}</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              ${renderScoreRingSVG(dailyScore, 72, true)}
+              <span class="material-symbols-rounded" style="color: var(--text-secondary);">${STATE.dailyExpanded ? 'expand_less' : 'expand_more'}</span>
+            </div>
+          </div>
+
+          ${STATE.dailyExpanded ? `
+            <div class="flex flex-col gap-2 pt-3" style="border-top: 1px solid var(--border-hairline);">
+              <!-- Readiness Row -->
+              <div class="flex items-center justify-between rounded-xl px-2 cursor-pointer" style="min-height: 48px;" onclick="openDetail('readiness')">
+                <div class="flex flex-col">
+                  <span class="t-title">Readiness</span>
+                  <span class="t-label">↑ 5 vs normal</span>
+                </div>
+                <div class="flex items-center gap-3">
+                  ${renderMiniBarSVG(day.readiness, 72, 85, '#34D399')}
+                  <span class="t-title" style="min-width: 28px; text-align: right;">${day.readiness}</span>
+                  <span class="material-symbols-rounded" style="color: var(--text-secondary);">chevron_right</span>
+                </div>
+              </div>
+              <!-- Sleep Row -->
+              <div class="flex items-center justify-between rounded-xl px-2 cursor-pointer" style="min-height: 48px;" onclick="openDetail('sleep')">
+                <div class="flex flex-col">
+                  <span class="t-title">Sleep</span>
+                  <span class="t-label">↑ 4 vs normal</span>
+                </div>
+                <div class="flex items-center gap-3">
+                  ${renderMiniBarSVG(day.sleepScore, 70, 85, '#34D399')}
+                  <span class="t-title" style="min-width: 28px; text-align: right;">${day.sleepScore}</span>
+                  <span class="material-symbols-rounded" style="color: var(--text-secondary);">chevron_right</span>
+                </div>
+              </div>
+              <!-- Strain Row -->
+              <div class="flex items-center justify-between rounded-xl px-2 cursor-pointer" style="min-height: 48px;" onclick="openDetail('strain')">
+                <div class="flex flex-col">
+                  <span class="t-title">Strain</span>
+                  <span class="t-label">Within normal</span>
+                </div>
+                <div class="flex items-center gap-3">
+                  ${renderMiniBarSVG(day.strain, 65, 82, '#FFB86B')}
+                  <span class="t-title" style="min-width: 28px; text-align: right;">${day.strain}</span>
+                  <span class="material-symbols-rounded" style="color: var(--text-secondary);">chevron_right</span>
+                </div>
+              </div>
+            </div>
+          ` : ''}
+        </section>
+
+        <!-- 5. Recovery Score Card (expands to show HRV & Resting HR with 7-day sparklines) -->
+        <section class="h-card flex flex-col gap-3">
+          <div class="flex items-center justify-between cursor-pointer" style="min-height: 68px;" onclick="toggleRecoveryExpand()">
+            <div class="flex flex-col gap-2">
+              <span class="t-title">Recovery</span>
+              <div class="flex items-baseline gap-3">
+                <span class="t-hero">${recoveryScore}</span>
+                <span class="${scoreChipClass(recoveryScore)}">${isHist ? 'Lowest in 2 weeks' : '↑ 8% vs normal'}</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              ${renderScoreRingSVG(recoveryScore, 60, false)}
+              <span class="material-symbols-rounded" style="color: var(--text-secondary);">${STATE.recoveryExpanded ? 'expand_less' : 'expand_more'}</span>
+            </div>
+          </div>
+
+          ${STATE.recoveryExpanded ? `
+            <div class="flex flex-col gap-2 pt-3" style="border-top: 1px solid var(--border-hairline);">
+              <!-- HRV Sparkline Row -->
+              <div class="flex items-center justify-between rounded-xl px-2 cursor-pointer" style="min-height: 52px;" onclick="openDetail('hrv')">
+                <div class="flex flex-col">
+                  <div class="flex items-baseline gap-1">
+                    <span class="t-title">HRV · ${hrvVal}</span>
+                    <span class="t-label">ms</span>
+                  </div>
+                  <span class="t-label">${isHist ? 'Lowest in 2 weeks' : '↑ 8% vs normal'}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  ${renderSparklineSVG(last7Hrv, 55, 63, '#34D399', 96, 30)}
+                  <span class="material-symbols-rounded" style="color: var(--text-secondary);">chevron_right</span>
+                </div>
+              </div>
+              <!-- Resting HR Sparkline Row -->
+              <div class="flex items-center justify-between rounded-xl px-2 cursor-pointer" style="min-height: 52px;" onclick="openDetail('rhr')">
+                <div class="flex flex-col">
+                  <div class="flex items-baseline gap-1">
+                    <span class="t-title">Resting HR · ${rhrVal}</span>
+                    <span class="t-label">bpm</span>
+                  </div>
+                  <span class="t-label">${isHist ? '↑ 4 bpm vs normal' : '↓ 2 bpm vs normal'}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  ${renderSparklineSVG(last7Rhr, 51, 56, '#34D399', 96, 30)}
+                  <span class="material-symbols-rounded" style="color: var(--text-secondary);">chevron_right</span>
+                </div>
+              </div>
+            </div>
+          ` : ''}
+        </section>
+
+        <!-- 6. Activity Card: Steps compared with normal range shaded band -->
+        <section class="h-card h-card-interactive flex flex-col gap-3" onclick="openDetail('steps')" role="button" tabindex="0">
+          <div class="flex items-center justify-between">
+            <div class="flex items-baseline gap-2">
+              <span class="t-title">Steps</span>
+              <span class="t-title">${day.steps.toLocaleString()}</span>
+            </div>
+            <span class="chip">${isHist ? 'Below normal · 7k–10k' : 'Within normal · 7k–10k'}</span>
+          </div>
+          ${renderStepsBarSVG(day.steps, 7000, 10000)}
+        </section>
+      `;
+    }
+
+    // 2. DETAIL & HISTORY PAGE (Week / Month / 3M / Year + 3-day rolling avg + faint raw dots + outliers)
+    function renderDetailScreen() {
+      const D = window.HEALTH_DATA;
+      if (STATE.detailMetric === 'sleep') {
+        return renderSleepDetailScreen();
+      }
+      const m = D.METRICS[STATE.detailMetric] || D.METRICS.hrv;
+      const rangeCount = STATE.detailRange === 'Week' ? 7 : (STATE.detailRange === 'Month' ? 30 : 90);
+      const slice = D.days.slice(90 - rangeCount, 90);
+
+      const selDay = D.days[STATE.selectedDayIndex] || D.today;
+      const rawKey = m.dataKey || m.id;
+      const selVal = (STATE.spo2Alert && m.id === 'spo2' && selDay.index === 89) ? 91 : selDay[rawKey];
+      const isSelOutlier = m.outlierCheck(selVal);
+      const selContext = isSelOutlier ? m.outlierContext(selVal) : (selDay.index === 89 ? m.context : 'Within normal');
+
+      // Build SVG Rolling Average Chart
+      const chartW = 296;
+      const chartH = 168;
+      const padX = 10;
+      const padY = 16;
+      const innerW = chartW - padX * 2;
+      const innerH = chartH - padY * 2;
+
+      const vals = slice.map(d => (STATE.spo2Alert && m.id === 'spo2' && d.index === 89) ? 91 : d[rawKey]);
+      const rollVals = slice.map(d => d.rolling[rawKey]);
+      const minV = Math.min(...vals, m.normalMin) - (m.id === 'skinTemp' ? 0.3 : (m.id === 'steps' ? 800 : 4));
+      const maxV = Math.max(...vals, m.normalMax) + (m.id === 'skinTemp' ? 0.3 : (m.id === 'steps' ? 800 : 4));
+      const span = Math.max(0.5, maxV - minV);
+
+      const xFor = (idx) => padX + (idx / Math.max(1, slice.length - 1)) * innerW;
+      const yFor = (v) => padY + innerH - ((v - minV) / span) * innerH;
+
+      const bandTop = yFor(m.normalMax);
+      const bandBottom = yFor(m.normalMin);
+      const bandH = Math.max(8, bandBottom - bandTop);
+
+      const polyPts = slice.map((d, i) => `${xFor(i).toFixed(1)},${yFor(rollVals[i]).toFixed(1)}`).join(' ');
+
+      const dotsSvg = slice.map((d, i) => {
+        const v = vals[i];
+        const cx = xFor(i).toFixed(1);
+        const cy = yFor(v).toFixed(1);
+        const outlier = m.outlierCheck(v);
+        const isSelected = d.index === STATE.selectedDayIndex;
+        const dotR = outlier ? 4.5 : (rangeCount > 30 ? 2.2 : 3.2);
+        const fill = outlier ? '#FB7185' : '#F8FAFC';
+        const opacity = outlier ? 1 : (isSelected ? 1 : 0.32);
+        return `
+          <g class="cursor-pointer" onclick="selectChartDay(${d.index})">
+            <circle cx="${cx}" cy="${cy}" r="12" fill="transparent" />
+            ${isSelected ? `<line x1="${cx}" y1="${padY}" x2="${cx}" y2="${chartH - padY}" stroke="rgba(255,184,107,0.45)" stroke-width="1" stroke-dasharray="3 3" />` : ''}
+            ${outlier ? `<circle cx="${cx}" cy="${cy}" r="7" fill="rgba(251,113,133,0.22)" />` : ''}
+            <circle cx="${cx}" cy="${cy}" r="${isSelected ? 5.5 : dotR}" fill="${isSelected ? '#FFB86B' : fill}" fill-opacity="${opacity}" />
+          </g>
+        `;
+      }).join('');
+
+      const heroNumber = (STATE.spo2Alert && m.id === 'spo2') ? 91 : m.current;
+      const heroDisplay = m.id === 'skinTemp' ? `+${heroNumber.toFixed(1)}` : (m.id === 'steps' ? heroNumber.toLocaleString() : heroNumber);
+
+      return `
+        <!-- Back Header -->
+        <header class="flex items-center justify-between" style="min-height: 48px;">
+          <button class="tap-48 rounded-full -ml-2" onclick="navigateBackFromDetail()" aria-label="Back">
+            <span class="material-symbols-rounded">arrow_back</span>
+          </button>
+          <span class="t-title">${m.title}</span>
+          <span style="width: 48px;"></span>
+        </header>
+
+        <!-- Hero Metric Card -->
+        <section class="h-card flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <span class="t-label">Current reading</span>
+            <span class="chip">${m.normalText}</span>
+          </div>
+          <div class="flex items-baseline justify-between">
+            <div class="flex items-baseline gap-2">
+              <span class="t-hero">${heroDisplay}</span>
+              ${m.unit ? `<span class="t-label">${m.unit}</span>` : ''}
+            </div>
+            <span class="chip ${(STATE.spo2Alert && m.id === 'spo2') ? 'chip-coral' : 'chip-green'}">
+              ${(STATE.spo2Alert && m.id === 'spo2') ? m.alertContext : m.context}
+            </span>
+          </div>
+        </section>
+
+        <!-- Range Segmented Toggle: Week / Month / 3M / Year -->
+        <section class="grid grid-cols-4 gap-2 p-1 rounded-2xl" style="background: #151E3F; border: 1px solid var(--border-hairline);">
+          ${['Week', 'Month', '3M', 'Year'].map(r => `
+            <button class="tap-48 rounded-xl t-label" onclick="setDetailRange('${r}')"
+              style="background: ${STATE.detailRange === r ? '#FFB86B' : 'transparent'}; color: ${STATE.detailRange === r ? '#0B1020' : 'var(--text-secondary)'}; font-weight: ${STATE.detailRange === r ? '700' : '500'}; border: none;">
+              ${r}
+            </button>
+          `).join('')}
+        </section>
+
+        <!-- 3-Day Rolling Average + Raw Dots SVG Chart Card -->
+        <section class="h-card flex flex-col gap-3">
+          <!-- Tapped Day Readout Header -->
+          <div class="flex items-center justify-between">
+            <div class="flex items-baseline gap-2">
+              <span class="t-title">${selDay.label}</span>
+              <span class="t-title" style="color: #FFB86B;">${m.format(selVal)}</span>
+            </div>
+            <span class="chip ${isSelOutlier ? 'chip-coral' : ''}">${selContext}</span>
+          </div>
+
+          <svg width="100%" height="${chartH}" viewBox="0 0 ${chartW} ${chartH}">
+            <!-- Shaded Normal Range Band -->
+            <rect x="0" y="${bandTop.toFixed(1)}" width="${chartW}" height="${bandH.toFixed(1)}" rx="6" fill="rgba(52, 211, 153, 0.10)" />
+            <line x1="0" y1="${bandTop.toFixed(1)}" x2="${chartW}" y2="${bandTop.toFixed(1)}" stroke="rgba(52,211,153,0.28)" stroke-dasharray="3 3" stroke-width="1" />
+            <line x1="0" y1="${(bandTop + bandH).toFixed(1)}" x2="${chartW}" y2="${(bandTop + bandH).toFixed(1)}" stroke="rgba(52,211,153,0.28)" stroke-dasharray="3 3" stroke-width="1" />
+
+            <!-- 3-Day Rolling Average Line -->
+            <polyline fill="none" stroke="${m.color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="${polyPts}" />
+
+            <!-- Faint Daily Raw Dots + Highlighted Outliers -->
+            ${dotsSvg}
+          </svg>
+
+          <!-- Legend Row -->
+          <div class="flex items-center justify-between pt-1">
+            <div class="flex items-center gap-2">
+              <span class="inline-block rounded-full" style="width: 12px; height: 3px; background: ${m.color};"></span>
+              <span class="t-label">3-day average</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="inline-block rounded-full" style="width: 7px; height: 7px; background: #FB7185;"></span>
+              <span class="t-label">Outlier day (tap dot)</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- 30-Day Context Card -->
+        <section class="h-card flex items-center justify-between gap-2">
+          <div>
+            <div class="t-title">30-day average</div>
+            <div class="t-label">vs 90-day normal</div>
+          </div>
+          <div class="flex items-center gap-2" style="white-space: nowrap;">
+            <span class="t-title" style="white-space: nowrap;">${m.format(m.avg30)}</span>
+            <span class="chip chip-green">Within normal</span>
+          </div>
+        </section>
+      `;
+    }
+
+    // 3. SLEEP DETAIL SCREEN (Hypnogram + Total Time "7h 20m" + Stage Minutes + Sleep Score)
+    function renderSleepDetailScreen() {
+      const D = window.HEALTH_DATA;
+      const w = 296;
+      const h = 132;
+      const totalMin = 462;
+      const yLevels = [20, 52, 84, 114]; // Awake, REM, Light, Deep
+      const stageColors = ['#FB7185', '#38BDF8', '#34D399', '#6366F1'];
+
+      let pathD = '';
+      const blocksSvg = D.HYPNOGRAM.map((seg, idx) => {
+        const x = (seg.start / totalMin) * w;
+        const bw = (seg.dur / totalMin) * w;
+        const y = yLevels[seg.level];
+        const color = stageColors[seg.level];
+        if (idx === 0) {
+          pathD += `M ${x.toFixed(1)} ${y}`;
+        } else {
+          pathD += ` V ${y}`;
+        }
+        pathD += ` H ${(x + bw).toFixed(1)}`;
+        return `<rect x="${x.toFixed(1)}" y="${y - 6}" width="${Math.max(3, bw - 1).toFixed(1)}" height="12" rx="3" fill="${color}" />`;
+      }).join('');
+
+      return `
+        <header class="flex items-center justify-between" style="min-height: 48px;">
+          <button class="tap-48 rounded-full -ml-2" onclick="navigateBackFromDetail()" aria-label="Back">
+            <span class="material-symbols-rounded">arrow_back</span>
+          </button>
+          <span class="t-title">Sleep Detail</span>
+          <span style="width: 48px;"></span>
+        </header>
+
+        <!-- Hero Sleep Summary -->
+        <section class="h-card flex items-center justify-between">
+          <div class="flex flex-col gap-2">
+            <span class="t-label">You slept</span>
+            <span class="t-hero">7h 20m</span>
+            <span class="chip chip-green">↑ 20m vs normal</span>
+          </div>
+          <div class="flex flex-col items-center gap-1">
+            ${renderScoreRingSVG(82, 68, false)}
+            <span class="t-label" style="white-space: nowrap;">82 · ↑ 4 vs normal</span>
+          </div>
+        </section>
+
+        <!-- Hypnogram Card -->
+        <section class="h-card flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <span class="t-title">Sleep Stages</span>
+            <span class="t-label">23:10 – 06:30</span>
+          </div>
+
+          <div class="flex gap-2 items-center">
+            <div class="flex flex-col justify-between" style="height: 120px;">
+              <span class="t-label">Awake</span>
+              <span class="t-label">REM</span>
+              <span class="t-label">Light</span>
+              <span class="t-label">Deep</span>
+            </div>
+            <svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}">
+              <line x1="0" y1="20" x2="${w}" y2="20" stroke="rgba(255,255,255,0.06)" stroke-width="1" />
+              <line x1="0" y1="52" x2="${w}" y2="52" stroke="rgba(255,255,255,0.06)" stroke-width="1" />
+              <line x1="0" y1="84" x2="${w}" y2="84" stroke="rgba(255,255,255,0.06)" stroke-width="1" />
+              <line x1="0" y1="114" x2="${w}" y2="114" stroke="rgba(255,255,255,0.06)" stroke-width="1" />
+              <path d="${pathD}" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="1.5" />
+              ${blocksSvg}
+            </svg>
+          </div>
+        </section>
+
+        <!-- Stage Minutes Breakdown -->
+        <section class="h-card flex flex-col gap-3">
+          <span class="t-title">Time in each stage</span>
+          ${D.SLEEP_STAGES.map(st => `
+            <div class="flex items-center justify-between" style="min-height: 36px;">
+              <div class="flex items-center gap-2" style="min-width: 116px; white-space: nowrap;">
+                <span class="rounded-full" style="width: 8px; height: 8px; background: ${st.color};"></span>
+                <span class="t-title">${st.name}</span>
+                <span class="t-label">${st.duration}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg width="56" height="8" viewBox="0 0 56 8">
+                  <rect width="56" height="8" rx="4" fill="rgba(255,255,255,0.08)" />
+                  <rect width="${Math.round(st.pct * 0.95)}" height="8" rx="4" fill="${st.color}" />
+                </svg>
+                <span class="t-label" style="min-width: 108px; text-align: right; white-space: nowrap;">${st.context}</span>
+              </div>
+            </div>
+          `).join('')}
+        </section>
+      `;
+    }
+
+    // 4. TRENDS TAB (Metric cards + Sparkline + 30-day average + Calendar button)
+    function renderTrendsScreen() {
+      const D = window.HEALTH_DATA;
+      const cards = [
+        { id: 'hrv', title: 'HRV', avg: '59 ms', chip: '↑ 8% vs normal', key: 'hrv', min: 55, max: 63, color: '#34D399' },
+        { id: 'rhr', title: 'Resting HR', avg: '54 bpm', chip: '↓ 2 vs normal', key: 'rhr', min: 51, max: 56, color: '#34D399' },
+        { id: 'sleep', title: 'Sleep', avg: '7h 12m', chip: '↑ 4 vs normal', key: 'sleepMin', min: 410, max: 465, color: '#34D399' },
+        { id: 'readiness', title: 'Readiness', avg: '79', chip: '↑ 5 vs normal', key: 'readiness', min: 72, max: 85, color: '#34D399' },
+        { id: 'strain', title: 'Strain', avg: '75', chip: 'Within normal', key: 'strain', min: 65, max: 82, color: '#FFB86B' },
+        { id: 'spo2', title: 'Blood Oxygen', avg: '98%', chip: 'Within normal', key: 'spo2', min: 95, max: 99, color: '#34D399' },
+        { id: 'skinTemp', title: 'Skin Temp', avg: '+0.0 °C', chip: 'Within normal', key: 'skinTemp', min: -0.3, max: 0.3, color: '#34D399' }
+      ];
+
+      const slice30 = D.days.slice(60, 90);
+
+      return `
+        <header class="flex items-center justify-between" style="min-height: 48px;">
+          <div>
+            <div class="t-title">Trends</div>
+            <div class="t-label">30-day averages vs normal</div>
+          </div>
+          <button class="btn-secondary" onclick="openSheet('calendar')" aria-label="Open calendar">
+            <span class="material-symbols-rounded" style="color: #FFB86B;">calendar_month</span>
+            <span>Nov</span>
+          </button>
+        </header>
+
+        <div class="flex flex-col gap-3">
+          ${cards.map(c => {
+            const vals = slice30.map(d => d.rolling[c.key]);
+            return `
+              <section class="h-card h-card-interactive flex items-center justify-between" onclick="openDetail('${c.id}')" role="button" tabindex="0">
+                <div class="flex flex-col gap-1">
+                  <span class="t-title">${c.title}</span>
+                  <div class="flex items-baseline gap-2" style="white-space: nowrap;">
+                    <span class="t-title" style="color: #FFB86B; white-space: nowrap;">${c.avg}</span>
+                    <span class="t-label" style="white-space: nowrap;">${c.chip}</span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  ${renderSparklineSVG(vals, c.min, c.max, c.color, 92, 32)}
+                  <span class="material-symbols-rounded" style="color: var(--text-secondary);">chevron_right</span>
+                </div>
+              </section>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    // 5. MORNING CHECK FLOW (Intro -> Measuring -> Result)
+    function renderMorningCheckScreen() {
+      if (STATE.checkStep === 'intro') {
+        return `
+          <header class="flex items-center justify-between" style="min-height: 48px;">
+            <button class="tap-48 rounded-full -ml-2" onclick="navigateTab('today')" aria-label="Close">
+              <span class="material-symbols-rounded">close</span>
+            </button>
+            <span class="t-title">Morning Check</span>
+            <span style="width: 48px;"></span>
+          </header>
+
+          <section class="h-card flex flex-col items-center text-center gap-4 py-8">
+            <svg width="136" height="136" viewBox="0 0 136 136">
+              <circle cx="68" cy="68" r="56" fill="none" stroke="rgba(255,184,107,0.18)" stroke-width="6" />
+              <circle cx="68" cy="68" r="40" fill="rgba(255,184,107,0.08)" stroke="#FFB86B" stroke-width="2.5" stroke-dasharray="6 6" />
+              <path d="M44 68H56L63 50L73 86L80 68H92" fill="none" stroke="#34D399" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <div class="flex flex-col gap-2">
+              <div class="t-title">Lie still, 60 seconds</div>
+              <div class="t-label">Rest your arm flat and breathe normally.</div>
+            </div>
+            <button class="btn-amber w-full" onclick="beginMeasuringStep()">
+              <span>Begin 60-sec check</span>
+            </button>
+          </section>
+        `;
+      }
+
+      if (STATE.checkStep === 'measuring') {
+        const size = 176;
+        const stroke = 10;
+        const r = (size - stroke * 2) / 2;
+        const c = 2 * Math.PI * r;
+        const pct = (60 - STATE.checkSeconds) / 60;
+        const offset = c - pct * c;
+
+        return `
+          <header class="flex items-center justify-between" style="min-height: 48px;">
+            <button class="tap-48 rounded-full -ml-2" onclick="navigateTab('today')" aria-label="Cancel">
+              <span class="material-symbols-rounded">close</span>
+            </button>
+            <span class="t-title">Measuring HRV</span>
+            <span style="width: 48px;"></span>
+          </header>
+
+          <section class="h-card flex flex-col items-center text-center gap-4 py-6">
+            <div class="relative flex items-center justify-center" style="width:${size}px;height:${size}px;">
+              <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+                <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="${stroke}" />
+                <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#FFB86B" stroke-width="${stroke}"
+                  stroke-linecap="round" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${offset.toFixed(1)}"
+                  transform="rotate(-90 ${size/2} ${size/2})" />
+              </svg>
+              <div class="absolute flex flex-col items-center">
+                <div class="flex items-baseline gap-1">
+                  <span class="t-hero">${STATE.checkSeconds}</span>
+                  <span class="t-label">s</span>
+                </div>
+                <span class="t-label">Remaining</span>
+              </div>
+            </div>
+
+            <!-- Live Heart Rate Readout -->
+            <div class="flex items-center justify-between w-full rounded-2xl p-3" style="background: rgba(255,255,255,0.04);">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-rounded" style="color: #34D399;">favorite</span>
+                <div class="flex items-baseline gap-1">
+                  <span class="t-title">52</span>
+                  <span class="t-label">bpm · Within normal</span>
+                </div>
+              </div>
+              <svg width="84" height="28" viewBox="0 0 84 28">
+                <path d="M2 15H20L27 5L35 24L42 15H58L64 8L70 20L75 15H82" fill="none" stroke="#34D399" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </div>
+
+            <button class="btn-secondary w-full" onclick="finishMeasuringStep()">
+              <span>Complete check now</span>
+            </button>
+          </section>
+        `;
+      }
+
+      // Result step
+      return `
+        <header class="flex items-center justify-between" style="min-height: 48px;">
+          <span style="width: 48px;"></span>
+          <span class="t-title">Check Complete</span>
+          <span style="width: 48px;"></span>
+        </header>
+
+        <section class="h-card flex flex-col items-center text-center gap-3 py-5">
+          ${renderScoreRingSVG(88, 84, false)}
+          <span class="t-label">Updated Recovery Score</span>
+          <span class="t-hero">88</span>
+          <span class="chip chip-green">↑ 10% vs your normal</span>
+        </section>
+
+        <div class="grid grid-cols-2 gap-3">
+          <section class="h-card flex flex-col gap-2">
+            <span class="t-label">HRV</span>
+            <div class="flex items-baseline gap-1">
+              <span class="t-hero">66</span>
+              <span class="t-label">ms</span>
+            </div>
+            <span class="chip chip-green">↑ 10% vs normal</span>
+          </section>
+          <section class="h-card flex flex-col gap-2">
+            <span class="t-label">Resting HR</span>
+            <div class="flex items-baseline gap-1">
+              <span class="t-hero">51</span>
+              <span class="t-label">bpm</span>
+            </div>
+            <span class="chip chip-green">↓ 3 vs normal</span>
+          </section>
+        </div>
+
+        <button class="btn-amber w-full" onclick="completeMorningCheckAndReturn()">
+          <span>Done</span>
+        </button>
+      `;
+    }
+
+    // 6. COACH CHAT SCREEN (Max 3 short lines per bubble + Suggested question chips)
+    function renderCoachScreen() {
+      const questions = [
+        'Can I push hard today?',
+        'Why did my HRV rise?',
+        'How was my deep sleep?'
+      ];
+
+      return `
+        <header class="flex items-center justify-between" style="min-height: 48px;">
+          <div>
+            <div class="t-title">Coach</div>
+            <div class="t-label">Grounded in your 90-day normal</div>
+          </div>
+          <span class="chip chip-green">86 · ↑ 8% vs normal</span>
+        </header>
+
+        <!-- Chat Thread -->
+        <div class="flex flex-col gap-3 flex-1 justify-end">
+          ${STATE.chatMessages.map(msg => `
+            <div class="flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}">
+              <div class="rounded-2xl p-3 flex flex-col gap-1"
+                style="max-width: 288px; background: ${msg.role === 'user' ? '#FFB86B' : '#151E3F'}; color: ${msg.role === 'user' ? '#0B1020' : 'var(--text-primary)'}; border: 1px solid var(--border-hairline);">
+                ${msg.lines.map(line => `<div class="${msg.role === 'user' ? 't-title' : 't-label'}" style="color: ${msg.role === 'user' ? '#0B1020' : '#F8FAFC'};">${line}</div>`).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- Suggested Question Chips -->
+        <div class="flex flex-col gap-2 pt-2">
+          <span class="t-label">Suggested questions</span>
+          <div class="flex flex-wrap gap-2">
+            ${questions.map(q => `
+              <button class="btn-secondary" style="min-height: 48px; padding: 0 12px;" onclick="askCoachQuestion('${q.replace(/'/g, "\\'")}')">
+                <span>${q}</span>
+              </button>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Chat Input Bar -->
+        <form class="flex items-center gap-2" onsubmit="handleCustomCoachSubmit(event)">
+          <input id="coach-input" type="text" placeholder="Ask about your recovery..."
+            class="flex-1 rounded-2xl px-4 t-label"
+            style="height: 48px; background: #151E3F; color: #F8FAFC; border: 1px solid rgba(255,255,255,0.12); outline: none;" />
+          <button type="submit" class="btn-amber" style="width: 48px; padding: 0;" aria-label="Send">
+            <span class="material-symbols-rounded">send</span>
+          </button>
+        </form>
+      `;
+    }
+
+    // 7. SETTINGS SCREEN (Band, Sync, Backup to home server, Units, About)
+    function renderSettingsScreen() {
+      return `
+        <header class="flex items-center justify-between" style="min-height: 48px;">
+          <div>
+            <div class="t-title">Settings</div>
+            <div class="t-label">Band &amp; local server</div>
+          </div>
+          <a href="brand.html" class="btn-secondary" style="text-decoration: none;">
+            <span>Brand</span>
+          </a>
+        </header>
+
+        <!-- Band Card -->
+        <section class="h-card flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="material-symbols-rounded" style="color: #34D399;">watch</span>
+              <div>
+                <div class="t-title">Health++ Band 2</div>
+                <div class="t-label">Connected · 84% battery</div>
+              </div>
+            </div>
+            <button class="btn-secondary" onclick="openSheet('sync')">
+              <span>Re-pair</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- Sync Card -->
+        <section class="h-card flex items-center justify-between">
+          <div>
+            <div class="t-title">Background sync</div>
+            <div class="t-label">Last synced 6 min ago</div>
+          </div>
+          <button class="tap-48 rounded-full px-3" onclick="toggleSetting('autoSyncOn')"
+            style="background: ${STATE.autoSyncOn ? 'rgba(52,211,153,0.18)' : 'rgba(255,255,255,0.08)'}; color: ${STATE.autoSyncOn ? '#34D399' : 'var(--text-secondary)'}; border: none;">
+            <span class="t-label" style="color: inherit; font-weight: 700;">${STATE.autoSyncOn ? 'On' : 'Off'}</span>
+          </button>
+        </section>
+
+        <!-- Backup to Home Server Card -->
+        <section class="h-card flex items-center justify-between">
+          <div>
+            <div class="t-title">Backup to home server</div>
+            <div class="t-label">Last backup today, 06:42</div>
+          </div>
+          <button class="tap-48 rounded-full px-3" onclick="toggleSetting('serverBackupOn')"
+            style="background: ${STATE.serverBackupOn ? 'rgba(255,184,107,0.2)' : 'rgba(255,255,255,0.08)'}; color: ${STATE.serverBackupOn ? '#FFB86B' : 'var(--text-secondary)'}; border: none;">
+            <span class="t-label" style="color: inherit; font-weight: 700;">${STATE.serverBackupOn ? 'Active' : 'Paused'}</span>
+          </button>
+        </section>
+
+        <!-- Units Card -->
+        <section class="h-card flex items-center justify-between">
+          <div>
+            <div class="t-title">Units</div>
+            <div class="t-label">Distance and temperature</div>
+          </div>
+          <button class="btn-secondary" onclick="toggleUnits()">
+            <span>${STATE.units} · ${STATE.units === 'Metric' ? 'km, °C' : 'mi, °F'}</span>
+          </button>
+        </section>
+
+        <!-- About Card -->
+        <section class="h-card flex items-center justify-between">
+          <div>
+            <div class="t-title">About Health++</div>
+            <div class="t-label">Version 2.4 · Local-first storage</div>
+          </div>
+          <span class="chip">90d history</span>
+        </section>
+      `;
+    }
+
+    // BOTTOM SHEETS (Sync, Verdict Reasons, Trends Month Calendar)
+    function renderSheetContent() {
+      const backdrop = document.getElementById('sheet-backdrop');
+      const body = document.getElementById('sheet-body');
+      if (!STATE.activeSheet) {
+        backdrop.classList.remove('open');
+        body.innerHTML = '';
+        return;
+      }
+      backdrop.classList.add('open');
+
+      if (STATE.activeSheet === 'sync') {
+        body.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="t-title">Band Connection</span>
+            <button class="tap-48 rounded-full" onclick="closeSheet()" aria-label="Close">
+              <span class="material-symbols-rounded">close</span>
+            </button>
+          </div>
+          <div class="flex items-center justify-between rounded-2xl p-3" style="background: #0B1020;">
+            <div class="flex items-center gap-3">
+              <span class="material-symbols-rounded" style="color: #34D399;">bluetooth_connected</span>
+              <div>
+                <div class="t-title">Last synced 6 min ago</div>
+                <div class="t-label">Battery 84% · Signal strong</div>
+              </div>
+            </div>
+          </div>
+          <button class="btn-amber w-full" onclick="closeSheet()">
+            <span class="material-symbols-rounded">sync</span>
+            <span>Sync band</span>
+          </button>
+        `;
+      } else if (STATE.activeSheet === 'verdict') {
+        body.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="t-title">Why this verdict</span>
+            <button class="tap-48 rounded-full" onclick="closeSheet()" aria-label="Close">
+              <span class="material-symbols-rounded">close</span>
+            </button>
+          </div>
+          <div class="flex flex-col gap-2">
+            <div class="flex items-center justify-between rounded-2xl p-3" style="background: #0B1020;">
+              <span class="t-title">HRV rose to 64 ms</span>
+              <span class="chip chip-green">↑ 8% vs normal</span>
+            </div>
+            <div class="flex items-center justify-between rounded-2xl p-3" style="background: #0B1020;">
+              <span class="t-title">Resting HR dropped to 52 bpm</span>
+              <span class="chip chip-green">↓ 2 vs normal</span>
+            </div>
+            <div class="flex items-center justify-between rounded-2xl p-3" style="background: #0B1020;">
+              <span class="t-title">You slept 7h 20m</span>
+              <span class="chip chip-green">1h 35m deep</span>
+            </div>
+          </div>
+          <button class="btn-amber w-full" onclick="closeSheet()">
+            <span>Got it</span>
+          </button>
+        `;
+      } else if (STATE.activeSheet === 'calendar') {
+        // November Calendar grid (days 1..12 have scores, 4 Nov is highlighted amber/coral)
+        const novDays = window.HEALTH_DATA.days.filter(d => d.month === 10);
+        const cells = [];
+        for (let dNum = 1; dNum <= 30; dNum++) {
+          const rec = novDays.find(x => x.dayNum === dNum);
+          const sc = rec ? rec.dailyScore : null;
+          const dotColor = sc ? scoreColor(sc) : 'rgba(255,255,255,0.08)';
+          const isNov4 = dNum === 4;
+          const isToday = dNum === 12;
+          cells.push(`
+            <button class="flex flex-col items-center justify-center rounded-xl cursor-pointer"
+              style="height: 48px; background: ${isNov4 ? 'rgba(251,191,36,0.16)' : (isToday ? 'rgba(52,211,153,0.16)' : 'rgba(255,255,255,0.03)')}; border: ${isNov4 ? '1px solid #FBBF24' : 'none'};"
+              onclick="${sc ? `selectCalendarDate(${dNum})` : ''}">
+              <span class="t-label" style="color: ${sc ? '#F8FAFC' : 'var(--text-secondary)'};">${dNum}</span>
+              <span class="rounded-full mt-1" style="width: 6px; height: 6px; background: ${dotColor};"></span>
+            </button>
+          `);
+        }
+
+        body.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="t-title">November 2026</div>
+              <div class="t-label">Tap Tue 4 Nov to view history</div>
+            </div>
+            <button class="tap-48 rounded-full" onclick="closeSheet()" aria-label="Close">
+              <span class="material-symbols-rounded">close</span>
+            </button>
+          </div>
+          <div class="grid grid-cols-7 gap-1">
+            ${cells.slice(0, 14).join('')}
+          </div>
+          <button class="btn-amber w-full" onclick="selectCalendarDate(4)">
+            <span>Open Tue 4 Nov (56 · Below normal)</span>
+          </button>
+        `;
+      }
+    }
+
+    // Navigation & Interaction Handlers
+    function navigateTab(tabName) {
+      if (checkTimer) { clearInterval(checkTimer); checkTimer = null; }
+      STATE.tab = tabName;
+      STATE.activeSheet = null;
+      renderApp();
+    }
+
+    function toggleDailyExpand() {
+      STATE.dailyExpanded = !STATE.dailyExpanded;
+      renderApp();
+    }
+
+    function toggleRecoveryExpand() {
+      STATE.recoveryExpanded = !STATE.recoveryExpanded;
+      renderApp();
+    }
+
+    function openDetail(metricId) {
+      STATE.detailMetric = metricId;
+      STATE.tab = 'detail';
+      STATE.selectedDayIndex = metricId === 'hrv' ? 81 : 89; // highlight Tue 4 Nov outlier on HRV or Today
+      STATE.activeSheet = null;
+      renderApp();
+    }
+
+    function navigateBackFromDetail() {
+      STATE.tab = 'today';
+      renderApp();
+    }
+
+    function setDetailRange(range) {
+      STATE.detailRange = range;
+      renderApp();
+    }
+
+    function selectChartDay(idx) {
+      STATE.selectedDayIndex = idx;
+      renderApp();
+    }
+
+    function startMorningCheck() {
+      STATE.tab = 'check';
+      STATE.checkStep = 'intro';
+      renderApp();
+    }
+
+    function beginMeasuringStep() {
+      STATE.checkStep = 'measuring';
+      STATE.checkSeconds = 42;
+      renderApp();
+    }
+
+    function finishMeasuringStep() {
+      if (checkTimer) { clearInterval(checkTimer); checkTimer = null; }
+      STATE.checkStep = 'result';
+      renderApp();
+    }
+
+    function completeMorningCheckAndReturn() {
+      STATE.morningCheckDone = true;
+      STATE.tab = 'today';
+      renderApp();
+    }
+
+    function openSheet(name) {
+      STATE.activeSheet = name;
+      renderSheetContent();
+    }
+
+    function closeSheet() {
+      STATE.activeSheet = null;
+      renderSheetContent();
+    }
+
+    function handleBackdropClick() {
+      closeSheet();
+    }
+
+    function selectCalendarDate(dayNum) {
+      STATE.activeSheet = null;
+      STATE.viewingHistoryDate = (dayNum === 4);
+      STATE.tab = 'today';
+      renderApp();
+    }
+
+    function exitHistoryDate() {
+      STATE.viewingHistoryDate = false;
+      renderApp();
+    }
+
+    function askCoachQuestion(q) {
+      const reply = window.HEALTH_DATA.COACH_RESPONSES[q] || [
+        'Your 3-day HRV trend is 63 ms, within normal.',
+        'Sleep consistency is strong at 7h 20m.',
+        'Stay hydrated and keep your normal routine.'
+      ];
+      STATE.chatMessages.push({ role: 'user', lines: [q] });
+      STATE.chatMessages.push({ role: 'coach', lines: reply });
+      if (STATE.chatMessages.length > 3) {
+        STATE.chatMessages = STATE.chatMessages.slice(STATE.chatMessages.length - 3);
+      }
+      renderApp();
+    }
+
+    function handleCustomCoachSubmit(e) {
+      e.preventDefault();
+      const input = document.getElementById('coach-input');
+      const val = (input.value || '').trim();
+      if (!val) return;
+      askCoachQuestion(val);
+    }
+
+    function toggleSetting(key) {
+      STATE[key] = !STATE[key];
+      renderApp();
+    }
+
+    function toggleUnits() {
+      STATE.units = STATE.units === 'Metric' ? 'Imperial' : 'Metric';
+      renderApp();
+    }
+
+    function renderApp() {
+      const container = document.getElementById('screen-content');
+      if (STATE.tab === 'today') {
+        container.innerHTML = renderTodayScreen();
+      } else if (STATE.tab === 'detail') {
+        container.innerHTML = renderDetailScreen();
+      } else if (STATE.tab === 'trends') {
+        container.innerHTML = renderTrendsScreen();
+      } else if (STATE.tab === 'check') {
+        container.innerHTML = renderMorningCheckScreen();
+      } else if (STATE.tab === 'coach') {
+        container.innerHTML = renderCoachScreen();
+      } else if (STATE.tab === 'settings') {
+        container.innerHTML = renderSettingsScreen();
+      }
+
+      // Update active bottom nav state
+      const activeNav = (STATE.tab === 'detail' || STATE.tab === 'check') ? 'today' : STATE.tab;
+      ['today', 'trends', 'coach', 'settings'].forEach(id => {
+        const btn = document.getElementById('nav-' + id);
+        if (btn) btn.classList.toggle('active', id === activeNav);
+      });
+
+      renderSheetContent();
+    }
+
+    // Deterministic URL & JS State Loader for testing/screenshots/Figma capture
+    window.setAppState = function (preset) {
+      // Reset defaults
+      STATE.tab = 'today';
+      STATE.morningCheckDone = false;
+      STATE.dailyExpanded = false;
+      STATE.recoveryExpanded = false;
+      STATE.spo2Alert = false;
+      STATE.viewingHistoryDate = false;
+      STATE.activeSheet = null;
+      STATE.detailRange = 'Month';
+      STATE.selectedDayIndex = 89;
+
+      switch (preset) {
+        case 'today-morning':
+          break;
+        case 'today-daily':
+          STATE.dailyExpanded = true;
+          break;
+        case 'today-recovery':
+          STATE.recoveryExpanded = true;
+          break;
+        case 'today-alert':
+          STATE.spo2Alert = true;
+          break;
+        case 'today-sync':
+          STATE.activeSheet = 'sync';
+          break;
+        case 'today-verdict':
+          STATE.activeSheet = 'verdict';
+          break;
+        case 'today-history':
+          STATE.viewingHistoryDate = true;
+          break;
+        case 'detail-hrv':
+          STATE.tab = 'detail';
+          STATE.detailMetric = 'hrv';
+          STATE.selectedDayIndex = 81;
+          break;
+        case 'detail-sleep':
+          STATE.tab = 'detail';
+          STATE.detailMetric = 'sleep';
+          break;
+        case 'trends':
+          STATE.tab = 'trends';
+          break;
+        case 'trends-calendar':
+          STATE.tab = 'trends';
+          STATE.activeSheet = 'calendar';
+          break;
+        case 'check-intro':
+          STATE.tab = 'check';
+          STATE.checkStep = 'intro';
+          break;
+        case 'check-measuring':
+          STATE.tab = 'check';
+          STATE.checkStep = 'measuring';
+          STATE.checkSeconds = 42;
+          break;
+        case 'check-result':
+          STATE.tab = 'check';
+          STATE.checkStep = 'result';
+          break;
+        case 'coach':
+          STATE.tab = 'coach';
+          break;
+        case 'settings':
+          STATE.tab = 'settings';
+          break;
+      }
+      renderApp();
+    };
+
+    (function initFromQuery() {
+      const params = new URLSearchParams(window.location.search);
+      const st = params.get('state');
+      if (st) {
+        window.setAppState(st);
+      } else {
+        renderApp();
+      }
+    })();
+  </script>
+</body>
+</html>

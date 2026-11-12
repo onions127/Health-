@@ -1,0 +1,93 @@
+{
+  "address": "C2:56:0C:31:17:F6",
+  "timestamp": "2026-11-12T15:59:29.980791",
+  "device_info": {
+    "firmware_version": "0.0.2.3",
+    "firmware_build_date": "2025-08-18",
+    "battery_pct": 75,
+    "device_rtc": "2026-11-12T15:59:37"
+  },
+  "auto_schedule": {
+    "hr": {
+      "enabled": true,
+      "window": "00:00-23:59",
+      "interval_min": 10
+    },
+    "spo2": {
+      "enabled": true,
+      "window": "00:00-23:59",
+      "interval_min": 10
+    },
+    "temp": {
+      "enabled": true,
+      "window": "00:00-23:59",
+      "interval_min": 10
+    },
+    "hrv": {
+      "enabled": true,
+      "window": "00:00-23:59",
+      "interval_min": 10
+    }
+  },
+  "counts": {
+    "totals": 31,
+    "sleep": 550,
+    "hrv": 204,
+    "hr": 1792,
+    "temp_axil": 2560,
+    "spo2_auto": 3584,
+    "steps": 1920
+  },
+  "sleep_1200_noon_analysis": {
+    "total_sleep_blocks": 550,
+    "total_expanded_sleep_epochs": 53373,
+    "raw_post_1200_noon_epochs_count": 1112,
+    "near_1200_noon_epochs_sample": [
+      "2026-11-09T11:55:04",
+      "2026-11-09T11:56:04",
+      "2026-11-09T11:57:04",
+      "2026-11-09T11:58:04",
+      "2026-11-09T11:59:04"
+    ],
+    "inferred_post_1200_noon_sleep_minutes_from_steps_and_hr": 0,
+    "conclusion": "Raw 0x53 sleep epochs DO appear after 12:00 noon \u2014 the 12:00 cutoff is purely in the JCWear Pro app UI!"
+  },
+  "live_stream_samples_count": 9,
+  "live_stream_sample_preview": [
+    {
+      "hr": 0,
+      "spo2": 0,
+      "hrv": 73,
+      "stress": 12,
+      "temp_c": 36.4
+    },
+    {
+      "hr": 0,
+      "spo2": 0,
+      "hrv": 73,
+      "stress": 12,
+      "temp_c": 36.4
+    },
+    {
+      "hr": 0,
+      "spo2": 0,
+      "hrv": 73,
+      "stress": 12,
+      "temp_c": 36.4
+    },
+    {
+      "hr": 0,
+      "spo2": 0,
+      "hrv": 73,
+      "stress": 12,
+      "temp_c": 36.4
+    },
+    {
+      "hr": 0,
+      "spo2": 0,
+      "hrv": 73,
+      "stress": 12,
+      "temp_c": 36.4
+    }
+  ]
+}

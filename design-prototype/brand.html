@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Health++ Brand Identity</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-deep: #0B1020;
+      --bg-navy: #111833;
+      --bg-card: #151E3F;
+      --border-hairline: rgba(255, 255, 255, 0.06);
+      --text-primary: #F8FAFC;
+      --text-secondary: #A3B3CC;
+      --accent-amber: #FFB86B;
+      --score-green: #34D399;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #070B16;
+      color: var(--text-primary);
+      font-family: 'Manrope', sans-serif;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+      scrollbar-width: none;
+    }
+    ::-webkit-scrollbar {
+      display: none;
+    }
+    /* Strict 360x800 Android viewport container */
+    .phone-frame {
+      width: 100%;
+      max-width: 360px;
+      min-height: 800px;
+      background: linear-gradient(180deg, #0B1020 0%, #111833 100%);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+    }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-hairline);
+      border-radius: 20px;
+      padding: 16px;
+    }
+    /* Strictly 3 font sizes per screen: 48px hero, 16px title, 13px label */
+    .text-hero {
+      font-size: 48px;
+      line-height: 1.05;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+    .text-title {
+      font-size: 16px;
+      line-height: 1.35;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .text-label {
+      font-size: 13px;
+      line-height: 1.4;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+  </style>
+</head>
+<body>
+  <main class="phone-frame" id="brand-screen">
+    <!-- Top Header -->
+    <header class="flex items-center justify-between" style="min-height: 48px;">
+      <div>
+        <div class="text-title">Health++ Brand System</div>
+        <div class="text-label">Recovery ring &amp; readiness pulse</div>
+      </div>
+      <a href="index.html" class="flex items-center justify-center rounded-full" style="width: 48px; height: 48px; background: rgba(255,184,107,0.12); color: #FFB86B; text-decoration: none;" aria-label="Open prototype">
+        <span class="material-symbols-rounded" style="font-size: 20px;">arrow_forward</span>
+      </a>
+    </header>
+
+    <!-- 1. Geometric Mark + Horizontal Lockup -->
+    <section class="card flex flex-col gap-3">
+      <div class="flex items-center justify-between">
+        <span class="text-title">Horizontal Lockup</span>
+        <span class="text-label">Primary Mark</span>
+      </div>
+      <div class="flex items-center justify-between rounded-2xl p-3" style="background: #0B1020; border: 1px solid rgba(255,255,255,0.06);">
+        <!-- Horizontal Lockup SVG -->
+        <svg width="220" height="48" viewBox="0 0 220 48" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Health++ Horizontal Lockup">
+          <!-- Outer Navy Badge -->
+          <rect x="2" y="2" width="44" height="44" rx="12" fill="#151E3F" stroke="#FFB86B" stroke-opacity="0.28" stroke-width="1.5"/>
+          <!-- Open Recovery Ring -->
+          <path d="M36.5 24C36.5 30.9036 30.9036 36.5 24 36.5C17.0964 36.5 11.5 30.9036 11.5 24C11.5 17.0964 17.0964 11.5 24 11.5C27.4 11.5 30.48 12.86 32.73 15.06" stroke="#FFB86B" stroke-width="3.5" stroke-linecap="round"/>
+          <!-- Recovery Pulse Wave inside ring -->
+          <path d="M15.5 24.5H19.5L22 18.5L25.5 29.5L28 24.5H32" stroke="#34D399" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+          <!-- Plus Spark at top right of ring -->
+          <path d="M36.5 11.5V16.5M34 14H39" stroke="#FFB86B" stroke-width="2.5" stroke-linecap="round"/>
+          <!-- Wordmark -->
+          <text x="58" y="30" fill="#F8FAFC" font-family="Manrope, sans-serif" font-weight="800" font-size="22" letter-spacing="-0.5">Health</text>
+          <text x="129" y="30" fill="#FFB86B" font-family="Manrope, sans-serif" font-weight="800" font-size="22" letter-spacing="-0.5">++</text>
+        </svg>
+        <span class="text-label" style="color: #FFB86B; white-space: nowrap;">Inline SVG</span>
+      </div>
+    </section>
+
+    <!-- 2. 1024 App Icon + Android Adaptive Icon Safe Zone (66/108) -->
+    <section class="card flex flex-col gap-3">
+      <div class="flex items-center justify-between">
+        <span class="text-title">App Icon &amp; Safe Zone</span>
+        <span class="text-label">1024px &amp; 66/108 dp</span>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <!-- 1024x1024 App Icon Master -->
+        <div class="flex flex-col items-center gap-2 rounded-2xl p-3" style="background: #0B1020; border: 1px solid rgba(255,255,255,0.06);">
+          <svg width="96" height="96" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="1024px App Icon">
+            <defs>
+              <linearGradient id="iconBg1024" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#0B1020"/>
+                <stop offset="100%" stop-color="#172347"/>
+              </linearGradient>
+              <radialGradient id="iconGlow1024" cx="50%" cy="50%" r="48%">
+                <stop offset="0%" stop-color="#FFB86B" stop-opacity="0.22"/>
+                <stop offset="100%" stop-color="#FFB86B" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+            <rect width="1024" height="1024" rx="230" fill="url(#iconBg1024)"/>
+            <rect x="16" y="16" width="992" height="992" rx="214" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="16"/>
+            <circle cx="512" cy="512" r="420" fill="url(#iconGlow1024)"/>
+            <!-- Recovery Ring (thick, high contrast) -->
+            <path d="M804 512C804 673.267 673.267 804 512 804C350.733 804 220 673.267 220 512C220 350.733 350.733 220 512 220C592.5 220 665.4 252.6 718.3 305.3" stroke="#FFB86B" stroke-width="84" stroke-linecap="round"/>
+            <!-- Readiness Pulse Curve -->
+            <path d="M324 524H416L472 384L552 640L608 524H700" stroke="#34D399" stroke-width="64" stroke-linecap="round" stroke-linejoin="round"/>
+            <!-- Plus Sign Accent -->
+            <path d="M796 228V348M736 288H856" stroke="#FFB86B" stroke-width="60" stroke-linecap="round"/>
+          </svg>
+          <span class="text-label">1024×1024 Icon</span>
+        </div>
+
+        <!-- Android Adaptive Foreground (108x108 with 66/108 safe zone circle) -->
+        <div class="flex flex-col items-center gap-2 rounded-2xl p-3" style="background: #0B1020; border: 1px solid rgba(255,255,255,0.06);">
+          <svg width="96" height="96" viewBox="0 0 108 108" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Android Adaptive Icon 66/108 Safe Zone">
+            <!-- Full 108x108 canvas -->
+            <rect width="108" height="108" rx="18" fill="#111833"/>
+            <!-- 72dp masked icon guide -->
+            <rect x="18" y="18" width="72" height="72" rx="16" stroke="#94A3B8" stroke-opacity="0.25" stroke-width="0.75" stroke-dasharray="2 2"/>
+            <!-- 66/108 Safe Zone Circle (radius = 33, center = 54,54) -->
+            <circle cx="54" cy="54" r="33" fill="#0B1020" stroke="#34D399" stroke-opacity="0.55" stroke-width="1" stroke-dasharray="3 2"/>
+            <!-- Foreground Key Shapes strictly inside r=26 (< 33 safe zone) -->
+            <path d="M74 54C74 65.0457 65.0457 74 54 74C42.9543 74 34 65.0457 34 54C34 42.9543 42.9543 34 54 34C59.5 34 64.5 36.2 68.1 39.8" stroke="#FFB86B" stroke-width="5.5" stroke-linecap="round"/>
+            <path d="M41 54.8H47.5L51.2 45.5L56.8 62.5L60.5 54.8H67" stroke="#34D399" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M73.5 34.5V42.5M69.5 38.5H77.5" stroke="#FFB86B" stroke-width="4" stroke-linecap="round"/>
+          </svg>
+          <span class="text-label">66/108 Safe Zone</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Single-Color & Small Scale Previews (48px & 24px) -->
+    <section class="card flex flex-col gap-3">
+      <div class="flex items-center justify-between">
+        <span class="text-title">Small Scale &amp; 1-Color</span>
+        <span class="text-label" style="white-space: nowrap;">48px &amp; 24px</span>
+      </div>
+      <div class="grid grid-cols-3 gap-2">
+        <!-- Monochrome Single-Color -->
+        <div class="flex flex-col items-center justify-between rounded-2xl p-3" style="background: #0B1020; border: 1px solid rgba(255,255,255,0.06); min-height: 96px;">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Single-color mark">
+            <rect width="48" height="48" rx="12" fill="#151E3F"/>
+            <path d="M37 24C37 31.1797 31.1797 37 24 37C16.8203 37 11 31.1797 11 24C11 16.8203 16.8203 11 24 11C27.6 11 30.85 12.45 33.2 14.8" stroke="#F8FAFC" stroke-width="4" stroke-linecap="round"/>
+            <path d="M16 24.5H20L22.5 18.5L25.5 29.5L28 24.5H32" stroke="#F8FAFC" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M37 11V16.5M34.25 13.75H39.75" stroke="#F8FAFC" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+          <span class="text-label">1-Color</span>
+        </div>
+
+        <!-- Exact 48px Preview -->
+        <div class="flex flex-col items-center justify-between rounded-2xl p-3" style="background: #0B1020; border: 1px solid rgba(255,255,255,0.06); min-height: 96px;">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="48px icon preview">
+            <rect width="48" height="48" rx="12" fill="#151E3F" stroke="#FFB86B" stroke-opacity="0.3" stroke-width="1"/>
+            <path d="M37 24C37 31.1797 31.1797 37 24 37C16.8203 37 11 31.1797 11 24C11 16.8203 16.8203 11 24 11C27.6 11 30.85 12.45 33.2 14.8" stroke="#FFB86B" stroke-width="4" stroke-linecap="round"/>
+            <path d="M16 24.5H20L22.5 18.5L25.5 29.5L28 24.5H32" stroke="#34D399" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M37 11V16.5M34.25 13.75H39.75" stroke="#FFB86B" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+          <span class="text-label">48px Size</span>
+        </div>
+
+        <!-- Exact 24px Preview (Optical Bold Weights for 24x24 legibility) -->
+        <div class="flex flex-col items-center justify-between rounded-2xl p-3" style="background: #0B1020; border: 1px solid rgba(255,255,255,0.06); min-height: 96px;">
+          <div class="flex items-center justify-center" style="width: 48px; height: 48px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="24px icon preview">
+              <rect width="24" height="24" rx="6" fill="#151E3F" stroke="#FFB86B" stroke-opacity="0.4" stroke-width="1"/>
+              <path d="M19 12C19 15.866 15.866 19 12 19C8.13401 19 5 15.866 5 12C5 8.13401 8.13401 5 12 5C13.9 5 15.6 5.75 16.85 7" stroke="#FFB86B" stroke-width="2.4" stroke-linecap="round"/>
+              <path d="M7.5 12.2H9.8L11.2 8.8L12.8 15.2L14.2 12.2H16.5" stroke="#34D399" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M19 4.5V8.5M17 6.5H21" stroke="#FFB86B" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <span class="text-label">24px Size</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Color & Typography Summary Card -->
+    <section class="card flex items-center justify-between">
+      <div>
+        <div class="text-title">Deep Navy &amp; Amber</div>
+        <div class="text-label" style="white-space: nowrap;">#0B1020 · #151E3F · #FFB86B</div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="rounded-full" style="width: 24px; height: 24px; background: #0B1020; border: 1px solid rgba(255,255,255,0.2);"></span>
+        <span class="rounded-full" style="width: 24px; height: 24px; background: #FFB86B;"></span>
+        <span class="rounded-full" style="width: 24px; height: 24px; background: #34D399;"></span>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

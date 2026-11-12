@@ -1,0 +1,28 @@
+# Gradle & Android build artifacts
+.gradle/
+**/build/
+local.properties
+*.apk
+*.aab
+*.ap_
+*.dex
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Python / Homelab Server
+**/__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+.env
+*.sqlite3
+*.db
+
+# OS / Misc
+.DS_Store
+Thumbs.db

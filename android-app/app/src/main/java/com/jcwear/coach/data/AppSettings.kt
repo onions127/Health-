@@ -1,0 +1,33 @@
+package com.jcwear.coach.data
+
+import android.content.Context
+
+/**
+ * Persists user-entered connection settings in app-private storage.
+ * The prefs file is excluded from cloud backup and device transfer
+ * (see res/xml/backup_rules.xml and data_extraction_rules.xml) because it holds secrets.
+ */
+class AppSettings(context: Context) {
+    private val prefs = context.applicationContext
+        .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    var homelabBaseUrl: String
+        get() = prefs.getString(KEY_HOMELAB_URL, DEFAULT_HOMELAB_URL) ?: DEFAULT_HOMELAB_URL
+        set(value) = prefs.edit().putString(KEY_HOMELAB_URL, value.trim()).apply()
+
+    var homelabApiToken: String
+        get() = prefs.getString(KEY_HOMELAB_TOKEN, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_HOMELAB_TOKEN, value.trim()).apply()
+
+    var anthropicApiKey: String
+        get() = prefs.getString(KEY_ANTHROPIC_KEY, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_ANTHROPIC_KEY, value.trim()).apply()
+
+    companion object {
+        const val PREFS_NAME = "app_settings"
+        const val DEFAULT_HOMELAB_URL = "https://sterver.tail24d7a.ts.net:8443"
+        private const val KEY_HOMELAB_URL = "homelab_base_url"
+        private const val KEY_HOMELAB_TOKEN = "homelab_api_token"
+        private const val KEY_ANTHROPIC_KEY = "anthropic_api_key"
+    }
+}
