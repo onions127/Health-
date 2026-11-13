@@ -375,11 +375,11 @@ Synthesized from this review's findings. Each task derives from a specific findi
   - Surfaced by: 1.1 list, Outside voice #6
   - Files: ui/*, ble/J2208BleManager.kt, data/AppSettings.kt
   - Verify: fresh state shows "—" and empty states; a test asserts none of the known literals remain
-- [ ] **T5 (P1, human: ~1d / CC: ~45min)** — data+server — 1b/1c (1b part done: CleanupJob BACKUP_COPY → LOCAL_DELETE, parks at RESTORE_PENDING): CleanupJob, upsert that keeps `uploaded`, all-table batched upload, server routes + migration
+- [x] **T5 (P1, human: ~1d / CC: ~45min)** — data+server — 1b/1c (1b part done: CleanupJob BACKUP_COPY → LOCAL_DELETE, parks at RESTORE_PENDING): CleanupJob, upsert that keeps `uploaded`, all-table batched upload, server routes + migration
   - Surfaced by: D4/D9/D15/D16, N1–N6, Outside voice #5
   - Files: data/LocalHealthDatabase.kt, data/CleanupJob.kt, ai/ClaudeCoachRepository.kt, homelab-server/app/main.py, homelab-server/test_server.py
   - Verify: migration test (real rows survive, seed rows go); server pytest for purge, paging, 503 and the migration
-- [ ] **T6 (P1, human: ~1d / CC: ~45min)** — ble — 1c: suspend connect + timeout, SyncCoordinator Mutex, SyncState with named failures, battery, Recent syncs, band clock
+- [x] **T6 (P1, human: ~1d / CC: ~45min)** — ble — 1c: suspend connect + timeout, SyncCoordinator Mutex, SyncState with named failures, battery, Recent syncs, band clock
   - Surfaced by: #8, Section 2, Outside voice #4, D13
   - Files: ble/J2208BleManager.kt, ble/SyncCoordinator.kt, ui/today, ui/settings
   - Verify: fake-GATT unit test (two triggers → one session); on device, BT off → "Bluetooth off" pill

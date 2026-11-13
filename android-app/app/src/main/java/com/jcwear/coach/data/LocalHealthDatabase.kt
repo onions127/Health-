@@ -2,6 +2,7 @@ package com.jcwear.coach.data
 
 import android.content.ContentValues
 import android.content.Context
+import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteException
 import android.database.sqlite.SQLiteOpenHelper
@@ -12,12 +13,14 @@ import com.jcwear.coach.ble.J2208Protocol.SleepBlockRecord
 import com.jcwear.coach.ble.J2208Protocol.Spo2Record
 import com.jcwear.coach.ble.J2208Protocol.StepEpochRecord
 import com.jcwear.coach.ble.J2208Protocol.TempRecord
+import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException
 
 class LocalHealthDatabase(private val appContext: Context) :
-    SQLiteOpenHelper(appContext, "jcwear_local_health.db", null, 2) {
+    SQLiteOpenHelper(appContext, "jcwear_local_health.db", null, 3) {
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
@@ -88,9 +91,99 @@ class LocalHealthDatabase(private val appContext: Context) :
             )
             """.trimIndent()
         )
+        addUploadedColumns(db)
     }
 
-    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        if (oldVersion < 3) addUploadedColumns(db)
+    }
+
+    /** v3: per-row "sent to the home server" flag, so band backfills with old timestamps still upload. */
+    private fun addUploadedColumns(db: SQLiteDatabase) {
+        for (table in HISTORY_TABLE_COLUMNS.keys) {
+            db.execSQL("ALTER TABLE $table ADD COLUMN uploaded INTEGER NOT NULL DEFAULT 0")
+        }
+    }
+
+    /**
+     * UPDATE-then-INSERT for band data (ON CONFLICT DO UPDATE needs API 30; minSdk is 26).
+     * `uploaded` is reset only when the row's data actually changed, so re-fetching history doesn't re-upload it.
+     */
+    private fun writeBandRow(db: SQLiteDatabase, table: String, cv: ContentValues) {
+        if (db.insertWithOnConflict(table, null, cv, SQLiteDatabase.CONFLICT_IGNORE) != -1L) return
+        val cols = cv.keySet().filter { it != "device_time" }
+        val changed = ContentValues(cv).apply { remove("device_time"); put("uploaded", 0) }
+        db.update(
+            table, changed,
+            "device_time = ? AND (" + cols.joinToString(" OR ") { "$it IS NOT ?" } + ")",
+            arrayOf(cv.getAsString("device_time")) + cols.map { cv.getAsString(it) }
+        )
+    }
+
+    /** Up to [limit] rows not yet on the server, as JSON in the server's field names. */
+    fun pendingUpload(table: String, limit: Int = 500): List<JSONObject> {
+        val out = mutableListOf<JSONObject>()
+        readableDatabase.rawQuery("SELECT * FROM $table WHERE uploaded = 0 ORDER BY device_time LIMIT $limit", null).use { c ->
+            while (c.moveToNext()) {
+                val o = JSONObject()
+                for (i in 0 until c.columnCount) {
+                    val col = c.getColumnName(i)
+                    if (col == "uploaded") continue
+                    val name = TO_SERVER[col] ?: col
+                    when {
+                        col.endsWith("_csv") -> o.put(name, JSONArray((c.getString(i) ?: "").split(",").mapNotNull { it.toIntOrNull() }))
+                        c.getType(i) == Cursor.FIELD_TYPE_INTEGER -> o.put(name, c.getLong(i))
+                        c.getType(i) == Cursor.FIELD_TYPE_FLOAT -> o.put(name, c.getDouble(i))
+                        c.isNull(i) -> o.put(name, JSONObject.NULL)
+                        else -> o.put(name, c.getString(i))
+                    }
+                }
+                out += o
+            }
+        }
+        return out
+    }
+
+    fun markUploaded(table: String, deviceTimes: List<String>) {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            deviceTimes.forEach { db.execSQL("UPDATE $table SET uploaded = 1 WHERE device_time = ?", arrayOf(it)) }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    /** Inserts server rows whose key is missing locally (a local row always wins); returns rows added. */
+    fun insertRestored(table: String, rows: List<JSONObject>): Int {
+        val columns = HISTORY_TABLE_COLUMNS[table] ?: return 0
+        val db = writableDatabase
+        var added = 0
+        db.beginTransaction()
+        try {
+            for (o in rows) {
+                if (o.optString("raw") == "seed") continue // belt and braces: the server already filters these
+                val cv = ContentValues().apply { put("uploaded", 1) }
+                for (col in columns) {
+                    val key = TO_SERVER[col] ?: col
+                    if (!o.has(key) || o.isNull(key)) continue
+                    if (col.endsWith("_csv")) {
+                        val arr = o.getJSONArray(key)
+                        cv.put(col, (0 until arr.length()).joinToString(",") { arr.get(it).toString() }) // column affinity converts numeric text
+                    } else {
+                        cv.put(col, o.get(key).toString()) // column affinity converts numeric text
+                    }
+                }
+                if (db.insertWithOnConflict(table, null, cv, SQLiteDatabase.CONFLICT_IGNORE) != -1L) added++
+            }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+        return added
+    }
+
 
     fun upsertSleepBlocks(records: List<SleepBlockRecord>) {
         val db = writableDatabase
@@ -108,7 +201,7 @@ class LocalHealthDatabase(private val appContext: Context) :
                     put("stages_csv", r.stages.joinToString(","))
                     put("raw_hex", r.rawHex)
                 }
-                db.insertWithOnConflict("sleep_blocks", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+                writeBandRow(db, "sleep_blocks", cv)
             }
             db.setTransactionSuccessful()
         } finally {
@@ -131,7 +224,7 @@ class LocalHealthDatabase(private val appContext: Context) :
                     put("bp_dia", r.bpDia)
                     put("raw_hex", r.rawHex)
                 }
-                db.insertWithOnConflict("hrv_logs", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+                writeBandRow(db, "hrv_logs", cv)
             }
             db.setTransactionSuccessful()
         } finally {
@@ -149,7 +242,7 @@ class LocalHealthDatabase(private val appContext: Context) :
                     put("bpm", r.bpm)
                     put("raw_hex", r.rawHex)
                 }
-                db.insertWithOnConflict("hr_logs", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+                writeBandRow(db, "hr_logs", cv)
             }
             db.setTransactionSuccessful()
         } finally {
@@ -167,7 +260,7 @@ class LocalHealthDatabase(private val appContext: Context) :
                     put("spo2_pct", r.spo2Pct)
                     put("raw_hex", r.rawHex)
                 }
-                db.insertWithOnConflict("spo2_logs", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+                writeBandRow(db, "spo2_logs", cv)
             }
             db.setTransactionSuccessful()
         } finally {
@@ -185,7 +278,7 @@ class LocalHealthDatabase(private val appContext: Context) :
                     put("temp_c", r.tempC)
                     put("raw_hex", r.rawHex)
                 }
-                db.insertWithOnConflict("temp_logs", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+                writeBandRow(db, "temp_logs", cv)
             }
             db.setTransactionSuccessful()
         } finally {
@@ -206,7 +299,7 @@ class LocalHealthDatabase(private val appContext: Context) :
                     put("sub_steps_csv", r.subMinuteSteps.joinToString(","))
                     put("raw_hex", r.rawHex)
                 }
-                db.insertWithOnConflict("step_logs", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+                writeBandRow(db, "step_logs", cv)
             }
             db.setTransactionSuccessful()
         } finally {
@@ -414,6 +507,14 @@ class LocalHealthDatabase(private val appContext: Context) :
     companion object {
         private const val TAG = "LocalHealthDatabase"
         const val BUNDLED_HISTORY_ASSET = "jcwear_local_health.db"
+
+        /** Local column -> server field name, where they differ. */
+        private val TO_SERVER = mapOf(
+            "hrv_ms" to "hrv", "hr_bpm" to "hr", "raw_hex" to "raw",
+            "stages_csv" to "stages", "sub_steps_csv" to "step_series"
+        )
+
+        val HISTORY_TABLES: Set<String> get() = HISTORY_TABLE_COLUMNS.keys
 
         /** Column lists must match onCreate; used so the merge never depends on column order. */
         private val HISTORY_TABLE_COLUMNS = linkedMapOf(

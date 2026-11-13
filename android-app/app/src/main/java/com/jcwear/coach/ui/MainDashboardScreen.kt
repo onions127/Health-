@@ -10,7 +10,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import android.provider.Settings
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import com.jcwear.coach.ble.SyncCoordinator
+import com.jcwear.coach.ble.SyncFailureReason
+import com.jcwear.coach.ble.SyncState
+import org.json.JSONArray
+import kotlin.math.abs
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,12 +38,15 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainDashboardScreen(
     viewModel: DashboardViewModel,
     settings: AppSettings,
     bleManager: J2208BleManager,
+    syncCoordinator: SyncCoordinator,
     coachRepo: ClaudeCoachRepository,
+    cleanupPending: Boolean,
     onRequestBlePermissions: () -> Unit
 ) {
     val context = LocalContext.current
@@ -43,6 +56,21 @@ fun MainDashboardScreen(
     val batteryPct by bleManager.batteryPct.collectAsState()
     val liveFrames by bleManager.liveFrames.collectAsState()
     val loadFailed by viewModel.loadFailed.collectAsState()
+    val syncState by syncCoordinator.state.collectAsState()
+    val recentSyncsJson by syncCoordinator.recentSyncsJson.collectAsState()
+    // Re-render "N min ago" texts every 30 s.
+    val nowMs by produceState(System.currentTimeMillis()) {
+        while (true) { delay(30_000); value = System.currentTimeMillis() }
+    }
+    val syncing = syncState is SyncState.Connecting || syncState is SyncState.Syncing
+    val syncPill = syncPillText(syncState, nowMs)
+    val pullState = rememberPullToRefreshState()
+    if (pullState.isRefreshing) {
+        LaunchedEffect(Unit) {
+            syncCoordinator.sync("PULL").join()
+            pullState.endRefresh()
+        }
+    }
 
     // Navigation & UI state
     var currentTab by remember { mutableStateOf(MainTab.TODAY) }
@@ -66,7 +94,6 @@ fun MainDashboardScreen(
     var homelabToken by remember { mutableStateOf(settings.homelabApiToken) }
     var anthropicKey by remember { mutableStateOf(settings.anthropicApiKey) }
     var useMetricUnits by remember { mutableStateOf(settings.useMetricUnits) }
-    var lastBackupText by remember { mutableStateOf("Not backed up yet") }
 
     var chatMessages by remember { mutableStateOf(listOf<ClaudeCoachRepository.ChatMessage>()) }
     var customCoachInput by remember { mutableStateOf("") }
@@ -76,14 +103,15 @@ fun MainDashboardScreen(
         if (checkStep == CheckFlowStep.MEASURING) {
             checkCountdown = 60
             checkResultHrv = null
-            bleManager.startMorningCheck60s { rmssd ->
-                checkResultHrv = rmssd?.roundToInt()
-                checkStep = CheckFlowStep.RESULT
+            val ticker = launch {
+                while (checkCountdown > 0) {
+                    delay(1000)
+                    checkCountdown--
+                }
             }
-            while (checkCountdown > 0 && checkStep == CheckFlowStep.MEASURING) {
-                delay(1000)
-                checkCountdown--
-            }
+            checkResultHrv = syncCoordinator.morningCheck()?.roundToInt()
+            ticker.cancel()
+            if (checkStep == CheckFlowStep.MEASURING) checkStep = CheckFlowStep.RESULT
         }
     }
 
@@ -110,6 +138,7 @@ fun MainDashboardScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Brush.verticalGradient(colors = listOf(HealthColors.BgDeep, HealthColors.BgNavy)))
+            .nestedScroll(pullState.nestedScrollConnection)
     ) {
         Column(
             modifier = Modifier
@@ -169,7 +198,16 @@ fun MainDashboardScreen(
                         morningCheckDone = morningCheckCompleted,
                         dailyExpanded = dailyExpanded,
                         recoveryExpanded = recoveryExpanded,
-                        onOpenSyncSheet = { activeSheet = ActiveSheet.SYNC },
+                        syncPill = syncPill,
+                        syncing = syncing,
+                        batteryPct = batteryPct,
+                        onSyncPillClick = {
+                            when ((syncState as? SyncState.Failed)?.reason) {
+                                SyncFailureReason.PERMISSION_MISSING -> onRequestBlePermissions() // sync starts once granted
+                                SyncFailureReason.BLUETOOTH_OFF -> context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
+                                else -> syncCoordinator.sync("RETRY")
+                            }
+                        },
                         onExitHistory = { viewingHistoryDayIndex = null },
                         onStartMorningCheck = { checkStep = CheckFlowStep.INTRO },
                         onOpenVerdictSheet = { activeSheet = ActiveSheet.VERDICT },
@@ -231,25 +269,33 @@ fun MainDashboardScreen(
                 }
 
                 currentTab == MainTab.SETTINGS -> {
+                    val drift = settings.bandClockDriftSec
                     SettingsTabView(
                         connectionState = connState,
+                        syncStatusText = syncPill.first,
                         batteryPct = batteryPct,
-                        lastBackupText = lastBackupText,
+                        bandNote = drift?.takeIf { abs(it) > 120 }?.let { "Band clock is ${abs(it) / 60} min off" },
+                        lastBackupText = remember(recentSyncsJson, homelabUrl, nowMs) { // re-read after each recorded event
+                            when {
+                                homelabUrl.isBlank() -> "Set up backup"
+                                settings.lastBackupError.isNotBlank() -> "Backup failed: ${settings.lastBackupError} · Retry"
+                                settings.lastBackupAt > 0 -> "Backed up ${agoText(settings.lastBackupAt, nowMs)}"
+                                else -> "Not backed up yet"
+                            }
+                        },
+                        cleanupPending = cleanupPending,
+                        recentSyncs = remember(recentSyncsJson) {
+                            val arr = JSONArray(recentSyncsJson)
+                            (0 until arr.length()).map { recentSyncLine(arr.getJSONObject(it)) }
+                        },
+                        onForgetBand = { bleManager.forgetBand() },
                         homelabUrl = homelabUrl,
                         useMetricUnits = useMetricUnits,
                         historyDays = days.count { it.hasData },
                         onOpenSyncSheet = { activeSheet = ActiveSheet.SYNC },
                         onBackupNow = {
-                            if (homelabUrl.isBlank()) {
-                                activeSheet = ActiveSheet.SERVER_CONFIG
-                            } else {
-                                lastBackupText = "Backing up…"
-                                scope.launch {
-                                    val res = coachRepo.syncToHomelab(homelabUrl, homelabToken, recentReal)
-                                    lastBackupText = if (res.isSuccess) "Backed up just now"
-                                    else "Backup failed: ${res.exceptionOrNull()?.message?.take(60) ?: "unknown error"}"
-                                }
-                            }
+                            if (homelabUrl.isBlank()) activeSheet = ActiveSheet.SERVER_CONFIG
+                            else syncCoordinator.backupNow()
                         },
                         onEditServerUrl = { activeSheet = ActiveSheet.SERVER_CONFIG },
                         onToggleUnits = {
@@ -260,6 +306,8 @@ fun MainDashboardScreen(
                 }
             }
         }
+
+        PullToRefreshContainer(state = pullState, modifier = Modifier.align(Alignment.TopCenter))
 
         // Bottom Navigation Bar (4 tabs: Today · Trends · Coach · Settings)
         BottomNavBar(
@@ -276,6 +324,7 @@ fun MainDashboardScreen(
             BottomSheetOverlay(
                 sheet = activeSheet,
                 connectionState = connState,
+                syncStatusText = syncPill.first,
                 batteryPct = batteryPct,
                 day = activeDay,
                 days = days,
@@ -292,7 +341,7 @@ fun MainDashboardScreen(
                 },
                 onTriggerSync = {
                     onRequestBlePermissions()
-                    bleManager.scanAndConnect()
+                    syncCoordinator.sync("MANUAL")
                     activeSheet = ActiveSheet.NONE
                 },
                 onSelectHistoryDay = { idx ->

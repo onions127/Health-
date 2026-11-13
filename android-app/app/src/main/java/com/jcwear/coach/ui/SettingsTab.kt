@@ -64,8 +64,13 @@ import kotlin.math.sin
 @Composable
 internal fun SettingsTabView(
     connectionState: String,
+    syncStatusText: String,
     batteryPct: Int?,
+    bandNote: String?,
     lastBackupText: String,
+    cleanupPending: Boolean,
+    recentSyncs: List<String>,
+    onForgetBand: () -> Unit,
     homelabUrl: String,
     useMetricUnits: Boolean,
     historyDays: Int,
@@ -89,22 +94,24 @@ internal fun SettingsTabView(
 
     // 1. Band
     HealthCard {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Band", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                Text(
-                    text = "$connectionState · battery ${batteryPct?.let { "$it%" } ?: "—"}",
-                    color = HealthColors.TextSecondary,
-                    fontSize = 13.sp,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Band", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    Text(syncStatusText, color = HealthColors.TextSecondary, fontSize = 13.sp)
+                    Text(connectionState, color = HealthColors.TextSecondary, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                BatteryBadge(batteryPct)
             }
-            SecondaryActionButton(text = "Sync now", onClick = onOpenSyncSheet)
+            bandNote?.let { Text(it, color = HealthColors.ScoreAmber, fontSize = 13.sp) }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SecondaryActionButton(text = "Sync now", onClick = onOpenSyncSheet)
+                SecondaryActionButton(text = "Forget band", onClick = onForgetBand)
+            }
         }
     }
 
@@ -119,6 +126,7 @@ internal fun SettingsTabView(
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Backup to home server", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                     Text(lastBackupText, color = HealthColors.TextSecondary, fontSize = 13.sp)
+                    if (cleanupPending) Text("Finishing data cleanup…", color = HealthColors.TextSecondary, fontSize = 13.sp)
                 }
                 SecondaryActionButton(text = "Back up now", onClick = onBackupNow)
             }
@@ -138,6 +146,17 @@ internal fun SettingsTabView(
                 )
                 Text("Edit", color = HealthColors.AccentAmber, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             }
+        }
+    }
+
+    // Recent syncs (D13)
+    HealthCard {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("Recent syncs", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            if (recentSyncs.isEmpty()) {
+                Text("No syncs yet. Open the app near your band.", color = HealthColors.TextSecondary, fontSize = 13.sp)
+            }
+            recentSyncs.forEach { Text(it, color = HealthColors.TextSecondary, fontSize = 13.sp) }
         }
     }
 

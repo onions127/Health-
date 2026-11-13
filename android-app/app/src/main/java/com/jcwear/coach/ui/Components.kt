@@ -39,6 +39,10 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
@@ -189,6 +193,56 @@ internal fun InsightChip(def: MetricDef, days: List<DayMetrics>, day: DayMetrics
     StatusChip(text, status)
 }
 
+/** Today's sync status; the only spinner in the app (DS3). Announced politely to TalkBack. */
+@Composable
+internal fun SyncPill(text: String, attention: Boolean, syncing: Boolean, onClick: () -> Unit) {
+    val fg = if (attention) HealthColors.ScoreAmber else HealthColors.TextSecondary
+    Row(
+        modifier = Modifier
+            .heightIn(min = 48.dp)
+            .clip(RoundedCornerShape(24.dp))
+            .background(if (attention) Color(0x26FBBF24) else Color(0x12FFFFFF))
+            .clickable(enabled = !syncing) { onClick() }
+            .semantics { liveRegion = LiveRegionMode.Polite }
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        if (syncing) CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = fg)
+        Text(text, color = fg, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+    }
+}
+
+/** Band battery: fill level + number, red under 20% with "Charge your band", "—" when unknown. */
+@Composable
+internal fun BatteryBadge(pct: Int?) {
+    val low = pct != null && pct < 20
+    val color = if (low) HealthColors.AlertRed else HealthColors.TextSecondary
+    Row(
+        modifier = Modifier.semantics(mergeDescendants = true) {
+            contentDescription = pct?.let { "Band battery $it percent" + if (low) ", charge your band" else "" } ?: "Band battery unknown"
+        },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Canvas(Modifier.size(width = 22.dp, height = 12.dp)) {
+            val stroke = 1.5.dp.toPx()
+            drawRoundRect(color, topLeft = Offset(0f, 0f), size = Size(size.width - 3.dp.toPx(), size.height),
+                cornerRadius = CornerRadius(2.dp.toPx()), style = Stroke(stroke))
+            drawRect(color, topLeft = Offset(size.width - 2.dp.toPx(), size.height * 0.3f), size = Size(2.dp.toPx(), size.height * 0.4f))
+            if (pct != null) drawRect(
+                color,
+                topLeft = Offset(stroke * 1.5f, stroke * 1.5f),
+                size = Size((size.width - 3.dp.toPx() - stroke * 3) * pct.coerceIn(0, 100) / 100f, size.height - stroke * 3)
+            )
+        }
+        Text(
+            text = pct?.let { if (low) "$it% · Charge your band" else "$it%" } ?: "—",
+            color = color, fontSize = 13.sp, fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
 /** A null score draws only the empty track (no data). */
 @Composable
 internal fun ScoreRingGauge(
@@ -198,7 +252,7 @@ internal fun ScoreRingGauge(
 ) {
     val ringColor = score?.let { HealthColors.forScore(it) } ?: HealthColors.TextSecondary
     Box(
-        modifier = Modifier.size(if (showRadialGlow) size + 16.dp else size),
+        modifier = Modifier.requiredSize(if (showRadialGlow) size + 16.dp else size),
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.size(size)) {
@@ -255,7 +309,7 @@ internal fun SubMetricBarRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Text(title, color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             Text(contextText, color = HealthColors.TextSecondary, fontSize = 13.sp)
         }
@@ -316,7 +370,7 @@ internal fun SparklineVitalRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(title, color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                 Text(unit, color = HealthColors.TextSecondary, fontSize = 13.sp)
@@ -480,6 +534,7 @@ internal fun BottomNavBar(
 internal fun BottomSheetOverlay(
     sheet: ActiveSheet,
     connectionState: String,
+    syncStatusText: String,
     batteryPct: Int?,
     day: DayMetrics,
     days: List<DayMetrics>,
@@ -536,7 +591,8 @@ internal fun BottomSheetOverlay(
                                 .padding(14.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Text(connectionState, color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                            Text(syncStatusText, color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                            Text(connectionState, color = HealthColors.TextSecondary, fontSize = 13.sp)
                             Text("Battery ${batteryPct?.let { "$it%" } ?: "—"}", color = HealthColors.TextSecondary, fontSize = 13.sp)
                         }
                         AmberActionButton(

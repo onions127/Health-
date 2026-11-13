@@ -1,5 +1,6 @@
 package com.jcwear.coach.ble
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
@@ -13,39 +14,52 @@ import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import android.util.Log
+import com.jcwear.coach.data.AppSettings
 import com.jcwear.coach.data.LocalHealthDatabase
+import com.jcwear.coach.domain.SleepAndReadinessEngine
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
+import java.time.Duration
+import java.time.LocalDateTime
 
+/** Why a sync or check couldn't run; each maps to one user-facing message (plan 1.5). */
+enum class SyncFailureReason { BLUETOOTH_OFF, PERMISSION_MISSING, BAND_NOT_FOUND, GATT_ERROR, HISTORY_TIMEOUT }
+
+class SyncFailure(val reason: SyncFailureReason, val code: Int? = null) :
+    Exception("$reason${code?.let { " ($it)" } ?: ""}")
+
+/** Result of one history pull: rows parsed, whether any history fetch timed out, band clock drift. */
+data class HistoryResult(val rows: Int, val incomplete: Boolean, val clockDriftSec: Long?)
+
+/**
+ * Low-level J2208 GATT client. It never syncs on its own: [SyncCoordinator] calls [connect],
+ * [syncHistory] / [morningCheck60s] and [disconnect] under one lock.
+ */
 @SuppressLint("MissingPermission")
 class J2208BleManager(
     private val context: Context,
-    private val database: LocalHealthDatabase
-) {
-    companion object {
-        const val KNOWN_BAND_MAC = "C2:56:0C:31:17:F6"
-    }
-
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val database: LocalHealthDatabase,
+    private val settings: AppSettings
+) : BandLink {
     private val btManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
     private val adapter: BluetoothAdapter? get() = btManager?.adapter
 
-    private var gatt: BluetoothGatt? = null
-    private var writeChar: BluetoothGattCharacteristic? = null
+    @Volatile private var gatt: BluetoothGatt? = null
+    @Volatile private var writeChar: BluetoothGattCharacteristic? = null
+    @Volatile private var ready: CompletableDeferred<Unit>? = null
+    @Volatile private var scanning = false
 
     private val _connectionState = MutableStateFlow("Not connected")
     val connectionState: StateFlow<String> = _connectionState
 
-    private val _deviceAddress = MutableStateFlow<String?>(KNOWN_BAND_MAC)
-    val deviceAddress: StateFlow<String?> = _deviceAddress
-
-    private val _batteryPct = MutableStateFlow<Int?>(null)
+    private val _batteryPct = MutableStateFlow<Int?>(settings.lastBatteryPct.takeIf { it >= 0 })
     val batteryPct: StateFlow<Int?> = _batteryPct
 
     private val _firmwareVersion = MutableStateFlow<String?>(null)
@@ -60,90 +74,122 @@ class J2208BleManager(
     private val _morningRmssdMs = MutableStateFlow<Double?>(null)
     val morningRmssdMs: StateFlow<Double?> = _morningRmssdMs
 
-    @Volatile
-    private var activeHistoryOp: Int? = null
+    @Volatile private var bandTime: LocalDateTime? = null
+
+    @Volatile private var activeHistoryOp: Int? = null
     private val historyBuffer = java.util.concurrent.CopyOnWriteArrayList<ByteArray>()
-    @Volatile
-    private var lastHistoryRxMs: Long = 0L
+    @Volatile private var lastHistoryRxMs: Long = 0L
     private var historyDoneDeferred: CompletableDeferred<Unit>? = null
 
     var onDataUpdated: (() -> Unit)? = null
 
-    private val scanCallback = object : ScanCallback() {
-        override fun onScanResult(callbackType: Int, result: ScanResult) {
-            val dev = result.device ?: return
-            val name = result.scanRecord?.deviceName ?: dev.name ?: ""
-            val uuids = result.scanRecord?.serviceUuids?.map { it.uuid } ?: emptyList()
-            val matches = dev.address.equals(KNOWN_BAND_MAC, ignoreCase = true) ||
-                name.contains("2208", ignoreCase = true) ||
-                name.contains("J2208", ignoreCase = true) ||
-                J2208Protocol.SERVICE_UUID in uuids
+    private fun hasPermissions(): Boolean {
+        val perms = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+            listOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
+        else listOf(Manifest.permission.ACCESS_FINE_LOCATION)
+        return perms.all { context.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }
+    }
 
-            if (matches) {
-                try {
-                    adapter?.bluetoothLeScanner?.stopScan(this)
-                } catch (_: Exception) {}
-                _deviceAddress.value = dev.address
-                _connectionState.value = "Found ${name.ifBlank { "J2208A2" }} (${dev.address}) — Connecting..."
-                connectDevice(dev)
+    /**
+     * Connects and waits until notifications are on. Throws [SyncFailure]; on any failure the GATT is closed.
+     * With no saved band address it scans for any J2208 and remembers the first one found.
+     */
+    override suspend fun connect(timeoutMs: Long) {
+        val btAdapter = adapter
+        if (btAdapter == null || !btAdapter.isEnabled) throw SyncFailure(SyncFailureReason.BLUETOOTH_OFF)
+        if (!hasPermissions()) throw SyncFailure(SyncFailureReason.PERMISSION_MISSING)
+        if (gatt != null && writeChar != null) return
+
+        val d = CompletableDeferred<Unit>()
+        ready = d
+        try {
+            val address = settings.bandAddress
+            if (address.isNotBlank()) {
+                _connectionState.value = "Connecting…"
+                connectDevice(btAdapter.getRemoteDevice(address))
+            } else {
+                _connectionState.value = "Searching for your band…"
+                scanning = true
+                btAdapter.bluetoothLeScanner?.startScan(null, ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build(), scanCallback)
+                    ?: throw SyncFailure(SyncFailureReason.BLUETOOTH_OFF)
             }
+            // getRemoteDevice never fails for a known MAC, so "band not found" is this timeout.
+            withTimeout(timeoutMs) { d.await() }
+            _connectionState.value = "Connected"
+        } catch (e: TimeoutCancellationException) {
+            disconnect()
+            throw SyncFailure(SyncFailureReason.BAND_NOT_FOUND)
+        } catch (e: SecurityException) {
+            disconnect()
+            throw SyncFailure(SyncFailureReason.PERMISSION_MISSING)
+        } catch (e: SyncFailure) {
+            disconnect()
+            throw e
         }
     }
 
-    fun scanAndConnect() {
-        val btAdapter = adapter
-        if (btAdapter == null || !btAdapter.isEnabled) {
-            _connectionState.value = "Bluetooth Disabled or Unavailable"
-            return
-        }
-
-        // Fast-path: try direct connection to known MAC C2:56:0C:31:17:F6 first, plus parallel BLE scan
+    /** Always closes the GATT (an unclosed one leaks and causes status 133 later). */
+    override fun disconnect() {
         try {
-            val knownDevice = btAdapter.getRemoteDevice(KNOWN_BAND_MAC)
-            if (knownDevice != null) {
-                _connectionState.value = "Connecting to J2208A2 17F6 ($KNOWN_BAND_MAC)..."
-                connectDevice(knownDevice)
-                return
+            if (scanning) adapter?.bluetoothLeScanner?.stopScan(scanCallback)
+        } catch (e: SecurityException) {
+            Log.w(TAG, "stopScan without permission", e)
+        }
+        scanning = false
+        gatt?.let { g ->
+            try {
+                g.disconnect()
+                g.close()
+            } catch (e: SecurityException) {
+                Log.w(TAG, "GATT close without permission", e)
             }
-        } catch (_: Exception) {
-            // Fall back to BLE scanner
+        }
+        gatt = null
+        writeChar = null
+        _connectionState.value = "Not connected"
+    }
+
+    /** "Forget band": the next sync scans for any J2208 and remembers it. */
+    fun forgetBand() {
+        disconnect()
+        settings.bandAddress = ""
+        settings.lastBatteryPct = -1
+        _batteryPct.value = null
+    }
+
+    private val scanCallback = object : ScanCallback() {
+        override fun onScanResult(callbackType: Int, result: ScanResult) {
+            val dev = result.device ?: return
+            val name = result.scanRecord?.deviceName ?: ""
+            val uuids = result.scanRecord?.serviceUuids?.map { it.uuid } ?: emptyList()
+            if (!scanning || !(name.contains("2208") || J2208Protocol.SERVICE_UUID in uuids)) return
+            scanning = false
+            adapter?.bluetoothLeScanner?.stopScan(this)
+            settings.bandAddress = dev.address
+            _connectionState.value = "Found ${name.ifBlank { "J2208" }} — connecting…"
+            connectDevice(dev)
         }
 
-        val scanner = btAdapter.bluetoothLeScanner
-        if (scanner == null) {
-            _connectionState.value = "BLE Scanner Unavailable"
-            return
-        }
-        _connectionState.value = "Scanning for J2208A2 17F6 (0xFFF0)..."
-        val settings = ScanSettings.Builder()
-            .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
-            .build()
-        scanner.startScan(null, settings, scanCallback)
-        scope.launch {
-            delay(10_000)
-            if (_connectionState.value.startsWith("Scanning")) {
-                try {
-                    scanner.stopScan(scanCallback)
-                } catch (_: Exception) {}
-                _connectionState.value = "Scan Timed Out (Keep band nearby & unbound from JCWear Pro)"
-            }
+        override fun onScanFailed(errorCode: Int) {
+            ready?.completeExceptionally(SyncFailure(SyncFailureReason.GATT_ERROR, errorCode))
         }
     }
 
     private fun connectDevice(device: BluetoothDevice) {
-        try {
-            gatt?.close()
-        } catch (_: Exception) {}
+        gatt?.close()
         gatt = device.connectGatt(context, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
     }
 
     private val gattCallback = object : BluetoothGattCallback() {
         override fun onConnectionStateChange(g: BluetoothGatt, status: Int, newState: Int) {
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                Log.w(TAG, "GATT connection status $status")
+                ready?.completeExceptionally(SyncFailure(SyncFailureReason.GATT_ERROR, status))
+                return
+            }
             if (newState == BluetoothProfile.STATE_CONNECTED) {
-                _connectionState.value = "Connected — Negotiating MTU..."
                 g.requestMtu(153)
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                _connectionState.value = "Disconnected"
                 writeChar = null
             }
         }
@@ -155,25 +201,23 @@ class J2208BleManager(
         override fun onServicesDiscovered(g: BluetoothGatt, status: Int) {
             val svc = g.getService(J2208Protocol.SERVICE_UUID)
             if (svc == null) {
-                _connectionState.value = "Error: 0xFFF0 Service Not Found"
+                ready?.completeExceptionally(SyncFailure(SyncFailureReason.GATT_ERROR, status))
                 return
             }
             writeChar = svc.getCharacteristic(J2208Protocol.CHAR_WRITE_UUID)
             val notifyChar = svc.getCharacteristic(J2208Protocol.CHAR_NOTIFY_UUID)
-            if (notifyChar != null) {
+            val desc = notifyChar?.getDescriptor(J2208Protocol.CCCD_UUID)
+            if (notifyChar != null && desc != null) {
                 g.setCharacteristicNotification(notifyChar, true)
-                val desc = notifyChar.getDescriptor(J2208Protocol.CCCD_UUID)
-                if (desc != null) {
-                    desc.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-                    g.writeDescriptor(desc)
-                    return
-                }
+                desc.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                g.writeDescriptor(desc)
+                return
             }
-            onReadyToSync()
+            ready?.complete(Unit)
         }
 
         override fun onDescriptorWrite(g: BluetoothGatt, descriptor: BluetoothGattDescriptor, status: Int) {
-            onReadyToSync()
+            ready?.complete(Unit)
         }
 
         @Deprecated("Deprecated in Java")
@@ -183,31 +227,26 @@ class J2208BleManager(
         }
     }
 
-    private fun onReadyToSync() {
-        _connectionState.value = "Connected to J2208A2 17F6"
-        scope.launch {
-            delay(500)
-            syncDeviceMetadataAndHistory(intervalMin = 10) {
-                onDataUpdated?.invoke()
-            }
-        }
-    }
-
     private fun handleNotification(raw: ByteArray) {
         if (raw.isEmpty()) return
         val op = raw[0].toInt() and 0xFF
 
         when (op) {
             J2208Protocol.OP_GET_BATTERY -> if (raw.size >= 2) {
-                _batteryPct.value = raw[1].toInt() and 0xFF
+                val pct = raw[1].toInt() and 0xFF
+                _batteryPct.value = pct
+                settings.lastBatteryPct = pct
             }
             J2208Protocol.OP_GET_VERSION -> if (raw.size >= 5) {
                 _firmwareVersion.value = "v${raw[1].toInt() and 0xFF}.${raw[2].toInt() and 0xFF}.${raw[3].toInt() and 0xFF}.${raw[4].toInt() and 0xFF}"
             }
+            J2208Protocol.OP_GET_TIME -> {
+                // PROTOCOL.md 0x41: BCD yy mm dd HH MM SS from byte 1
+                bandTime = J2208Protocol.parseRecordDateTime(raw, 1)?.let { SleepAndReadinessEngine.parseDateTime(it) }
+            }
             J2208Protocol.OP_MEASUREMENT -> {
                 J2208Protocol.parseLiveSensorFrame(raw)?.let { frame ->
-                    val updated = (_liveFrames.value + frame).takeLast(120)
-                    _liveFrames.value = updated
+                    _liveFrames.value = (_liveFrames.value + frame).takeLast(120)
                 }
             }
             activeHistoryOp -> {
@@ -230,55 +269,45 @@ class J2208BleManager(
         g.writeCharacteristic(ch)
     }
 
-    suspend fun syncDeviceMetadataAndHistory(intervalMin: Int = 10, onSyncComplete: (() -> Unit)? = null) {
-        if (gatt == null || writeChar == null) {
-            scanAndConnect()
-            return
-        }
-        _connectionState.value = "Syncing J2208A2 Vitals & Sleep..."
+    /** Pulls all history into the DB. Requires [connect]. A timed-out fetch keeps its partial rows. */
+    override suspend fun syncHistory(intervalMin: Int, onStep: (String) -> Unit): HistoryResult {
+        onStep("Reading band")
+        bandTime = null
         sendPacket(J2208Protocol.buildFrame(J2208Protocol.OP_GET_VERSION))
         delay(300)
         sendPacket(J2208Protocol.buildFrame(J2208Protocol.OP_GET_BATTERY))
         delay(300)
+        val askedAt = LocalDateTime.now()
+        sendPacket(J2208Protocol.buildFrame(J2208Protocol.OP_GET_TIME))
+        delay(300)
+        val drift = bandTime?.let { Duration.between(askedAt, it).seconds }
 
-        for (metric in listOf(
-            J2208Protocol.METRIC_HR,
-            J2208Protocol.METRIC_HRV,
-            J2208Protocol.METRIC_SPO2,
-            J2208Protocol.METRIC_TEMP
-        )) {
+        for (metric in listOf(J2208Protocol.METRIC_HR, J2208Protocol.METRIC_HRV, J2208Protocol.METRIC_SPO2, J2208Protocol.METRIC_TEMP)) {
             sendPacket(J2208Protocol.buildSetAutoIntervalFrame(metric, intervalMin, true))
             delay(300)
         }
 
-        _connectionState.value = "Syncing Sleep (0x53)..."
-        val sleepPkts = fetchHistoryPackets(J2208Protocol.OP_HISTORY_SLEEP)
-        database.upsertSleepBlocks(sleepPkts.flatMap { J2208Protocol.parseSleepPacket(it) })
-
-        _connectionState.value = "Syncing HRV & Stress (0x56)..."
-        val hrvPkts = fetchHistoryPackets(J2208Protocol.OP_HISTORY_HRV)
-        database.upsertHrvRecords(hrvPkts.flatMap { J2208Protocol.parseHrvPacket(it) })
-
-        _connectionState.value = "Syncing Heart Rate (0x55)..."
-        val hrPkts = fetchHistoryPackets(J2208Protocol.OP_HISTORY_HR)
-        database.upsertHrRecords(hrPkts.flatMap { J2208Protocol.parseHrPacket(it) })
-
-        _connectionState.value = "Syncing SpO2 (0x66) & Temp (0x65)..."
-        val spo2Pkts = fetchHistoryPackets(J2208Protocol.OP_HISTORY_SPO2)
-        database.upsertSpo2Records(spo2Pkts.flatMap { J2208Protocol.parseSpo2Packet(it) })
-
-        val tempPkts = fetchHistoryPackets(J2208Protocol.OP_HISTORY_TEMP)
-        database.upsertTempRecords(tempPkts.flatMap { J2208Protocol.parseTempPacket(it) })
-
-        _connectionState.value = "Syncing Steps (0x52)..."
-        val stepPkts = fetchHistoryPackets(J2208Protocol.OP_HISTORY_STEPS)
-        database.upsertStepRecords(stepPkts.flatMap { J2208Protocol.parseStepsPacket(it) })
-
-        _connectionState.value = "Synced J2208A2 (${intervalMin}m 24/7 sampling active)"
-        onSyncComplete?.invoke()
+        var rows = 0
+        var incomplete = false
+        suspend fun <T> pull(step: String, op: Int, parse: (ByteArray) -> List<T>, store: (List<T>) -> Unit) {
+            onStep(step)
+            val (pkts, done) = fetchHistoryPackets(op)
+            if (!done) incomplete = true
+            val recs = pkts.flatMap(parse)
+            store(recs)
+            rows += recs.size
+        }
+        pull("Sleep", J2208Protocol.OP_HISTORY_SLEEP, J2208Protocol::parseSleepPacket, database::upsertSleepBlocks)
+        pull("HRV", J2208Protocol.OP_HISTORY_HRV, J2208Protocol::parseHrvPacket, database::upsertHrvRecords)
+        pull("Heart rate", J2208Protocol.OP_HISTORY_HR, J2208Protocol::parseHrPacket, database::upsertHrRecords)
+        pull("Blood oxygen", J2208Protocol.OP_HISTORY_SPO2, J2208Protocol::parseSpo2Packet, database::upsertSpo2Records)
+        pull("Skin temperature", J2208Protocol.OP_HISTORY_TEMP, J2208Protocol::parseTempPacket, database::upsertTempRecords)
+        pull("Steps", J2208Protocol.OP_HISTORY_STEPS, J2208Protocol::parseStepsPacket, database::upsertStepRecords)
+        return HistoryResult(rows, incomplete, drift)
     }
 
-    private suspend fun fetchHistoryPackets(opcode: Int, maxTimeoutMs: Long = 25_000L): List<ByteArray> {
+    /** Returns packets and whether the band sent its end marker before [maxTimeoutMs]. */
+    private suspend fun fetchHistoryPackets(opcode: Int, maxTimeoutMs: Long = 25_000L): Pair<List<ByteArray>, Boolean> {
         historyBuffer.clear()
         activeHistoryOp = opcode
         val deferred = CompletableDeferred<Unit>()
@@ -295,33 +324,33 @@ class J2208BleManager(
             }
         }
         activeHistoryOp = null
-        return historyBuffer.toList()
+        if (!deferred.isCompleted) Log.w(TAG, "History 0x${opcode.toString(16)} timed out after ${historyBuffer.size} packets")
+        return historyBuffer.toList() to deferred.isCompleted
     }
 
-    /** [onFinished] gets null when no usable HRV was measured; nothing is stored then. */
-    fun startMorningCheck60s(onFinished: (Double?) -> Unit) {
-        scope.launch {
-            _liveFrames.value = emptyList()
-            _liveStatus.value = "Measuring Live HR, HRV, SpO2 & Temp (60s)..."
-            sendPacket(J2208Protocol.buildStartLiveMeasurementFrame(type = 2, start = true, openPpg = false, openPpi = true))
-            for (sec in 60 downTo 1) {
-                _liveStatus.value = "Live Morning Check: ${sec}s remaining..."
-                delay(1000)
-            }
-            sendPacket(J2208Protocol.buildStartLiveMeasurementFrame(type = 2, start = false, openPpg = false, openPpi = false))
-            val frames = _liveFrames.value
-            val pseudoPpi = frames.mapNotNull { if (it.hrBpm in 40..180) (60000 / it.hrBpm) else null }
-            val directHrv = frames.mapNotNull { it.hrvMs.takeIf { v -> v > 0 } }.average().takeIf { !it.isNaN() }
-            val rmssd = directHrv ?: com.jcwear.coach.domain.SleepAndReadinessEngine.calculateRmssdFromPpi(pseudoPpi)
-                .takeIf { it > 0.0 }
-            if (rmssd == null) {
-                _liveStatus.value = "Check failed, try again"
-                onFinished(null)
-                return@launch
-            }
-            _morningRmssdMs.value = rmssd
-            _liveStatus.value = "Morning Check Complete: HRV ${String.format("%.1f", rmssd)} ms"
-            onFinished(rmssd)
+    /** 60 s live measurement. Requires [connect]. Returns RMSSD, or null when no usable HRV was measured. */
+    override suspend fun morningCheck60s(): Double? {
+        _liveFrames.value = emptyList()
+        sendPacket(J2208Protocol.buildStartLiveMeasurementFrame(type = 2, start = true, openPpg = false, openPpi = true))
+        for (sec in 60 downTo 1) {
+            _liveStatus.value = "Live Morning Check: ${sec}s remaining..."
+            delay(1000)
         }
+        sendPacket(J2208Protocol.buildStartLiveMeasurementFrame(type = 2, start = false, openPpg = false, openPpi = false))
+        val frames = _liveFrames.value
+        val pseudoPpi = frames.mapNotNull { if (it.hrBpm in 40..180) (60000 / it.hrBpm) else null }
+        val directHrv = frames.mapNotNull { it.hrvMs.takeIf { v -> v > 0 } }.average().takeIf { !it.isNaN() }
+        val rmssd = directHrv ?: SleepAndReadinessEngine.calculateRmssdFromPpi(pseudoPpi).takeIf { it > 0.0 }
+        if (rmssd == null) {
+            _liveStatus.value = "Check failed, try again"
+            return null
+        }
+        _morningRmssdMs.value = rmssd
+        _liveStatus.value = "Morning Check Complete: HRV ${String.format("%.1f", rmssd)} ms"
+        return rmssd
+    }
+
+    companion object {
+        private const val TAG = "J2208BleManager"
     }
 }

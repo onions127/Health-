@@ -51,6 +51,8 @@ import com.jcwear.coach.domain.SleepAndReadinessEngine
 import com.jcwear.coach.domain.DailySeriesRepository
 import com.jcwear.coach.domain.DayMetrics
 import com.jcwear.coach.domain.Status
+import com.jcwear.coach.ble.SyncFailureReason
+import com.jcwear.coach.ble.SyncState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -119,3 +121,42 @@ fun buildDashboardState(
     morningRmssd: Double?,
     today: LocalDate
 ): List<DayMetrics> = DailySeriesRepository(database).load(today, morningRmssd)
+
+/** "just now", "12 min ago", "3 h ago", "2 days ago". */
+fun agoText(thenMs: Long, nowMs: Long): String {
+    val min = (nowMs - thenMs).coerceAtLeast(0) / 60_000
+    return when {
+        min < 1 -> "just now"
+        min < 60 -> "$min min ago"
+        min < 48 * 60 -> "${min / 60} h ago"
+        else -> "${min / (24 * 60)} days ago"
+    }
+}
+
+/** Today's sync pill (plan 1.5): text and whether it needs attention (amber). */
+fun syncPillText(state: SyncState, nowMs: Long): Pair<String, Boolean> = when (state) {
+    SyncState.Idle -> "Not synced yet · Sync" to true
+    SyncState.Connecting, is SyncState.Syncing -> "Syncing…" to false
+    is SyncState.Synced ->
+        if (nowMs - state.at > 6 * 3_600_000L) "Last sync ${agoText(state.at, nowMs)}" to true
+        else "Synced ${agoText(state.at, nowMs)}" to false
+    is SyncState.Failed -> when (state.reason) {
+        SyncFailureReason.BLUETOOTH_OFF -> "Bluetooth off · Turn on"
+        SyncFailureReason.PERMISSION_MISSING -> "Allow Bluetooth"
+        SyncFailureReason.BAND_NOT_FOUND -> "Band not found · Retry"
+        SyncFailureReason.GATT_ERROR -> "Couldn't connect · Retry"
+        SyncFailureReason.HISTORY_TIMEOUT -> "Sync incomplete · Retry"
+    } to true
+}
+
+/** One "Recent syncs" line from a SyncCoordinator event, e.g. "13 Nov 09:12 · OPEN · OK · 1240 rows · 48 s · backup OK". */
+fun recentSyncLine(e: org.json.JSONObject): String = listOfNotNull(
+    java.time.Instant.ofEpochMilli(e.optLong("at")).atZone(java.time.ZoneId.systemDefault())
+        .format(DateTimeFormatter.ofPattern("d MMM HH:mm", Locale.ENGLISH)),
+    e.optString("trigger"),
+    e.optString("result").takeIf { it.isNotEmpty() }?.let { r -> e.optString("reason").takeIf { it.isNotEmpty() }?.let { "$r ($it)" } ?: r },
+    e.optInt("rows", -1).takeIf { it >= 0 }?.let { "$it rows" },
+    e.optLong("ms", -1).takeIf { it >= 0 }?.let { "${it / 1000} s" },
+    e.optString("backup").takeIf { it.isNotEmpty() }?.let { "backup $it" },
+    e.optLong("drift_s", 0).takeIf { kotlin.math.abs(it) > 120 }?.let { "clock ${it / 60} min off" }
+).joinToString(" · ")

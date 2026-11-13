@@ -37,7 +37,49 @@ class AppSettings(context: Context) {
         get() = prefs.getString(KEY_CLEANUP_STATE, null)
         set(value) = prefs.edit().putString(KEY_CLEANUP_STATE, value).apply()
 
+    /** Band to connect to; blank after "Forget band" means scan for any J2208. */
+    var bandAddress: String
+        // shortcut: defaults to the owner's band so existing installs keep working; drop with multi-user support
+        get() = prefs.getString(KEY_BAND_ADDRESS, DEFAULT_BAND_ADDRESS) ?: ""
+        set(value) = prefs.edit().putString(KEY_BAND_ADDRESS, value).apply()
+
+    var lastSyncAt: Long
+        get() = prefs.getLong(KEY_LAST_SYNC_AT, 0L)
+        set(value) = prefs.edit().putLong(KEY_LAST_SYNC_AT, value).apply()
+
+    /** -1 = never read. */
+    var lastBatteryPct: Int
+        get() = prefs.getInt(KEY_LAST_BATTERY, -1)
+        set(value) = prefs.edit().putInt(KEY_LAST_BATTERY, value).apply()
+
+    var lastBackupAt: Long
+        get() = prefs.getLong(KEY_LAST_BACKUP_AT, 0L)
+        set(value) = prefs.edit().putLong(KEY_LAST_BACKUP_AT, value).apply()
+
+    /** Last backup failure text, blank after a success. */
+    var lastBackupError: String
+        get() = prefs.getString(KEY_LAST_BACKUP_ERROR, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_LAST_BACKUP_ERROR, value).apply()
+
+    /** Band clock minus phone clock at the last sync, in seconds; null if never read. */
+    var bandClockDriftSec: Long?
+        get() = if (prefs.contains(KEY_CLOCK_DRIFT)) prefs.getLong(KEY_CLOCK_DRIFT, 0L) else null
+        set(value) = prefs.edit().apply { if (value == null) remove(KEY_CLOCK_DRIFT) else putLong(KEY_CLOCK_DRIFT, value) }.apply()
+
+    /** Last 20 sync/backup events as a JSON array, newest first (D13). */
+    var recentSyncsJson: String
+        get() = prefs.getString(KEY_RECENT_SYNCS, "[]") ?: "[]"
+        set(value) = prefs.edit().putString(KEY_RECENT_SYNCS, value).apply()
+
     companion object {
+        const val DEFAULT_BAND_ADDRESS = "C2:56:0C:31:17:F6"
+        private const val KEY_BAND_ADDRESS = "band_address"
+        private const val KEY_LAST_SYNC_AT = "last_sync_at"
+        private const val KEY_LAST_BATTERY = "last_battery_pct"
+        private const val KEY_LAST_BACKUP_AT = "last_backup_at"
+        private const val KEY_LAST_BACKUP_ERROR = "last_backup_error"
+        private const val KEY_CLOCK_DRIFT = "band_clock_drift_sec"
+        private const val KEY_RECENT_SYNCS = "recent_syncs"
         private const val KEY_METRIC_UNITS = "use_metric_units"
         private const val KEY_CLEANUP_STATE = "cleanup_state"
         const val PREFS_NAME = "app_settings"

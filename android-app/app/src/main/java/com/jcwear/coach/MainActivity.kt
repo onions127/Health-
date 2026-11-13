@@ -14,21 +14,29 @@ class MainActivity : ComponentActivity() {
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { _ -> }
+    ) { granted -> if (granted.values.all { it }) container.syncCoordinator.sync("PERMISSION") }
+
+    private val container get() = (application as HealthApp).container
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val container = (application as HealthApp).container
 
         setContent {
             MainDashboardScreen(
                 viewModel = viewModel { DashboardViewModel(container.database, container.bleManager) },
                 settings = container.settings,
                 bleManager = container.bleManager,
+                syncCoordinator = container.syncCoordinator,
                 coachRepo = container.coachRepo,
+                cleanupPending = container.cleanup.serverStepsPending,
                 onRequestBlePermissions = ::requestBlePermissions
             )
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        container.syncCoordinator.sync("OPEN") // a sync already running is joined, not doubled
     }
 
     private fun requestBlePermissions() {

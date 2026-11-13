@@ -77,7 +77,10 @@ internal fun TodayTabView(
     morningCheckDone: Boolean,
     dailyExpanded: Boolean,
     recoveryExpanded: Boolean,
-    onOpenSyncSheet: () -> Unit,
+    syncPill: Pair<String, Boolean>,
+    syncing: Boolean,
+    batteryPct: Int?,
+    onSyncPillClick: () -> Unit,
     onExitHistory: () -> Unit,
     onStartMorningCheck: () -> Unit,
     onOpenVerdictSheet: () -> Unit,
@@ -95,7 +98,7 @@ internal fun TodayTabView(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = if (isHistoricalView) day.label else greetingFor(LocalTime.now()),
                 color = HealthColors.TextPrimary,
@@ -116,22 +119,14 @@ internal fun TodayTabView(
             if (isHistoricalView) {
                 AmberActionButton(text = "Back to today", onClick = onExitHistory)
             }
-            // shortcut: neutral dot until 1c adds the real sync status pill
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(Color(0x0AFFFFFF))
-                    .clickable { onOpenSyncSheet() },
-                contentAlignment = Alignment.Center
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(10.dp)
-                        .clip(CircleShape)
-                        .background(HealthColors.TextSecondary)
-                )
-            }
+        }
+    }
+
+    // Sync status pill + band battery (always visible, plan 1.5)
+    if (!isHistoricalView) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            SyncPill(text = syncPill.first, attention = syncPill.second, syncing = syncing, onClick = onSyncPillClick)
+            BatteryBadge(batteryPct)
         }
     }
 
@@ -332,7 +327,7 @@ private fun ScoreHeaderRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(title, color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
