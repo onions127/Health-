@@ -216,7 +216,7 @@ internal fun TodayTabView(
     // 5. Daily Score (expands in place to Readiness / Sleep / Strain)
     HealthCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            ScoreHeaderRow("Daily Score", day.daily, Metrics.daily, days, day, 72.dp, onToggleDailyExpand)
+            ScoreHeaderRow("Daily Score", day.daily, Metrics.daily, days, day, onToggleDailyExpand)
             AnimatedVisibility(
                 visible = dailyExpanded,
                 enter = expandVertically() + fadeIn(),
@@ -253,7 +253,7 @@ internal fun TodayTabView(
     // 6. Recovery (expands to HRV & Resting HR with 7-day sparklines)
     HealthCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            ScoreHeaderRow("Recovery", day.recovery, Metrics.recovery, days, day, 60.dp, onToggleRecoveryExpand)
+            ScoreHeaderRow("Recovery", day.recovery, Metrics.recovery, days, day, onToggleRecoveryExpand)
             AnimatedVisibility(
                 visible = recoveryExpanded,
                 enter = expandVertically() + fadeIn(),
@@ -316,7 +316,6 @@ private fun ScoreHeaderRow(
     def: MetricDef,
     days: List<DayMetrics>,
     day: DayMetrics,
-    ringSize: Dp,
     onToggle: () -> Unit
 ) {
     Row(
@@ -339,6 +338,6 @@ private fun ScoreHeaderRow(
                 if (score != null) InsightChip(def, days, day)
             }
         }
-        ScoreRingGauge(score = score, size = ringSize, showRadialGlow = false)
+        ScoreRingGauge(score = score, size = 60.dp, showRadialGlow = false)
     }
 }

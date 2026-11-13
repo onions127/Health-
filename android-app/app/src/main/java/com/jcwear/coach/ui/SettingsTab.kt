@@ -71,6 +71,8 @@ internal fun SettingsTabView(
     cleanupPending: Boolean,
     recentSyncs: List<String>,
     onForgetBand: () -> Unit,
+    companionPaired: Boolean,
+    onPairCompanion: () -> Unit,
     homelabUrl: String,
     useMetricUnits: Boolean,
     historyDays: Int,
@@ -108,6 +110,12 @@ internal fun SettingsTabView(
                 BatteryBadge(batteryPct)
             }
             bandNote?.let { Text(it, color = HealthColors.ScoreAmber, fontSize = 13.sp) }
+            if (companionPaired) {
+                Text("Background sync every 30 min", color = HealthColors.TextSecondary, fontSize = 13.sp)
+            } else {
+                Text("Pair as companion so the band also syncs in the background.", color = HealthColors.TextSecondary, fontSize = 13.sp)
+                AmberActionButton(text = "Pair as companion", onClick = onPairCompanion)
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SecondaryActionButton(text = "Sync now", onClick = onOpenSyncSheet)
                 SecondaryActionButton(text = "Forget band", onClick = onForgetBand)

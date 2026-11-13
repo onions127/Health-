@@ -391,7 +391,7 @@ Synthesized from this review's findings. Each task derives from a specific findi
   - Surfaced by: #1, #2, #7, D10
   - Files: ui/components, ui/today, ui/settings
   - Verify: on device; profile validation unit test
-- [ ] **T9 (P2, human: ~1d / CC: ~45min)** — ble — 1d: background 30-min sync (mechanism decided in eng review)
+- [x] **T9 (P2, human: ~1d / CC: ~45min)** — ble — 1d: background 30-min sync (mechanism decided in eng review)
   - Surfaced by: D3, D18
   - Files: to be determined
   - Verify: phone locked for 2 h → Recent syncs shows about 4 background syncs

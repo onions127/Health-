@@ -47,6 +47,9 @@ fun MainDashboardScreen(
     syncCoordinator: SyncCoordinator,
     coachRepo: ClaudeCoachRepository,
     cleanupPending: Boolean,
+    companionPaired: Boolean,
+    onPairCompanion: () -> Unit,
+    onForgetBand: () -> Unit,
     onRequestBlePermissions: () -> Unit
 ) {
     val context = LocalContext.current
@@ -288,7 +291,9 @@ fun MainDashboardScreen(
                             val arr = JSONArray(recentSyncsJson)
                             (0 until arr.length()).map { recentSyncLine(arr.getJSONObject(it)) }
                         },
-                        onForgetBand = { bleManager.forgetBand() },
+                        onForgetBand = onForgetBand,
+                        companionPaired = companionPaired,
+                        onPairCompanion = onPairCompanion,
                         homelabUrl = homelabUrl,
                         useMetricUnits = useMetricUnits,
                         historyDays = days.count { it.hasData },

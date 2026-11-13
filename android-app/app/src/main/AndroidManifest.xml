@@ -7,6 +7,10 @@
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 1d: a companion-device association exempts the background sync from standby deferral (D21) -->
+    <uses-permission android:name="android.permission.REQUEST_COMPANION_RUN_IN_BACKGROUND" />
+    <uses-permission android:name="android.permission.REQUEST_COMPANION_USE_DATA_IN_BACKGROUND" />
+    <uses-feature android:name="android.software.companion_device_setup" android:required="false" />
 
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
 
