@@ -80,10 +80,7 @@ internal fun SleepDetailView(
                 )
                 InsightChip(Metrics.sleep, days, day)
             }
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                ScoreRingGauge(score = day.sleepScore, size = 68.dp, showRadialGlow = false)
-                Text("Score ${day.sleepScore ?: "—"}", color = HealthColors.TextSecondary, fontSize = 13.sp)
-            }
+            ScoreRingGauge(score = day.sleepScore, size = 76.dp, showRadialGlow = false, label = "Score")
         }
         Spacer(Modifier.height(8.dp))
         Text(

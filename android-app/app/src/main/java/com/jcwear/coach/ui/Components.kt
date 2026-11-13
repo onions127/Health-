@@ -248,7 +248,9 @@ internal fun BatteryBadge(pct: Int?) {
 internal fun ScoreRingGauge(
     score: Int?,
     size: Dp,
-    showRadialGlow: Boolean
+    showRadialGlow: Boolean,
+    text: String? = score?.toString(),
+    label: String? = null
 ) {
     val ringColor = score?.let { HealthColors.forScore(it) } ?: HealthColors.TextSecondary
     Box(
@@ -285,6 +287,11 @@ internal fun ScoreRingGauge(
                 size = arcSize,
                 style = Stroke(width = stroke, cap = StrokeCap.Round)
             )
+        }
+        // Plan 3.1: the number lives inside the ring, white for contrast
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(text ?: "—", color = HealthColors.TextPrimary, fontSize = (size.value * 0.3f).sp, fontWeight = FontWeight.Bold)
+            label?.let { Text(it, color = HealthColors.TextSecondary, fontSize = 11.sp) }
         }
     }
 }

@@ -81,6 +81,7 @@ internal fun TodayTabView(
     syncing: Boolean,
     batteryPct: Int?,
     useMetricUnits: Boolean,
+    userName: String,
     onSyncPillClick: () -> Unit,
     onExitHistory: () -> Unit,
     onStartMorningCheck: () -> Unit,
@@ -101,7 +102,7 @@ internal fun TodayTabView(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = if (isHistoricalView) day.label else greetingFor(LocalTime.now()),
+                text = if (isHistoricalView) day.label else greetingFor(LocalTime.now(), userName),
                 color = HealthColors.TextPrimary,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold
@@ -156,25 +157,6 @@ internal fun TodayTabView(
             )
         }
         return
-    }
-
-    // 3. Coach verdict (one line; tapping opens the reasons sheet)
-    HealthCard(onClick = onOpenVerdictSheet) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = verdictFor(day.recovery),
-                color = HealthColors.TextPrimary,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.weight(1f)
-            )
-            Spacer(Modifier.width(8.dp))
-            Text("›", color = HealthColors.TextSecondary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        }
     }
 
     // 4. Alert when overnight blood oxygen is low (real value)
@@ -300,8 +282,9 @@ internal fun TodayTabView(
                     if (useMetricUnits) String.format(Locale.US, " · %.1f km", it)
                     else String.format(Locale.US, " · %.1f mi", it * 0.621371)
                 } ?: ""
+                val kcal = day.caloriesKcal?.let { String.format(Locale.US, " · %.0f kcal", it) + if (day.caloriesEstimated) " est." else "" } ?: ""
                 Text(
-                    text = day.steps?.let { "${String.format(Locale.US, "%,d", it)} steps$distance" } ?: "No steps yet today",
+                    text = day.steps?.let { "${String.format(Locale.US, "%,d", it)} steps$distance$kcal" } ?: "No steps yet today",
                     color = HealthColors.TextPrimary,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold
@@ -309,8 +292,28 @@ internal fun TodayTabView(
                 if (day.steps != null) InsightChip(Metrics.steps, days, day)
             }
             if (day.steps != null && stepsBase != null) {
-                ScoreRingGauge(score = (day.steps * 100.0 / stepsBase.mean).roundToInt().coerceAtMost(100), size = 48.dp, showRadialGlow = false)
+                val pct = (day.steps * 100.0 / stepsBase.mean).roundToInt()
+                ScoreRingGauge(score = pct.coerceAtMost(100), size = 56.dp, showRadialGlow = false, text = "$pct%")
             }
+        }
+    }
+
+    // 8. Recovery summary, last and full width (plan 3.2; tapping opens the reasons sheet)
+    HealthCard(onClick = onOpenVerdictSheet) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = verdictFor(day.recovery),
+                color = HealthColors.TextPrimary,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text("›", color = HealthColors.TextSecondary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -335,16 +338,8 @@ private fun ScoreHeaderRow(
     ) {
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(title, color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(
-                    text = score?.toString() ?: "—",
-                    color = HealthColors.TextPrimary,
-                    fontSize = 48.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                if (score != null) InsightChip(def, days, day)
-            }
+            if (score != null) InsightChip(def, days, day)
         }
-        ScoreRingGauge(score = score, size = 60.dp, showRadialGlow = false)
+        ScoreRingGauge(score = score, size = 72.dp, showRadialGlow = false)
     }
 }

@@ -28,7 +28,7 @@ class AppContainer(context: Context) {
         settings = settings,
         homelab = homelab,
         cleanup = cleanup,
-        loadDays = { DailySeriesRepository(database).load(LocalDate.now(), bleManager.morningRmssdMs.value) },
+        loadDays = { DailySeriesRepository(database).load(LocalDate.now(), bleManager.morningRmssdMs.value, settings.heightCm, settings.weightKg) },
         onDataChanged = { bleManager.onDataUpdated?.invoke() }
     )
 }

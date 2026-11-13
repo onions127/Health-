@@ -1,5 +1,16 @@
 package com.jcwear.coach.ui
 
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.input.KeyboardType
+import com.jcwear.coach.domain.parseHeightCm
+import com.jcwear.coach.domain.parseWeightKg
+
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -79,7 +90,13 @@ internal fun SettingsTabView(
     onOpenSyncSheet: () -> Unit,
     onBackupNow: () -> Unit,
     onEditServerUrl: () -> Unit,
-    onToggleUnits: () -> Unit
+    onToggleUnits: () -> Unit,
+    profileName: String,
+    heightText: String,
+    weightText: String,
+    onSaveName: (String) -> Unit,
+    onSaveHeight: (String) -> Unit,
+    onSaveWeight: (String) -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -91,6 +108,20 @@ internal fun SettingsTabView(
         Column {
             Text("Settings", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             Text("Band & local server", color = HealthColors.TextSecondary, fontSize = 13.sp)
+        }
+    }
+
+    // Profile (plan 3.3): greeting, distance and calorie estimates. Saved as you type, once valid.
+    HealthCard {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Profile", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            ProfileField("Name", profileName, KeyboardType.Text, { true }, onSaveName)
+            key(useMetricUnits) { // re-seed the fields in the new unit
+                ProfileField(if (useMetricUnits) "Height (cm)" else "Height (in)", heightText, KeyboardType.Number,
+                    { parseHeightCm(it, useMetricUnits) != null }, onSaveHeight)
+                ProfileField(if (useMetricUnits) "Weight (kg)" else "Weight (lb)", weightText, KeyboardType.Number,
+                    { parseWeightKg(it, useMetricUnits) != null }, onSaveWeight)
+            }
         }
     }
 
@@ -197,4 +228,24 @@ internal fun SettingsTabView(
             StatusChip("$historyDays days of band data", com.jcwear.coach.domain.Status.NORMAL)
         }
     }
+}
+
+/** Saves on every valid (or cleared) edit; shows an error while the text is out of range. */
+@Composable
+private fun ProfileField(label: String, initial: String, keyboard: KeyboardType, isValid: (String) -> Boolean, onSave: (String) -> Unit) {
+    var text by remember { mutableStateOf(initial) }
+    val bad = text.isNotBlank() && !isValid(text)
+    OutlinedTextField(
+        value = text,
+        onValueChange = {
+            text = it
+            if (it.isBlank() || isValid(it)) onSave(it)
+        },
+        label = { Text(label) },
+        isError = bad,
+        supportingText = if (bad) { { Text("Out of range") } } else null,
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = keyboard),
+        modifier = Modifier.fillMaxWidth()
+    )
 }

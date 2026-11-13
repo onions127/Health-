@@ -71,7 +71,24 @@ class AppSettings(context: Context) {
         get() = prefs.getString(KEY_RECENT_SYNCS, "[]") ?: "[]"
         set(value) = prefs.edit().putString(KEY_RECENT_SYNCS, value).apply()
 
+    /** Profile (plan 3.3). Blank name = no name in the greeting. */
+    var profileName: String
+        get() = prefs.getString(KEY_PROFILE_NAME, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_PROFILE_NAME, value.trim()).apply()
+
+    /** null = not set. */
+    var heightCm: Double?
+        get() = prefs.getFloat(KEY_HEIGHT_CM, 0f).takeIf { it > 0f }?.toDouble()
+        set(value) = prefs.edit().putFloat(KEY_HEIGHT_CM, value?.toFloat() ?: 0f).apply()
+
+    var weightKg: Double?
+        get() = prefs.getFloat(KEY_WEIGHT_KG, 0f).takeIf { it > 0f }?.toDouble()
+        set(value) = prefs.edit().putFloat(KEY_WEIGHT_KG, value?.toFloat() ?: 0f).apply()
+
     companion object {
+        private const val KEY_PROFILE_NAME = "profile_name"
+        private const val KEY_HEIGHT_CM = "profile_height_cm"
+        private const val KEY_WEIGHT_KG = "profile_weight_kg"
         const val DEFAULT_BAND_ADDRESS = "C2:56:0C:31:17:F6"
         private const val KEY_BAND_ADDRESS = "band_address"
         private const val KEY_LAST_SYNC_AT = "last_sync_at"

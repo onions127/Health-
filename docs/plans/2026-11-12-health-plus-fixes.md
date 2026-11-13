@@ -387,7 +387,7 @@ Synthesized from this review's findings. Each task derives from a specific findi
   - Surfaced by: #3, #4, #6, #11
   - Files: ui/trends, ui/sleep, domain/Smoothing.kt + tests
   - Verify: smoothing tests (flat stays flat, gaps break the line); colors follow direction
-- [ ] **T8 (P2, human: ~4h / CC: ~20min)** — ui — Phase 3: numbers inside rings, Recovery summary at the bottom, Profile + calories fallback
+- [x] **T8 (P2, human: ~4h / CC: ~20min)** — ui — Phase 3: numbers inside rings, Recovery summary at the bottom, Profile + calories fallback
   - Surfaced by: #1, #2, #7, D10
   - Files: ui/components, ui/today, ui/settings
   - Verify: on device; profile validation unit test

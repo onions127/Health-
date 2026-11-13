@@ -32,7 +32,10 @@ import androidx.compose.ui.unit.sp
 import com.jcwear.coach.ai.ClaudeCoachRepository
 import com.jcwear.coach.ble.J2208BleManager
 import com.jcwear.coach.data.AppSettings
+import androidx.activity.compose.BackHandler
 import com.jcwear.coach.domain.MetricInsights
+import com.jcwear.coach.domain.parseHeightCm
+import com.jcwear.coach.domain.parseWeightKg
 import com.jcwear.coach.domain.Metrics
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -98,6 +101,27 @@ fun MainDashboardScreen(
     var homelabToken by remember { mutableStateOf(settings.homelabApiToken) }
     var anthropicKey by remember { mutableStateOf(settings.anthropicApiKey) }
     var useMetricUnits by remember { mutableStateOf(settings.useMetricUnits) }
+
+    var profileName by remember { mutableStateOf(settings.profileName) }
+
+    // System back (button or edge swipe) does what the on-screen back does, innermost screen first.
+    BackHandler(
+        enabled = activeSheet != ActiveSheet.NONE || checkStep != CheckFlowStep.NONE || activeDetailMetric != null ||
+            viewingHistoryDayIndex != null || currentTab != MainTab.TODAY
+    ) {
+        when {
+            activeSheet != ActiveSheet.NONE -> activeSheet = ActiveSheet.NONE
+            checkStep == CheckFlowStep.RESULT -> { // same as Done
+                morningCheckCompleted = checkResultHrv != null
+                checkStep = CheckFlowStep.NONE
+            }
+            checkStep != CheckFlowStep.NONE -> checkStep = CheckFlowStep.NONE
+            sleepNightIdx != null -> sleepNightIdx = null
+            activeDetailMetric != null -> activeDetailMetric = null
+            viewingHistoryDayIndex != null -> viewingHistoryDayIndex = null
+            else -> currentTab = MainTab.TODAY
+        }
+    }
 
     var chatMessages by remember { mutableStateOf(listOf<ClaudeCoachRepository.ChatMessage>()) }
     var customCoachInput by remember { mutableStateOf("") }
@@ -211,6 +235,7 @@ fun MainDashboardScreen(
                         syncing = syncing,
                         batteryPct = batteryPct,
                         useMetricUnits = useMetricUnits,
+                        userName = profileName,
                         onSyncPillClick = {
                             when ((syncState as? SyncState.Failed)?.reason) {
                                 SyncFailureReason.PERMISSION_MISSING -> onRequestBlePermissions() // sync starts once granted
@@ -313,7 +338,13 @@ fun MainDashboardScreen(
                         onToggleUnits = {
                             useMetricUnits = !useMetricUnits
                             settings.useMetricUnits = useMetricUnits
-                        }
+                        },
+                        profileName = profileName,
+                        heightText = settings.heightCm?.let { String.format(java.util.Locale.US, "%.0f", if (useMetricUnits) it else it / 2.54) } ?: "",
+                        weightText = settings.weightKg?.let { String.format(java.util.Locale.US, "%.0f", if (useMetricUnits) it else it / 0.45359237) } ?: "",
+                        onSaveName = { profileName = it; settings.profileName = it },
+                        onSaveHeight = { settings.heightCm = parseHeightCm(it, useMetricUnits); viewModel.refresh() },
+                        onSaveWeight = { settings.weightKg = parseWeightKg(it, useMetricUnits); viewModel.refresh() }
                     )
                 }
             }

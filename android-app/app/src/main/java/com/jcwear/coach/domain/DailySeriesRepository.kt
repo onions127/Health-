@@ -25,6 +25,9 @@ data class DayMetrics(
     val skinTempDeltaC: Double? = null,
     val steps: Int? = null,
     val distanceKm: Double? = null,
+    val caloriesKcal: Double? = null,
+    /** True when calories come from the weight-based estimate, not the band (D10). */
+    val caloriesEstimated: Boolean = false,
     /** Whoop-style strain, 0-21. */
     val strain: Double? = null,
     val readiness: Int? = null,
@@ -38,10 +41,10 @@ data class DayMetrics(
 }
 
 class DailySeriesRepository(private val db: LocalHealthDatabase) {
-    fun load(today: LocalDate, morningRmssd: Double?): List<DayMetrics> = buildDaySeries(
+    fun load(today: LocalDate, morningRmssd: Double?, heightCm: Double? = null, weightKg: Double? = null): List<DayMetrics> = buildDaySeries(
         db.getAllSleepBlocks(), db.getAllHrvRecords(), db.getAllHrRecords(),
         db.getAllSpo2Records(), db.getAllTempRecords(), db.getAllStepRecords(),
-        today, morningRmssd
+        today, morningRmssd, heightCm, weightKg
     )
 }
 
@@ -58,7 +61,8 @@ fun buildDaySeries(
     stepRecords: List<StepEpochRecord>,
     today: LocalDate,
     morningRmssd: Double?,
-    heightCm: Double? = null
+    heightCm: Double? = null,
+    weightKg: Double? = null
 ): List<DayMetrics> {
     fun <T> byDate(items: List<T>, time: (T) -> String, ok: (T) -> Boolean) = items
         .filter(ok)
@@ -87,6 +91,7 @@ fun buildDaySeries(
         val rmssd = morningRmssd?.takeIf { d == today && it > 0.0 }
         val dayHr = hrByDay[d].orEmpty().map { it.bpm.toDouble() }
         val steps = stepsByDay[d]?.sumOf { it.steps }
+        val kcal = caloriesKcal(steps, stepsByDay[d]?.sumOf { it.caloriesKcal }, weightKg)
         val strain = if (steps == null && dayHr.isEmpty()) null else {
             val rawLoad = (steps ?: 0) / 650.0 + dayHr.count { it >= 105.0 } * 1.8
             Math.round((ln(1.0 + rawLoad) * 5.2).coerceIn(0.0, 21.0) * 10.0) / 10.0
@@ -101,6 +106,8 @@ fun buildDaySeries(
             spo2Pct = spo2ByDay[d]?.map { it.spo2Pct.toDouble() }?.average()?.round1(),
             steps = steps,
             distanceKm = distanceKm(steps, stepsByDay[d]?.sumOf { it.distanceKm }, heightCm),
+            caloriesKcal = kcal?.first,
+            caloriesEstimated = kcal?.second == true,
             strain = strain
         )
     }

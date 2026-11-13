@@ -198,9 +198,8 @@ internal fun MorningCheckFlowView(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    ScoreRingGauge(score = today.recovery, size = 80.dp, showRadialGlow = false)
+                    ScoreRingGauge(score = today.recovery, size = 104.dp, showRadialGlow = false)
                     Text("Updated Recovery Score", color = HealthColors.TextSecondary, fontSize = 13.sp)
-                    Text(today.recovery?.toString() ?: "—", color = HealthColors.TextPrimary, fontSize = 48.sp, fontWeight = FontWeight.Bold)
                     if (today.recovery != null) InsightChip(Metrics.recovery, days, today)
                 }
             }
