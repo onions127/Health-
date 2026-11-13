@@ -39,16 +39,16 @@ class J2208BleManager(
     private var gatt: BluetoothGatt? = null
     private var writeChar: BluetoothGattCharacteristic? = null
 
-    private val _connectionState = MutableStateFlow("Ready (J2208A2 17F6 • C2:56:0C:31:17:F6)")
+    private val _connectionState = MutableStateFlow("Not connected")
     val connectionState: StateFlow<String> = _connectionState
 
     private val _deviceAddress = MutableStateFlow<String?>(KNOWN_BAND_MAC)
     val deviceAddress: StateFlow<String?> = _deviceAddress
 
-    private val _batteryPct = MutableStateFlow<Int?>(75)
+    private val _batteryPct = MutableStateFlow<Int?>(null)
     val batteryPct: StateFlow<Int?> = _batteryPct
 
-    private val _firmwareVersion = MutableStateFlow<String?>("v0.0.2.3")
+    private val _firmwareVersion = MutableStateFlow<String?>(null)
     val firmwareVersion: StateFlow<String?> = _firmwareVersion
 
     private val _liveStatus = MutableStateFlow("Idle")
@@ -298,7 +298,8 @@ class J2208BleManager(
         return historyBuffer.toList()
     }
 
-    fun startMorningCheck60s(onFinished: (Double) -> Unit) {
+    /** [onFinished] gets null when no usable HRV was measured; nothing is stored then. */
+    fun startMorningCheck60s(onFinished: (Double?) -> Unit) {
         scope.launch {
             _liveFrames.value = emptyList()
             _liveStatus.value = "Measuring Live HR, HRV, SpO2 & Temp (60s)..."
@@ -312,7 +313,12 @@ class J2208BleManager(
             val pseudoPpi = frames.mapNotNull { if (it.hrBpm in 40..180) (60000 / it.hrBpm) else null }
             val directHrv = frames.mapNotNull { it.hrvMs.takeIf { v -> v > 0 } }.average().takeIf { !it.isNaN() }
             val rmssd = directHrv ?: com.jcwear.coach.domain.SleepAndReadinessEngine.calculateRmssdFromPpi(pseudoPpi)
-                .takeIf { it > 0.0 } ?: 73.0
+                .takeIf { it > 0.0 }
+            if (rmssd == null) {
+                _liveStatus.value = "Check failed, try again"
+                onFinished(null)
+                return@launch
+            }
             _morningRmssdMs.value = rmssd
             _liveStatus.value = "Morning Check Complete: HRV ${String.format("%.1f", rmssd)} ms"
             onFinished(rmssd)

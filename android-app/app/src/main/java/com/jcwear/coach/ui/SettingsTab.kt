@@ -48,7 +48,6 @@ import com.jcwear.coach.ai.ClaudeCoachRepository
 import com.jcwear.coach.ble.J2208BleManager
 import com.jcwear.coach.data.LocalHealthDatabase
 import com.jcwear.coach.domain.SleepAndReadinessEngine
-import com.jcwear.coach.domain.SleepAndReadinessEngine.DailyReadinessReport
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -65,19 +64,15 @@ import kotlin.math.sin
 @Composable
 internal fun SettingsTabView(
     connectionState: String,
-    batteryPct: Int,
-    autoSyncEnabled: Boolean,
-    backupEnabled: Boolean,
+    batteryPct: Int?,
     lastBackupText: String,
     homelabUrl: String,
     useMetricUnits: Boolean,
-    spo2AlertDemo: Boolean,
+    historyDays: Int,
     onOpenSyncSheet: () -> Unit,
-    onToggleAutoSync: () -> Unit,
-    onToggleBackup: () -> Unit,
+    onBackupNow: () -> Unit,
     onEditServerUrl: () -> Unit,
-    onToggleUnits: () -> Unit,
-    onToggleSpo2AlertDemo: () -> Unit
+    onToggleUnits: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -100,47 +95,32 @@ internal fun SettingsTabView(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Health++ Band 2", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Text("Band", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                 Text(
-                    text = "$connectionState · $batteryPct% battery",
+                    text = "$connectionState · battery ${batteryPct?.let { "$it%" } ?: "—"}",
                     color = HealthColors.TextSecondary,
                     fontSize = 13.sp,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            SecondaryActionButton(text = "Re-pair", onClick = onOpenSyncSheet)
+            SecondaryActionButton(text = "Sync now", onClick = onOpenSyncSheet)
         }
     }
 
-    // 2. Sync
-    HealthCard(onClick = onToggleAutoSync) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text("Background sync", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                Text("Last synced 6 min ago", color = HealthColors.TextSecondary, fontSize = 13.sp)
-            }
-            ContextChip(if (autoSyncEnabled) "On" else "Off", score = if (autoSyncEnabled) 85 else 50)
-        }
-    }
-
-    // 3. Backup to home server
-    HealthCard(onClick = onToggleBackup) {
+    // 2. Backup to home server
+    HealthCard(onClick = onBackupNow) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text("Backup to home server", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                     Text(lastBackupText, color = HealthColors.TextSecondary, fontSize = 13.sp)
                 }
-                ContextChip(if (backupEnabled) "Active" else "Paused", score = if (backupEnabled) 85 else 50)
+                SecondaryActionButton(text = "Back up now", onClick = onBackupNow)
             }
             Row(
                 modifier = Modifier
@@ -148,13 +128,20 @@ internal fun SettingsTabView(
                     .clickable { onEditServerUrl() },
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Server · $homelabUrl", color = HealthColors.TextSecondary, fontSize = 13.sp)
+                Text(
+                    "Server · ${homelabUrl.ifBlank { "not set" }}",
+                    color = HealthColors.TextSecondary,
+                    fontSize = 13.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
                 Text("Edit", color = HealthColors.AccentAmber, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             }
         }
     }
 
-    // 4. Units
+    // 3. Units
     HealthCard(onClick = onToggleUnits) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -172,33 +159,15 @@ internal fun SettingsTabView(
         }
     }
 
-    // 5. Out-of-Bounds SpO2 Alert State Preview
-    HealthCard(onClick = onToggleSpo2AlertDemo) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text("Preview SpO2 alert state", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                Text("Shows red alert card above Daily Score", color = HealthColors.TextSecondary, fontSize = 13.sp)
-            }
-            ContextChip(if (spo2AlertDemo) "Shown" else "Hidden", score = if (spo2AlertDemo) 30 else 80)
-        }
-    }
-
-    // 6. About
+    // 4. About
     HealthCard {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text("About Health++", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                Text("Version 2.4 · Claude Pro CLI ready", color = HealthColors.TextSecondary, fontSize = 13.sp)
-            }
-            ContextChip("90d history", score = 80)
+            Text("About Health++", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            StatusChip("$historyDays days of band data", com.jcwear.coach.domain.Status.NORMAL)
         }
     }
 }

@@ -1,10 +1,12 @@
 package com.jcwear.coach.ui
 
+import android.database.sqlite.SQLiteException
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jcwear.coach.ble.J2208BleManager
 import com.jcwear.coach.data.LocalHealthDatabase
-import com.jcwear.coach.domain.SleepAndReadinessEngine.DailyReadinessReport
+import com.jcwear.coach.domain.DayMetrics
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,12 +26,24 @@ class DashboardViewModel(
 ) : ViewModel() {
 
     private val refreshTick = MutableStateFlow(0)
+    private var last: List<DayMetrics>? = null
+    private val _loadFailed = MutableStateFlow(false)
+    val loadFailed: StateFlow<Boolean> = _loadFailed
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val state: StateFlow<Pair<List<DailyReadinessReport>, List<MetricSeriesPoint>>?> =
+    val state: StateFlow<List<DayMetrics>?> =
         combine(refreshTick, bleManager.morningRmssdMs) { _, rmssd -> rmssd }
             // mapLatest drops a stale load when a newer refresh arrives
-            .mapLatest { rmssd -> withContext(Dispatchers.IO) { buildDashboardState(database, rmssd, LocalDate.now()) } }
+            .mapLatest { rmssd ->
+                try {
+                    withContext(Dispatchers.IO) { buildDashboardState(database, rmssd, LocalDate.now()) }
+                        .also { last = it; _loadFailed.value = false }
+                } catch (e: SQLiteException) {
+                    Log.e("DashboardViewModel", "Load failed; keeping last good state", e)
+                    _loadFailed.value = true
+                    last
+                }
+            }
             .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     init {

@@ -3,6 +3,7 @@ package com.jcwear.coach.data
 import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteException
 import android.database.sqlite.SQLiteOpenHelper
 import android.util.Log
 import com.jcwear.coach.ble.J2208Protocol.HrRecord
@@ -13,6 +14,7 @@ import com.jcwear.coach.ble.J2208Protocol.StepEpochRecord
 import com.jcwear.coach.ble.J2208Protocol.TempRecord
 import java.io.File
 import java.io.FileNotFoundException
+import java.io.IOException
 
 class LocalHealthDatabase(private val appContext: Context) :
     SQLiteOpenHelper(appContext, "jcwear_local_health.db", null, 2) {
@@ -374,6 +376,39 @@ class LocalHealthDatabase(private val appContext: Context) :
         val result = ImportResult(inserted)
         Log.i(TAG, "History import inserted ${result.totalInserted} rows: $inserted")
         return result
+    }
+
+    /**
+     * Consistent copy of the live DB to [target]: VACUUM INTO (SQLite 3.27+), else WAL checkpoint + file copy.
+     * Throws if the copy can't be made, so callers never delete without a backup.
+     */
+    fun backupTo(target: File) {
+        if (target.exists() && !target.delete()) throw IOException("Can't replace ${target.path}")
+        val db = writableDatabase
+        try {
+            db.execSQL("VACUUM INTO ?", arrayOf(target.absolutePath))
+        } catch (e: SQLiteException) {
+            Log.i(TAG, "VACUUM INTO unavailable (${e.message}); checkpoint + copy instead")
+            db.rawQuery("PRAGMA wal_checkpoint(TRUNCATE)", null).use { it.moveToFirst() }
+            File(db.path).copyTo(target, overwrite = true)
+        }
+        if (!target.isFile || target.length() == 0L) throw IOException("Backup missing at ${target.path}")
+    }
+
+    /** Deletes the old seeder's fake rows (raw_hex = 'seed') in one transaction; returns counts per table. */
+    fun deleteSeedRows(): Map<String, Int> {
+        val db = writableDatabase
+        val counts = linkedMapOf<String, Int>()
+        db.beginTransaction()
+        try {
+            for (table in HISTORY_TABLE_COLUMNS.keys) {
+                counts[table] = db.delete(table, "raw_hex = ?", arrayOf("seed"))
+            }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+        return counts
     }
 
     companion object {

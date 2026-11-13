@@ -48,7 +48,14 @@ import com.jcwear.coach.ai.ClaudeCoachRepository
 import com.jcwear.coach.ble.J2208BleManager
 import com.jcwear.coach.data.LocalHealthDatabase
 import com.jcwear.coach.domain.SleepAndReadinessEngine
-import com.jcwear.coach.domain.SleepAndReadinessEngine.DailyReadinessReport
+import com.jcwear.coach.domain.DayMetrics
+import com.jcwear.coach.domain.MetricDef
+import com.jcwear.coach.domain.MetricInsights
+import com.jcwear.coach.domain.Metrics
+import com.jcwear.coach.domain.Status
+import com.jcwear.coach.domain.greetingFor
+import com.jcwear.coach.domain.verdictFor
+import java.time.LocalTime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -64,13 +71,12 @@ import kotlin.math.sin
 // ============================================================================
 @Composable
 internal fun TodayTabView(
-    dayPoint: MetricSeriesPoint,
-    series90: List<MetricSeriesPoint>,
+    day: DayMetrics,
+    days: List<DayMetrics>,
     isHistoricalView: Boolean,
     morningCheckDone: Boolean,
     dailyExpanded: Boolean,
     recoveryExpanded: Boolean,
-    spo2AlertActive: Boolean,
     onOpenSyncSheet: () -> Unit,
     onExitHistory: () -> Unit,
     onStartMorningCheck: () -> Unit,
@@ -79,7 +85,9 @@ internal fun TodayTabView(
     onToggleRecoveryExpand: () -> Unit,
     onOpenMetricDetail: (String) -> Unit
 ) {
-    // 1. Greeting and date + small sync status dot (48dp tap target)
+    val spo2Low = day.spo2Pct?.let { it < 95.0 } == true
+
+    // 1. Greeting and date + sync status dot (48dp tap target)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -89,13 +97,13 @@ internal fun TodayTabView(
     ) {
         Column {
             Text(
-                text = if (isHistoricalView) dayPoint.label else "Morning, Alex",
+                text = if (isHistoricalView) day.label else greetingFor(LocalTime.now()),
                 color = HealthColors.TextPrimary,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = if (isHistoricalView) "Historical snapshot" else dayPoint.label,
+                text = if (isHistoricalView) "Historical snapshot" else day.label,
                 color = HealthColors.TextSecondary,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium
@@ -106,16 +114,14 @@ internal fun TodayTabView(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             if (isHistoricalView) {
-                AmberActionButton(
-                    text = "Back to today",
-                    onClick = onExitHistory
-                )
+                AmberActionButton(text = "Back to today", onClick = onExitHistory)
             }
+            // shortcut: neutral dot until 1c adds the real sync status pill
             Box(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background( Color(0x0AFFFFFF))
+                    .background(Color(0x0AFFFFFF))
                     .clickable { onOpenSyncSheet() },
                 contentAlignment = Alignment.Center
             ) {
@@ -123,35 +129,40 @@ internal fun TodayTabView(
                     modifier = Modifier
                         .size(10.dp)
                         .clip(CircleShape)
-                        .background(HealthColors.ScoreGreen)
+                        .background(HealthColors.TextSecondary)
                 )
             }
         }
     }
 
-    // 2. Morning Check prompt card (shown only in morning until done that day)
-    if (!morningCheckDone && !isHistoricalView && !spo2AlertActive) {
+    // 2. Morning Check prompt (until done that day)
+    if (!morningCheckDone && !isHistoricalView) {
         HealthCard {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Morning check",
-                    color = HealthColors.TextPrimary,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                AmberActionButton(
-                    text = "Start 60-sec check",
-                    onClick = onStartMorningCheck
-                )
+                Text("Morning check", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                AmberActionButton(text = "Start 60-sec check", onClick = onStartMorningCheck)
             }
         }
     }
 
-    // 3. Coach verdict card (one line + one action; tapping opens 2-3 reasons sheet)
+    // Empty state: fewer than 3 days of band data (DS3)
+    if (days.count { it.hasData } < 3) {
+        HealthCard {
+            Text(
+                "Wear your band tonight. Your first scores appear tomorrow morning.",
+                color = HealthColors.TextPrimary,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+        return
+    }
+
+    // 3. Coach verdict (one line; tapping opens the reasons sheet)
     HealthCard(onClick = onOpenVerdictSheet) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -159,25 +170,19 @@ internal fun TodayTabView(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = if (isHistoricalView) "Low recovery. Keep effort light."
-                else "Well recovered. Good for hard training.",
+                text = verdictFor(day.recovery),
                 color = HealthColors.TextPrimary,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f)
             )
             Spacer(Modifier.width(8.dp))
-            Text(
-                text = "›",
-                color = HealthColors.TextSecondary,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Text("›", color = HealthColors.TextSecondary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
     }
 
-    // 7. Out-of-bounds Alert card (above Daily Score when SpO2 is low)
-    if (spo2AlertActive) {
+    // 4. Alert when overnight blood oxygen is low (real value)
+    if (spo2Low) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -196,69 +201,27 @@ internal fun TodayTabView(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Blood oxygen low overnight: 91%",
+                        text = "Blood oxygen low overnight: ${Metrics.spo2.format(day.spo2Pct!!)}",
                         color = Color(0xFFFECACA),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "↓ 7% vs normal · Tap for details",
+                        text = "${MetricInsights.chip(Metrics.spo2, days, day.date).first} · Tap for details",
                         color = Color(0xFFFCA5A5),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium
                     )
                 }
-                Text(
-                    text = "›",
-                    color = Color(0xFFFCA5A5),
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Text("›", color = Color(0xFFFCA5A5), fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
 
-    // 4. Daily Score card (1 big score with ring + ONLY soft radial glow + trend chip; expands in place)
+    // 5. Daily Score (expands in place to Readiness / Sleep / Strain)
     HealthCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 72.dp)
-                    .clickable { onToggleDailyExpand() },
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = "Daily Score",
-                        color = HealthColors.TextPrimary,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Row(
-                        verticalAlignment = Alignment.Bottom,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Text(
-                            text = "${dayPoint.dailyScore}",
-                            color = HealthColors.TextPrimary,
-                            fontSize = 48.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        ContextChip(
-                            text = if (isHistoricalView) "↓ 22 vs normal" else "↑ 6 vs normal",
-                            score = dayPoint.dailyScore
-                        )
-                    }
-                }
-                ScoreRingGauge(
-                    score = dayPoint.dailyScore,
-                    size = 72.dp,
-                    showRadialGlow = true
-                )
-            }
-
+            ScoreHeaderRow("Daily Score", day.daily, Metrics.daily, days, day, 72.dp, onToggleDailyExpand)
             AnimatedVisibility(
                 visible = dailyExpanded,
                 enter = expandVertically() + fadeIn(),
@@ -271,82 +234,31 @@ internal fun TodayTabView(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     HorizontalDivider(color = HealthColors.BorderHairline)
-                    SubMetricBarRow(
-                        title = "Readiness",
-                        contextText = "↑ 5 vs normal",
-                        score = dayPoint.readiness,
-                        normalMin = 72,
-                        normalMax = 85,
-                        barColor = HealthColors.ScoreGreen,
-                        onClick = { onOpenMetricDetail("readiness") }
-                    )
-                    SubMetricBarRow(
-                        title = "Sleep",
-                        contextText = "↑ 4 vs normal",
-                        score = dayPoint.sleepScore,
-                        normalMin = 70,
-                        normalMax = 85,
-                        barColor = HealthColors.ScoreGreen,
-                        onClick = { onOpenMetricDetail("sleep") }
-                    )
-                    SubMetricBarRow(
-                        title = "Strain",
-                        contextText = "Within normal",
-                        score = dayPoint.strainScore100,
-                        normalMin = 65,
-                        normalMax = 82,
-                        barColor = HealthColors.AccentAmber,
-                        onClick = { onOpenMetricDetail("strain") }
-                    )
+                    listOf(
+                        Triple("Readiness", Metrics.readiness, "readiness"),
+                        Triple("Sleep", Metrics.sleepScore, "sleep"),
+                        Triple("Strain", Metrics.strain, "strain")
+                    ).forEach { (title, def, target) ->
+                        val base = MetricInsights.baseline(def, days, day.date)
+                        SubMetricBarRow(
+                            title = title,
+                            contextText = MetricInsights.chip(def, days, day.date).first,
+                            score = def.extract(day)?.roundToInt(),
+                            normalMin = base?.low?.roundToInt(),
+                            normalMax = base?.high?.roundToInt(),
+                            barColor = if (def == Metrics.strain) HealthColors.AccentAmber else HealthColors.ScoreGreen,
+                            onClick = { onOpenMetricDetail(target) }
+                        )
+                    }
                 }
             }
         }
     }
 
-    // 5. Recovery Score card (expands to show HRV & Resting HR with 7-day sparklines)
-    val last7Hrv = remember(series90) { series90.takeLast(7).map { it.hrvMs.toFloat() } }
-    val last7Rhr = remember(series90) { series90.takeLast(7).map { it.rhrBpm.toFloat() } }
-
+    // 6. Recovery (expands to HRV & Resting HR with 7-day sparklines)
     HealthCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 64.dp)
-                    .clickable { onToggleRecoveryExpand() },
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = "Recovery",
-                        color = HealthColors.TextPrimary,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Row(
-                        verticalAlignment = Alignment.Bottom,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Text(
-                            text = "${dayPoint.recoveryScore}",
-                            color = HealthColors.TextPrimary,
-                            fontSize = 48.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        ContextChip(
-                            text = if (isHistoricalView) "Lowest in 2 weeks" else "↑ 8% vs normal",
-                            score = dayPoint.recoveryScore
-                        )
-                    }
-                }
-                ScoreRingGauge(
-                    score = dayPoint.recoveryScore,
-                    size = 60.dp,
-                    showRadialGlow = false
-                )
-            }
-
+            ScoreHeaderRow("Recovery", day.recovery, Metrics.recovery, days, day, 60.dp, onToggleRecoveryExpand)
             AnimatedVisibility(
                 visible = recoveryExpanded,
                 enter = expandVertically() + fadeIn(),
@@ -359,32 +271,28 @@ internal fun TodayTabView(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     HorizontalDivider(color = HealthColors.BorderHairline)
-                    SparklineVitalRow(
-                        title = "HRV · ${dayPoint.hrvMs}",
-                        unit = "ms",
-                        contextText = if (isHistoricalView) "Lowest in 2 weeks" else "↑ 8% vs normal",
-                        values = last7Hrv,
-                        normalMin = 55f,
-                        normalMax = 63f,
-                        lineColor = HealthColors.ScoreGreen,
-                        onClick = { onOpenMetricDetail("hrv") }
-                    )
-                    SparklineVitalRow(
-                        title = "Resting HR · ${dayPoint.rhrBpm}",
-                        unit = "bpm",
-                        contextText = if (isHistoricalView) "↑ 4 bpm vs normal" else "↓ 2 bpm vs normal",
-                        values = last7Rhr,
-                        normalMin = 51f,
-                        normalMax = 56f,
-                        lineColor = HealthColors.ScoreGreen,
-                        onClick = { onOpenMetricDetail("rhr") }
-                    )
+                    listOf(Metrics.hrv to "ms", Metrics.rhr to "bpm").forEach { (def, unit) ->
+                        val base = MetricInsights.baseline(def, days, day.date)
+                        val upTo = days.filter { !it.date.isAfter(day.date) }
+                        SparklineVitalRow(
+                            title = "${def.label} · ${def.extract(day)?.roundToInt() ?: "—"}",
+                            unit = unit,
+                            contextText = MetricInsights.extremeLabel(def, days, day.date)
+                                ?: MetricInsights.chip(def, days, day.date).first,
+                            values = upTo.takeLast(7).mapNotNull(def.extract).map { it.toFloat() },
+                            normalMin = base?.low?.toFloat(),
+                            normalMax = base?.high?.toFloat(),
+                            lineColor = HealthColors.TextSecondary,
+                            onClick = { onOpenMetricDetail(def.id) }
+                        )
+                    }
                 }
             }
         }
     }
 
-    // 6. Activity card: steps compared with normal range shaded band
+    // 7. Activity: steps against the normal range
+    val stepsBase = MetricInsights.baseline(Metrics.steps, days, day.date)
     HealthCard(onClick = { onOpenMetricDetail("steps") }) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
@@ -393,21 +301,49 @@ internal fun TodayTabView(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Steps  ${String.format(Locale.US, "%,d", dayPoint.steps)}",
+                    text = day.steps?.let { "Steps  ${String.format(Locale.US, "%,d", it)}" } ?: "No steps yet today",
                     color = HealthColors.TextPrimary,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold
                 )
-                ContextChip(
-                    text = if (isHistoricalView) "Below normal · 7k–10k" else "Within normal · 7k–10k",
-                    score = if (isHistoricalView) 55 else 80
-                )
+                if (day.steps != null) InsightChip(Metrics.steps, days, day)
             }
-            StepsNormalBandBar(
-                steps = dayPoint.steps,
-                normalMin = 7000,
-                normalMax = 10000
-            )
+            day.steps?.let { StepsNormalBandBar(steps = it, normalMin = stepsBase?.low?.roundToInt(), normalMax = stepsBase?.high?.roundToInt()) }
         }
+    }
+}
+
+/** Title, big number (or "—"), status chip and ring; tapping toggles the expanded detail. */
+@Composable
+private fun ScoreHeaderRow(
+    title: String,
+    score: Int?,
+    def: MetricDef,
+    days: List<DayMetrics>,
+    day: DayMetrics,
+    ringSize: Dp,
+    onToggle: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 64.dp)
+            .clickable { onToggle() },
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(title, color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    text = score?.toString() ?: "—",
+                    color = HealthColors.TextPrimary,
+                    fontSize = 48.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                if (score != null) InsightChip(def, days, day)
+            }
+        }
+        ScoreRingGauge(score = score, size = ringSize, showRadialGlow = false)
     }
 }

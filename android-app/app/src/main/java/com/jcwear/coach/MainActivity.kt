@@ -23,7 +23,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             MainDashboardScreen(
                 viewModel = viewModel { DashboardViewModel(container.database, container.bleManager) },
-                database = container.database,
+                settings = container.settings,
                 bleManager = container.bleManager,
                 coachRepo = container.coachRepo,
                 onRequestBlePermissions = ::requestBlePermissions

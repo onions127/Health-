@@ -48,7 +48,6 @@ import com.jcwear.coach.ai.ClaudeCoachRepository
 import com.jcwear.coach.ble.J2208BleManager
 import com.jcwear.coach.data.LocalHealthDatabase
 import com.jcwear.coach.domain.SleepAndReadinessEngine
-import com.jcwear.coach.domain.SleepAndReadinessEngine.DailyReadinessReport
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -65,6 +64,7 @@ import kotlin.math.sin
 @Composable
 internal fun CoachTabView(
     messages: List<ClaudeCoachRepository.ChatMessage>,
+    recoveryChip: Pair<String, com.jcwear.coach.domain.Status>?,
     inputText: String,
     onInputChange: (String) -> Unit,
     onAskQuestion: (String) -> Unit,
@@ -79,9 +79,9 @@ internal fun CoachTabView(
     ) {
         Column {
             Text("Coach", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-            Text("Grounded in your 90-day normal", color = HealthColors.TextSecondary, fontSize = 13.sp)
+            Text("Grounded in your own normal", color = HealthColors.TextSecondary, fontSize = 13.sp)
         }
-        ContextChip("86 · ↑ 8% vs normal", score = 86)
+        recoveryChip?.let { StatusChip(it.first, it.second) }
     }
 
     // Chat thread

@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -48,7 +49,11 @@ import com.jcwear.coach.ai.ClaudeCoachRepository
 import com.jcwear.coach.ble.J2208BleManager
 import com.jcwear.coach.data.LocalHealthDatabase
 import com.jcwear.coach.domain.SleepAndReadinessEngine
-import com.jcwear.coach.domain.SleepAndReadinessEngine.DailyReadinessReport
+import com.jcwear.coach.domain.DayMetrics
+import com.jcwear.coach.domain.MetricDef
+import com.jcwear.coach.domain.MetricInsights
+import com.jcwear.coach.domain.Metrics
+import com.jcwear.coach.domain.Status
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -160,13 +165,38 @@ internal fun ContextChip(
     }
 }
 
+/** Chip colored by status: green good, coral bad, grey normal/neutral (D2: color has one meaning). */
+@Composable
+internal fun StatusChip(text: String, status: Status) {
+    val (bg, fg) = when (status) {
+        Status.GOOD -> Color(0x2434D399) to Color(0xFF6EE7B7)
+        Status.BAD -> Color(0x29FB7185) to Color(0xFFFDA4AF)
+        else -> Color(0x14FFFFFF) to HealthColors.TextSecondary
+    }
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(bg)
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Text(text = text, color = fg, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+    }
+}
+
+@Composable
+internal fun InsightChip(def: MetricDef, days: List<DayMetrics>, day: DayMetrics) {
+    val (text, status) = MetricInsights.chip(def, days, day.date)
+    StatusChip(text, status)
+}
+
+/** A null score draws only the empty track (no data). */
 @Composable
 internal fun ScoreRingGauge(
-    score: Int,
+    score: Int?,
     size: Dp,
     showRadialGlow: Boolean
 ) {
-    val ringColor = HealthColors.forScore(score)
+    val ringColor = score?.let { HealthColors.forScore(it) } ?: HealthColors.TextSecondary
     Box(
         modifier = Modifier.size(if (showRadialGlow) size + 16.dp else size),
         contentAlignment = Alignment.Center
@@ -195,7 +225,7 @@ internal fun ScoreRingGauge(
             drawArc(
                 color = ringColor,
                 startAngle = -90f,
-                sweepAngle = (score.coerceIn(0, 100) / 100f) * 360f,
+                sweepAngle = ((score ?: 0).coerceIn(0, 100) / 100f) * 360f,
                 useCenter = false,
                 topLeft = Offset(pad, pad),
                 size = arcSize,
@@ -209,9 +239,9 @@ internal fun ScoreRingGauge(
 internal fun SubMetricBarRow(
     title: String,
     contextText: String,
-    score: Int,
-    normalMin: Int,
-    normalMax: Int,
+    score: Int?,
+    normalMin: Int?,
+    normalMax: Int?,
     barColor: Color,
     onClick: () -> Unit
 ) {
@@ -242,22 +272,24 @@ internal fun SubMetricBarRow(
                     size = Size(w, h * 0.6f),
                     cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
                 )
-                val nLeft = (normalMin / 100f) * w
-                val nWidth = ((normalMax - normalMin) / 100f) * w
-                drawRoundRect(
-                    color = Color(0x29FFFFFF),
-                    topLeft = Offset(nLeft, 0f),
-                    size = Size(nWidth, h),
-                    cornerRadius = CornerRadius(3.dp.toPx(), 3.dp.toPx())
-                )
-                drawRoundRect(
+                if (normalMin != null && normalMax != null) {
+                    val nLeft = (normalMin.coerceIn(0, 100) / 100f) * w
+                    val nWidth = ((normalMax.coerceIn(0, 100) - normalMin.coerceIn(0, 100)) / 100f) * w
+                    drawRoundRect(
+                        color = Color(0x29FFFFFF),
+                        topLeft = Offset(nLeft, 0f),
+                        size = Size(nWidth, h),
+                        cornerRadius = CornerRadius(3.dp.toPx(), 3.dp.toPx())
+                    )
+                }
+                if (score != null) drawRoundRect(
                     color = barColor,
                     topLeft = Offset(0f, h * 0.2f),
                     size = Size((score / 100f).coerceIn(0.08f, 1f) * w, h * 0.6f),
                     cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
                 )
             }
-            Text("$score", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text(score?.toString() ?: "—", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             Text("›", color = HealthColors.TextSecondary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
     }
@@ -269,8 +301,8 @@ internal fun SparklineVitalRow(
     unit: String,
     contextText: String,
     values: List<Float>,
-    normalMin: Float,
-    normalMax: Float,
+    normalMin: Float?,
+    normalMax: Float?,
     lineColor: Color,
     onClick: () -> Unit
 ) {
@@ -301,29 +333,31 @@ internal fun SparklineVitalRow(
 @Composable
 internal fun MiniSparklineCanvas(
     values: List<Float>,
-    normalMin: Float,
-    normalMax: Float,
+    normalMin: Float?,
+    normalMax: Float?,
     color: Color
 ) {
     Canvas(modifier = Modifier.size(width = 92.dp, height = 30.dp)) {
         if (values.isEmpty()) return@Canvas
         val w = size.width
         val h = size.height
-        val minV = (values + normalMin).minOrNull()!! - 2f
-        val maxV = (values + normalMax).maxOrNull()!! + 2f
+        val minV = (values + listOfNotNull(normalMin)).min() - 2f
+        val maxV = (values + listOfNotNull(normalMax)).max() + 2f
         val span = (maxV - minV).coerceAtLeast(1f)
 
         fun xFor(i: Int) = if (values.size <= 1) w / 2f else (i.toFloat() / (values.size - 1).toFloat()) * (w - 8f) + 4f
         fun yFor(v: Float) = h - 4f - ((v - minV) / span) * (h - 8f)
 
-        val topY = yFor(normalMax)
-        val botY = yFor(normalMin)
-        drawRoundRect(
-            color = Color(0x12FFFFFF),
-            topLeft = Offset(0f, topY),
-            size = Size(w, (botY - topY).coerceAtLeast(4.dp.toPx())),
-            cornerRadius = CornerRadius(3.dp.toPx(), 3.dp.toPx())
-        )
+        if (normalMin != null && normalMax != null) {
+            val topY = yFor(normalMax)
+            val botY = yFor(normalMin)
+            drawRoundRect(
+                color = Color(0x12FFFFFF),
+                topLeft = Offset(0f, topY),
+                size = Size(w, (botY - topY).coerceAtLeast(4.dp.toPx())),
+                cornerRadius = CornerRadius(3.dp.toPx(), 3.dp.toPx())
+            )
+        }
         val path = Path()
         values.forEachIndexed { idx, v ->
             val px = xFor(idx)
@@ -346,11 +380,11 @@ internal fun MiniSparklineCanvas(
 @Composable
 internal fun StepsNormalBandBar(
     steps: Int,
-    normalMin: Int,
-    normalMax: Int
+    normalMin: Int?,
+    normalMax: Int?
 ) {
-    val maxScale = 13000f
-    val barColor = if (steps >= normalMin) HealthColors.ScoreGreen else HealthColors.ScoreAmber
+    val maxScale = maxOf(13000f, steps * 1.1f, (normalMax ?: 0) * 1.1f)
+    val barColor = if (normalMin == null || steps >= normalMin) HealthColors.ScoreGreen else HealthColors.ScoreAmber
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
@@ -364,14 +398,16 @@ internal fun StepsNormalBandBar(
             size = Size(w, h * 0.5f),
             cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
         )
-        val nLeft = (normalMin / maxScale) * w
-        val nWidth = ((normalMax - normalMin) / maxScale) * w
-        drawRoundRect(
-            color = Color(0x26FFFFFF),
-            topLeft = Offset(nLeft, 0f),
-            size = Size(nWidth, h),
-            cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
-        )
+        if (normalMin != null && normalMax != null) {
+            val nLeft = (normalMin / maxScale) * w
+            val nWidth = ((normalMax - normalMin) / maxScale) * w
+            drawRoundRect(
+                color = Color(0x26FFFFFF),
+                topLeft = Offset(nLeft, 0f),
+                size = Size(nWidth, h),
+                cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
+            )
+        }
         val fillW = ((steps / maxScale).coerceIn(0.05f, 1f)) * w
         drawRoundRect(
             color = barColor,
@@ -444,11 +480,13 @@ internal fun BottomNavBar(
 internal fun BottomSheetOverlay(
     sheet: ActiveSheet,
     connectionState: String,
-    batteryPct: Int,
-    dayPoint: MetricSeriesPoint,
-    series90: List<MetricSeriesPoint>,
+    batteryPct: Int?,
+    day: DayMetrics,
+    days: List<DayMetrics>,
     homelabUrl: String,
-    onUpdateHomelabUrl: (String) -> Unit,
+    homelabToken: String,
+    anthropicKey: String,
+    onSaveServerConfig: (url: String, token: String, apiKey: String) -> Unit,
     onTriggerSync: () -> Unit,
     onSelectHistoryDay: (Int) -> Unit,
     onDismiss: () -> Unit
@@ -498,8 +536,8 @@ internal fun BottomSheetOverlay(
                                 .padding(14.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Text("Last synced 6 min ago", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                            Text("Battery $batteryPct% · $connectionState", color = HealthColors.TextSecondary, fontSize = 13.sp)
+                            Text(connectionState, color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Battery ${batteryPct?.let { "$it%" } ?: "—"}", color = HealthColors.TextSecondary, fontSize = 13.sp)
                         }
                         AmberActionButton(
                             text = "Sync band",
@@ -525,12 +563,12 @@ internal fun BottomSheetOverlay(
                                     .wrapContentSize(Alignment.Center)
                             )
                         }
-                        val reasons = listOf(
-                            "HRV is ${dayPoint.hrvMs} ms" to "↑ 8% vs normal",
-                            "Resting HR is ${dayPoint.rhrBpm} bpm" to "↓ 2 vs normal",
-                            "You slept ${formatSleepHm(dayPoint.sleepMin)}" to "1h 35m deep"
-                        )
-                        reasons.forEach { (left, right) ->
+                        val reasons = listOf(Metrics.hrv, Metrics.rhr, Metrics.sleep).map { def ->
+                            val v = def.extract(day)
+                            "${def.label} ${v?.let { def.format(it) } ?: "not recorded"}" to
+                                (if (v == null) "No data" to Status.NORMAL else MetricInsights.chip(def, days, day.date))
+                        }
+                        reasons.forEach { (left, chip) ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -541,7 +579,7 @@ internal fun BottomSheetOverlay(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(left, color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                                ContextChip(right, score = dayPoint.recoveryScore)
+                                StatusChip(chip.first, chip.second)
                             }
                         }
                         AmberActionButton(
@@ -571,7 +609,8 @@ internal fun BottomSheetOverlay(
                                     .wrapContentSize(Alignment.Center)
                             )
                         }
-                        val last14 = series90.takeLast(14)
+                        val last14 = days.takeLast(14)
+                        val firstIdx = days.size - 14
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             for (row in 0..1) {
                                 Row(
@@ -580,14 +619,13 @@ internal fun BottomSheetOverlay(
                                 ) {
                                     for (col in 0..6) {
                                         val pt = last14[row * 7 + col]
-                                        val isOutlierDay = pt.index == 81
                                         Column(
                                             modifier = Modifier
                                                 .weight(1f)
                                                 .height(48.dp)
                                                 .clip(RoundedCornerShape(12.dp))
-                                                .background(if (isOutlierDay) Color(0x28FBBF24) else Color(0x0DFFFFFF))
-                                                .clickable { onSelectHistoryDay(pt.index) },
+                                                .background(Color(0x0DFFFFFF))
+                                                .clickable { onSelectHistoryDay(firstIdx + row * 7 + col) },
                                             horizontalAlignment = Alignment.CenterHorizontally,
                                             verticalArrangement = Arrangement.Center
                                         ) {
@@ -597,33 +635,47 @@ internal fun BottomSheetOverlay(
                                                 modifier = Modifier
                                                     .size(6.dp)
                                                     .clip(CircleShape)
-                                                    .background(HealthColors.forScore(pt.dailyScore))
+                                                    .background(pt.daily?.let { HealthColors.forScore(it) } ?: Color.Transparent)
                                             )
                                         }
                                     }
                                 }
                             }
                         }
-                        AmberActionButton(
-                            text = "Open ${series90[81].label} (56 · Below normal)",
-                            onClick = { onSelectHistoryDay(81) },
-                            modifier = Modifier.fillMaxWidth()
-                        )
                     }
 
                     ActiveSheet.SERVER_CONFIG -> {
                         var draftUrl by remember { mutableStateOf(homelabUrl) }
-                        Text("Home Server URL", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                        var draftToken by remember { mutableStateOf(homelabToken) }
+                        var draftKey by remember { mutableStateOf(anthropicKey) }
+                        Text("Home server", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                         OutlinedTextField(
                             value = draftUrl,
                             onValueChange = { draftUrl = it },
+                            label = { Text("Server URL") },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )
+                        OutlinedTextField(
+                            value = draftToken,
+                            onValueChange = { draftToken = it },
+                            label = { Text("API token") },
+                            singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = draftKey,
+                            onValueChange = { draftKey = it },
+                            label = { Text("Anthropic API key (optional)") },
+                            singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth()
+                        )
                         AmberActionButton(
-                            text = "Save server URL",
+                            text = "Save",
                             onClick = {
-                                onUpdateHomelabUrl(draftUrl.trim())
+                                onSaveServerConfig(draftUrl, draftToken, draftKey)
                                 onDismiss()
                             },
                             modifier = Modifier.fillMaxWidth()

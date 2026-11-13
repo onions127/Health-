@@ -10,7 +10,9 @@ import com.jcwear.coach.ble.J2208Protocol.TempRecord
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.roundToInt
@@ -35,30 +37,7 @@ object SleepAndReadinessEngine {
         val awakeMin: Int,
         val post1200NoonExtendedMin: Int,
         val sleepEfficiencyPct: Int,
-        val sleepScore: Int,
         val epochs: List<SleepEpochMinute>
-    )
-
-    data class DailyReadinessReport(
-        val date: String,
-        val readinessScore: Int,
-        val sleepScore: Int,
-        val strainScore: Double,
-        val overnightHrvMs: Double,
-        val hrvBaseline30dMs: Double,
-        val morningRmssdMs: Double?,
-        val restingHrBpm: Double,
-        val rhrBaseline30dBpm: Double,
-        val spo2AvgPct: Double,
-        val skinTempDeltaC: Double,
-        val totalSleepMin: Int,
-        val deepSleepMin: Int,
-        val remSleepMin: Int,
-        val lightSleepMin: Int,
-        val post1200NoonExtendedMin: Int,
-        val steps: Int,
-        val headlineInsight: String,
-        val coachingBullets: List<String>
     )
 
     private val isoFormat: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
@@ -85,7 +64,8 @@ object SleepAndReadinessEngine {
     ): List<StitchedSleepSession> {
         val rawMinutes = mutableListOf<SleepEpochMinute>()
         for (block in sleepBlocks.sortedBy { it.deviceTime }) {
-            val start = parseDateTime(block.deviceTime) ?: continue
+            // Truncate seconds: overlapping blocks (02:24:01 vs 02:23:01) must collapse to the same minute, not count twice.
+            val start = parseDateTime(block.deviceTime)?.truncatedTo(ChronoUnit.MINUTES) ?: continue
             val unit = block.unitMinutes.coerceAtLeast(1)
             for (idx in block.stages.indices) {
                 val rawStage = block.stages[idx]
@@ -196,14 +176,6 @@ object SleepAndReadinessEngine {
             val totalInBed = (totalAsleep + awakeMin).coerceAtLeast(1)
             val efficiency = ((totalAsleep * 100.0) / totalInBed).roundToInt().coerceIn(0, 100)
 
-            // Sleep score: Duration vs 450 min (7.5h) target (55%), Deep+REM restorative share (30%), Efficiency (15%)
-            val durationScore = ((totalAsleep / 450.0) * 100.0).coerceIn(0.0, 100.0)
-            val restorativePct = if (totalAsleep > 0) ((deepMin + remMin).toDouble() / totalAsleep) else 0.0
-            val restorativeScore = ((restorativePct / 0.38) * 100.0).coerceIn(0.0, 100.0)
-            val sleepScore = (0.55 * durationScore + 0.30 * restorativeScore + 0.15 * efficiency)
-                .roundToInt()
-                .coerceIn(0, 100)
-
             val endTs = sessionEpochs.last().timestamp
             StitchedSleepSession(
                 wakeDate = endTs.toLocalDate().toString(),
@@ -216,7 +188,6 @@ object SleepAndReadinessEngine {
                 awakeMin = awakeMin,
                 post1200NoonExtendedMin = postNoonMin,
                 sleepEfficiencyPct = efficiency,
-                sleepScore = sleepScore,
                 epochs = sessionEpochs
             )
         }
@@ -241,160 +212,36 @@ object SleepAndReadinessEngine {
         return Math.round(sqrt(sumSqDiff / count) * 10.0) / 10.0
     }
 
+    /** Clock time as minutes since 12:00 noon, so 23:50 (710) and 00:10 (730) sit next to each other. */
+    fun minutesFromNoon(t: LocalTime): Int = (t.hour * 60 + t.minute - 720 + 1440) % 1440
+
+    fun midpoint(s: StitchedSleepSession): LocalDateTime =
+        s.startTime.plusMinutes(Duration.between(s.startTime, s.endTime).toMinutes() / 2)
+
+    /** Main sleep: onset 18:00-12:00 (naps at 12:00-18:00 never count), longest wins. */
+    fun isMainSleepCandidate(s: StitchedSleepSession): Boolean = minutesFromNoon(s.startTime.toLocalTime()) >= 360
+
     /**
-     * Computes daily Readiness (0-100), Sleep Score (0-100), and Strain (0-21) with rolling 30d baselines.
+     * Sleep score v2 (plan 1.4), 0-100: duration 40%, restorative 20%, efficiency 10%,
+     * regularity 15% (midpoint vs median of [priorMidpointsMfn]; none yet = full marks),
+     * timing 15% (asleep by 02:00 full, 0 by 04:00). Onset after 03:00 caps the score at 70.
      */
-    fun buildDailyReadinessReport(
-        targetDate: LocalDate,
-        sleepSessions: List<StitchedSleepSession>,
-        hrvRecords: List<HrvRecord>,
-        hrRecords: List<HrRecord>,
-        spo2Records: List<Spo2Record>,
-        tempRecords: List<TempRecord>,
-        stepRecords: List<StepEpochRecord>,
-        morningRmssdOverride: Double? = null
-    ): DailyReadinessReport {
-        val dateStr = targetDate.toString()
-        val mainSleep = sleepSessions
-            .filter { it.wakeDate == dateStr }
-            .maxByOrNull { it.totalSleepMin }
-
-        val sleepScore = mainSleep?.sleepScore ?: 70
-
-        // Filter 30-day window for baselines
-        val cutoff30d = targetDate.minusDays(30).atStartOfDay()
-        val endOfTargetDay = targetDate.plusDays(1).atStartOfDay()
-
-        val validHrv30d = hrvRecords.mapNotNull { rec ->
-            val dt = parseDateTime(rec.deviceTime) ?: return@mapNotNull null
-            if (!dt.isBefore(cutoff30d) && dt.isBefore(endOfTargetDay) && rec.hrvMs in 15..200) {
-                dt to rec.hrvMs.toDouble()
-            } else null
+    fun sleepScore(s: StitchedSleepSession, priorMidpointsMfn: List<Int>): Int {
+        val asleep = s.totalSleepMin
+        val duration = (asleep / 450.0 * 100.0).coerceIn(0.0, 100.0)
+        val restorativeShare = if (asleep > 0) (s.deepMin + s.remMin).toDouble() / asleep else 0.0
+        val restorative = (restorativeShare / 0.38 * 100.0).coerceIn(0.0, 100.0)
+        val regularity = if (priorMidpointsMfn.isEmpty()) 100.0 else {
+            val sorted = priorMidpointsMfn.sorted()
+            val median = if (sorted.size % 2 == 1) sorted[sorted.size / 2].toDouble()
+            else (sorted[sorted.size / 2 - 1] + sorted[sorted.size / 2]) / 2.0
+            val off = abs(minutesFromNoon(midpoint(s).toLocalTime()) - median)
+            ((180.0 - off) / 150.0 * 100.0).coerceIn(0.0, 100.0)
         }
-
-        val todayHrvSamples = validHrv30d
-            .filter { it.first.toLocalDate() == targetDate }
-            .map { it.second }
-        val hrvBaseline30d = if (validHrv30d.isNotEmpty()) {
-            validHrv30d.map { it.second }.average()
-        } else 55.0
-
-        val overnightHrv = when {
-            morningRmssdOverride != null && morningRmssdOverride > 0.0 -> morningRmssdOverride
-            todayHrvSamples.isNotEmpty() -> todayHrvSamples.average()
-            else -> hrvBaseline30d
-        }
-
-        val validHr30d = hrRecords.mapNotNull { rec ->
-            val dt = parseDateTime(rec.deviceTime) ?: return@mapNotNull null
-            if (!dt.isBefore(cutoff30d) && dt.isBefore(endOfTargetDay) && rec.bpm in 38..205) {
-                dt to rec.bpm.toDouble()
-            } else null
-        }
-
-        val todayHrSamples = validHr30d
-            .filter { it.first.toLocalDate() == targetDate }
-            .map { it.second }
-
-        // Resting HR = average of lowest 15% of HR readings for the day
-        fun lowestPercentileAvg(values: List<Double>, fraction: Double = 0.15): Double {
-            if (values.isEmpty()) return 58.0
-            val sorted = values.sorted()
-            val takeCount = (sorted.size * fraction).roundToInt().coerceAtLeast(1)
-            return sorted.take(takeCount).average()
-        }
-
-        val restingHrToday = lowestPercentileAvg(todayHrSamples)
-        val rhrBaseline30d = lowestPercentileAvg(validHr30d.map { it.second }, 0.20)
-
-        // SpO2 and Skin Temperature deviation
-        val todaySpo2 = spo2Records
-            .filter { it.deviceTime.startsWith(dateStr) && it.spo2Pct in 85..100 }
-            .map { it.spo2Pct.toDouble() }
-            .average()
-            .let { if (it.isNaN()) 97.5 else it }
-
-        val validTemp30d = tempRecords.filter { it.tempC in 31.0..41.0 }
-        val tempBaseline = validTemp30d.map { it.tempC }.average().let { if (it.isNaN()) 36.2 else it }
-        val todayTemp = validTemp30d
-            .filter { it.deviceTime.startsWith(dateStr) }
-            .map { it.tempC }
-            .average()
-            .let { if (it.isNaN()) tempBaseline else it }
-        val tempDeltaC = Math.round((todayTemp - tempBaseline) * 100.0) / 100.0
-
-        // Component scores (0..100)
-        val hrvRatio = overnightHrv / hrvBaseline30d.coerceAtLeast(1.0)
-        val hrvScore = (75.0 + (hrvRatio - 1.0) * 125.0).coerceIn(20.0, 100.0)
-
-        val rhrDiff = rhrBaseline30d - restingHrToday // positive when today's RHR is lower than baseline
-        val rhrScore = (78.0 + rhrDiff * 4.5).coerceIn(20.0, 100.0)
-
-        val vitalsPenalty = (if (abs(tempDeltaC) > 0.5) 25.0 else 0.0) +
-            (if (todaySpo2 < 95.0) (95.0 - todaySpo2) * 8.0 else 0.0)
-        val vitalsScore = (95.0 - vitalsPenalty).coerceIn(20.0, 100.0)
-
-        val readinessScore = (
-            0.40 * hrvScore +
-            0.25 * rhrScore +
-            0.25 * sleepScore +
-            0.10 * vitalsScore
-        ).roundToInt().coerceIn(1, 100)
-
-        // Daily steps & Whoop-style logarithmic Strain (0.0 - 21.0)
-        val todaySteps = stepRecords
-            .filter { it.deviceTime.startsWith(dateStr) }
-            .sumOf { it.steps }
-        val elevatedHrSamples = todayHrSamples.count { it >= 105.0 }
-        val rawLoad = (todaySteps / 650.0) + (elevatedHrSamples * 1.8)
-        val strainScore = Math.round((ln(1.0 + rawLoad) * 5.2).coerceIn(0.0, 21.0) * 10.0) / 10.0
-
-        val hrvDeltaPct = ((hrvRatio - 1.0) * 100.0).roundToInt()
-        val headline = when {
-            readinessScore >= 80 -> "Peak Readiness ($readinessScore%) — Primed for High Strain"
-            readinessScore >= 60 -> "Moderate Readiness ($readinessScore%) — Balanced Training Day"
-            else -> "Recovery Priority ($readinessScore%) — Autonomic Nervous System Fatigued"
-        }
-
-        val bullets = buildList {
-            add(
-                "HRV is ${overnightHrv.roundToInt()} ms (${if (hrvDeltaPct >= 0) "+$hrvDeltaPct%" else "$hrvDeltaPct%"} vs 30d baseline of ${hrvBaseline30d.roundToInt()} ms)."
-            )
-            add(
-                "Resting HR is ${restingHrToday.roundToInt()} bpm (30d baseline ${rhrBaseline30d.roundToInt()} bpm) | SpO2 ${String.format("%.1f", todaySpo2)}% | Temp delta ${String.format("%+.2f", tempDeltaC)}°C."
-            )
-            if (mainSleep != null) {
-                val hrs = mainSleep.totalSleepMin / 60
-                val mins = mainSleep.totalSleepMin % 60
-                val noonNote = if (mainSleep.post1200NoonExtendedMin > 0) {
-                    " (includes +${mainSleep.post1200NoonExtendedMin}m stitched past 12:00 noon!)"
-                } else ""
-                add(
-                    "Sleep: ${hrs}h ${mins}m$noonNote — Deep ${mainSleep.deepMin}m, REM ${mainSleep.remMin}m, Light ${mainSleep.lightMin}m (Score ${mainSleep.sleepScore}%)."
-                )
-            }
-        }
-
-        return DailyReadinessReport(
-            date = dateStr,
-            readinessScore = readinessScore,
-            sleepScore = sleepScore,
-            strainScore = strainScore,
-            overnightHrvMs = Math.round(overnightHrv * 10.0) / 10.0,
-            hrvBaseline30dMs = Math.round(hrvBaseline30d * 10.0) / 10.0,
-            morningRmssdMs = morningRmssdOverride,
-            restingHrBpm = Math.round(restingHrToday * 10.0) / 10.0,
-            rhrBaseline30dBpm = Math.round(rhrBaseline30d * 10.0) / 10.0,
-            spo2AvgPct = Math.round(todaySpo2 * 10.0) / 10.0,
-            skinTempDeltaC = tempDeltaC,
-            totalSleepMin = mainSleep?.totalSleepMin ?: 0,
-            deepSleepMin = mainSleep?.deepMin ?: 0,
-            remSleepMin = mainSleep?.remMin ?: 0,
-            lightSleepMin = mainSleep?.lightMin ?: 0,
-            post1200NoonExtendedMin = mainSleep?.post1200NoonExtendedMin ?: 0,
-            steps = todaySteps,
-            headlineInsight = headline,
-            coachingBullets = bullets
-        )
+        val onset = minutesFromNoon(s.startTime.toLocalTime())
+        val timing = ((960.0 - onset) / 120.0 * 100.0).coerceIn(0.0, 100.0) // 02:00 = 840, 04:00 = 960
+        val score = (0.40 * duration + 0.20 * restorative + 0.10 * s.sleepEfficiencyPct +
+            0.15 * regularity + 0.15 * timing).roundToInt().coerceIn(0, 100)
+        return if (onset >= 900) score.coerceAtMost(70) else score // 03:00 = 900
     }
 }

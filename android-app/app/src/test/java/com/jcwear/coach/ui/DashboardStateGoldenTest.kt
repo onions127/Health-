@@ -21,9 +21,8 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 /**
- * Phase 1a regression guard (plan D23): the values the dashboard derives from a fixed DB and a
- * fixed date must not change during the refactor. 1b changes them on purpose: delete the golden
- * file, re-run to re-record, and review the diff.
+ * Regression guard (plan D23): the values the dashboard derives from a fixed DB and a fixed date.
+ * To change them on purpose, delete the golden file, re-run to re-record, and review the diff.
  *
  * The fixture is synthetic on purpose: the real band dump is personal data and stays out of git.
  */
@@ -33,7 +32,7 @@ class DashboardStateGoldenTest {
 
     private val context: Context = ApplicationProvider.getApplicationContext()
     private val db = LocalHealthDatabase(context)
-    private val golden = File("src/test/resources/golden/dashboard_state_pre1a.txt")
+    private val golden = File("src/test/resources/golden/dashboard_state.txt")
 
     @After
     fun tearDown() {
@@ -45,8 +44,13 @@ class DashboardStateGoldenTest {
     fun dashboardStateMatchesGolden() {
         seedFixture(today = LocalDate.of(2026, 11, 12))
 
-        val (reports, series) = buildDashboardState(db, morningRmssd = null, today = LocalDate.of(2026, 11, 12))
-        val actual = (reports.map { it.toString() } + series.map { it.toString() }).joinToString("\n") + "\n"
+        val days = buildDashboardState(db, morningRmssd = null, today = LocalDate.of(2026, 11, 12))
+        val actual = days.filter { it.hasData }.joinToString("\n") { d ->
+            // Per-minute epochs are left out; times and stage totals pin the session.
+            val s = d.sleep?.let { "${it.startTime}..${it.endTime} asleep=${it.totalSleepMin} deep=${it.deepMin} rem=${it.remMin} awake=${it.awakeMin}" }
+            "${d.copy(sleep = null)} sleep=$s"
+        } + "\n"
+        assertEquals("Gap days stay empty, not filled", 90 - 21, days.count { !it.hasData })
 
         if (!golden.exists()) {
             golden.parentFile?.mkdirs()

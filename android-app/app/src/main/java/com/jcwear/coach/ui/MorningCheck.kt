@@ -48,7 +48,8 @@ import com.jcwear.coach.ai.ClaudeCoachRepository
 import com.jcwear.coach.ble.J2208BleManager
 import com.jcwear.coach.data.LocalHealthDatabase
 import com.jcwear.coach.domain.SleepAndReadinessEngine
-import com.jcwear.coach.domain.SleepAndReadinessEngine.DailyReadinessReport
+import com.jcwear.coach.domain.DayMetrics
+import com.jcwear.coach.domain.Metrics
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -66,10 +67,12 @@ import kotlin.math.sin
 internal fun MorningCheckFlowView(
     step: CheckFlowStep,
     secondsRemaining: Int,
-    liveHrBpm: Int,
-    resultHrv: Int,
+    liveHrBpm: Int?,
+    /** Null after a check means it failed; nothing was stored. */
+    resultHrv: Int?,
+    today: DayMetrics,
+    days: List<DayMetrics>,
     onBeginMeasuring: () -> Unit,
-    onSkipToResult: () -> Unit,
     onDone: () -> Unit,
     onCancel: () -> Unit
 ) {
@@ -112,7 +115,6 @@ internal fun MorningCheckFlowView(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    ScoreRingGauge(score = 85, size = 112.dp, showRadialGlow = false)
                     Text("Lie still, 60 seconds", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                     Text("Rest your arm flat and breathe normally.", color = HealthColors.TextSecondary, fontSize = 13.sp)
                     AmberActionButton(
@@ -168,24 +170,26 @@ internal fun MorningCheckFlowView(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Live HR · $liveHrBpm bpm",
+                            text = "Live HR · ${liveHrBpm ?: "—"} bpm",
                             color = HealthColors.TextPrimary,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.SemiBold
                         )
-                        Text("Within normal", color = HealthColors.ScoreGreen, fontSize = 13.sp)
                     }
 
-                    SecondaryActionButton(
-                        text = "Complete check now",
-                        onClick = onSkipToResult,
-                        modifier = Modifier.fillMaxWidth()
-                    )
                 }
             }
         }
 
         else -> {
+            if (resultHrv == null) {
+                HealthCard {
+                    Text("Check failed, try again", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Keep the band snug and connected, and lie still.", color = HealthColors.TextSecondary, fontSize = 13.sp)
+                }
+                AmberActionButton(text = "Done", onClick = onDone, modifier = Modifier.fillMaxWidth())
+                return
+            }
             HealthCard {
                 Column(
                     modifier = Modifier
@@ -194,34 +198,26 @@ internal fun MorningCheckFlowView(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    ScoreRingGauge(score = 88, size = 80.dp, showRadialGlow = false)
+                    ScoreRingGauge(score = today.recovery, size = 80.dp, showRadialGlow = false)
                     Text("Updated Recovery Score", color = HealthColors.TextSecondary, fontSize = 13.sp)
-                    Text("88", color = HealthColors.TextPrimary, fontSize = 48.sp, fontWeight = FontWeight.Bold)
-                    ContextChip("↑ 10% vs your normal", score = 88)
+                    Text(today.recovery?.toString() ?: "—", color = HealthColors.TextPrimary, fontSize = 48.sp, fontWeight = FontWeight.Bold)
+                    if (today.recovery != null) InsightChip(Metrics.recovery, days, today)
                 }
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                HealthCard(modifier = Modifier.weight(1f)) {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("HRV", color = HealthColors.TextSecondary, fontSize = 13.sp)
-                        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("$resultHrv", color = HealthColors.TextPrimary, fontSize = 48.sp, fontWeight = FontWeight.Bold)
-                            Text("ms", color = HealthColors.TextSecondary, fontSize = 13.sp, modifier = Modifier.padding(bottom = 6.dp))
+                listOf(Triple(Metrics.hrv, resultHrv, "ms"), Triple(Metrics.rhr, today.rhrBpm?.roundToInt(), "bpm")).forEach { (def, v, unit) ->
+                    HealthCard(modifier = Modifier.weight(1f)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(def.label, color = HealthColors.TextSecondary, fontSize = 13.sp)
+                            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(v?.toString() ?: "—", color = HealthColors.TextPrimary, fontSize = 48.sp, fontWeight = FontWeight.Bold)
+                                Text(unit, color = HealthColors.TextSecondary, fontSize = 13.sp, modifier = Modifier.padding(bottom = 6.dp))
+                            }
+                            if (v != null) InsightChip(def, days, today)
                         }
-                        ContextChip("↑ 10% vs normal", score = 88)
-                    }
-                }
-                HealthCard(modifier = Modifier.weight(1f)) {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("Resting HR", color = HealthColors.TextSecondary, fontSize = 13.sp)
-                        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("51", color = HealthColors.TextPrimary, fontSize = 48.sp, fontWeight = FontWeight.Bold)
-                            Text("bpm", color = HealthColors.TextSecondary, fontSize = 13.sp, modifier = Modifier.padding(bottom = 6.dp))
-                        }
-                        ContextChip("↓ 3 vs normal", score = 88)
                     }
                 }
             }

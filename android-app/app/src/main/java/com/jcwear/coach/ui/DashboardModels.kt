@@ -48,7 +48,9 @@ import com.jcwear.coach.ai.ClaudeCoachRepository
 import com.jcwear.coach.ble.J2208BleManager
 import com.jcwear.coach.data.LocalHealthDatabase
 import com.jcwear.coach.domain.SleepAndReadinessEngine
-import com.jcwear.coach.domain.SleepAndReadinessEngine.DailyReadinessReport
+import com.jcwear.coach.domain.DailySeriesRepository
+import com.jcwear.coach.domain.DayMetrics
+import com.jcwear.coach.domain.Status
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -96,154 +98,24 @@ enum class MainTab { TODAY, TRENDS, COACH, SETTINGS }
 enum class ActiveSheet { NONE, SYNC, VERDICT, CALENDAR, SERVER_CONFIG }
 enum class CheckFlowStep { NONE, INTRO, MEASURING, RESULT }
 
-data class MetricSeriesPoint(
-    val index: Int,
-    val date: LocalDate,
-    val label: String,
-    val dailyScore: Int,
-    val recoveryScore: Int,
-    val readiness: Int,
-    val sleepScore: Int,
-    val sleepMin: Int,
-    val strainScore100: Int,
-    val hrvMs: Int,
-    val rhrBpm: Int,
-    val steps: Int,
-    val spo2Pct: Int,
-    val skinTempDelta: Float,
-    val rolling3d: Map<String, Float> = emptyMap()
-)
-
 fun formatSleepHm(totalMin: Int): String {
     val hrs = totalMin / 60
     val mins = totalMin % 60
     return "${hrs}h ${mins.toString().padStart(2, '0')}m"
 }
 
-/**
- * Builds a 90-day series combining real SQLite records from the J2208A band with a deterministic
- * 90-day physiological baseline so Week / Month / 3M / Year charts and rolling averages are always rich.
- */
-fun buildNinetyDaySeries(
-    reportsByDate: Map<LocalDate, DailyReadinessReport>,
-    morningHrvOverride: Double?,
-    today: LocalDate
-): List<MetricSeriesPoint> {
-    val rawPoints = mutableListOf<MetricSeriesPoint>()
-    val dowFmt = DateTimeFormatter.ofPattern("EEE d MMM", Locale.ENGLISH)
+/** Short day label, e.g. "Thu 12 Nov". */
+val DayMetrics.label: String get() = date.format(DateTimeFormatter.ofPattern("EEE d MMM", Locale.ENGLISH))
 
-    for (i in 0 until 90) {
-        val d = today.minusDays((89 - i).toLong())
-        val rep = reportsByDate[d]
-        val wave = (sin(i / 4.5) * 3.5 + cos(i / 9.0) * 2.0).toFloat()
-
-        var hrv = rep?.overnightHrvMs?.roundToInt() ?: (59f + wave).roundToInt()
-        var rhr = rep?.restingHrBpm?.roundToInt() ?: (53f - wave * 0.4f).roundToInt()
-        var sleepMin = rep?.totalSleepMin?.takeIf { it > 0 } ?: (432f + wave * 6f).roundToInt()
-        var sleepScore = rep?.sleepScore ?: ((sleepMin - 300) * 0.42f).roundToInt().coerceIn(48, 96)
-        var strain100 = rep?.let { (it.strainScore / 21.0 * 100.0).roundToInt().coerceIn(35, 96) }
-            ?: (74f + sin(i / 3.2) * 10f).roundToInt()
-        var steps = rep?.steps?.takeIf { it > 0 } ?: (8100 + (sin(i / 3.2) * 1600).roundToInt())
-        var spo2 = rep?.spo2AvgPct?.roundToInt() ?: 98
-        var tempDelta = rep?.skinTempDeltaC?.toFloat() ?: 0.0f
-
-        // Realistic outliers across 90 days
-        if (i == 24) {
-            hrv = 45; rhr = 59; sleepMin = 355; sleepScore = 54
-        } else if (i == 52) {
-            hrv = 44; rhr = 60; tempDelta = 0.8f; spo2 = 93; sleepMin = 365; sleepScore = 56
-        } else if (i == 74) {
-            hrv = 69; rhr = 49; sleepMin = 475; sleepScore = 91
-        } else if (i == 81) {
-            // Historical low-recovery outlier day (8 days ago)
-            hrv = 46; rhr = 58; sleepMin = 365; sleepScore = 58; strain100 = 49; steps = 4820; spo2 = 96; tempDelta = 0.4f
-        } else if (i == 89) {
-            // Today
-            if (morningHrvOverride != null && morningHrvOverride > 0.0) {
-                hrv = morningHrvOverride.roundToInt()
-                rhr = 51
-            } else if (rep == null) {
-                hrv = 64; rhr = 52; sleepMin = 440; sleepScore = 82; strain100 = 78; steps = 8420; spo2 = 98; tempDelta = 0.1f
-            }
-        }
-
-        val readiness = rep?.readinessScore ?: (hrv * 0.85f + (100 - rhr) * 0.65f).roundToInt().coerceIn(38, 98)
-        val recovery = if (i == 89 && morningHrvOverride != null) 88
-        else if (i == 89) 86
-        else if (i == 81) 52
-        else (hrv * 0.92f + (90 - rhr) * 0.72f).roundToInt().coerceIn(36, 98)
-
-        val dailyScore = if (i == 89 && morningHrvOverride != null) 86
-        else if (i == 89) 84
-        else if (i == 81) 56
-        else (readiness * 0.42f + sleepScore * 0.36f + strain100 * 0.22f).roundToInt().coerceIn(38, 98)
-
-        rawPoints.add(
-            MetricSeriesPoint(
-                index = i,
-                date = d,
-                label = d.format(dowFmt),
-                dailyScore = dailyScore,
-                recoveryScore = recovery,
-                readiness = readiness,
-                sleepScore = sleepScore,
-                sleepMin = sleepMin,
-                strainScore100 = strain100,
-                hrvMs = hrv,
-                rhrBpm = rhr,
-                steps = steps,
-                spo2Pct = spo2,
-                skinTempDelta = tempDelta
-            )
-        )
-    }
-
-    // Compute 3-day rolling averages
-    return rawPoints.mapIndexed { idx, pt ->
-        val slice = rawPoints.subList((idx - 2).coerceAtLeast(0), idx + 1)
-        val roll = mapOf(
-            "hrv" to slice.map { it.hrvMs }.average().toFloat(),
-            "rhr" to slice.map { it.rhrBpm }.average().toFloat(),
-            "readiness" to slice.map { it.readiness }.average().toFloat(),
-            "sleep" to slice.map { it.sleepMin }.average().toFloat(),
-            "strain" to slice.map { it.strainScore100 }.average().toFloat(),
-            "steps" to slice.map { it.steps }.average().toFloat(),
-            "spo2" to slice.map { it.spo2Pct }.average().toFloat(),
-            "skinTemp" to slice.map { it.skinTempDelta.toDouble() }.average().toFloat()
-        )
-        pt.copy(rolling3d = roll)
-    }
+fun statusColor(st: Status): Color = when (st) {
+    Status.GOOD -> HealthColors.ScoreGreen
+    Status.BAD -> HealthColors.ScoreCoral
+    else -> HealthColors.TextSecondary
 }
 
-/** Reports for the last 14 days + the 90-day series. Pure apart from the DB read, so it can be golden-tested. */
+/** Real days, oldest first, ending today. Pure apart from the DB read, so it can be golden-tested. */
 fun buildDashboardState(
     database: LocalHealthDatabase,
     morningRmssd: Double?,
     today: LocalDate
-): Pair<List<DailyReadinessReport>, List<MetricSeriesPoint>> {
-    val sleepBlocks = database.getAllSleepBlocks()
-    val hrRecords = database.getAllHrRecords()
-    val hrvRecords = database.getAllHrvRecords()
-    val spo2Records = database.getAllSpo2Records()
-    val tempRecords = database.getAllTempRecords()
-    val stepRecords = database.getAllStepRecords()
-
-    val stitched = SleepAndReadinessEngine.stitchSleepSessions(sleepBlocks, stepRecords, hrRecords)
-    val map = mutableMapOf<LocalDate, DailyReadinessReport>()
-    for (d in 0..13) {
-        val date = today.minusDays(d.toLong())
-        map[date] = SleepAndReadinessEngine.buildDailyReadinessReport(
-            targetDate = date,
-            sleepSessions = stitched,
-            hrvRecords = hrvRecords,
-            hrRecords = hrRecords,
-            spo2Records = spo2Records,
-            tempRecords = tempRecords,
-            stepRecords = stepRecords,
-            morningRmssdOverride = if (d == 0) morningRmssd else null
-        )
-    }
-    val series = buildNinetyDaySeries(map, morningRmssd, today)
-    val reportsList = (0..13).mapNotNull { map[today.minusDays(it.toLong())] }
-    return reportsList to series
-}
+): List<DayMetrics> = DailySeriesRepository(database).load(today, morningRmssd)

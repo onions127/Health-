@@ -1,7 +1,9 @@
 package com.jcwear.coach.ai
 
 import com.jcwear.coach.data.LocalHealthDatabase
-import com.jcwear.coach.domain.SleepAndReadinessEngine.DailyReadinessReport
+import com.jcwear.coach.domain.DayMetrics
+import com.jcwear.coach.domain.MetricInsights
+import com.jcwear.coach.domain.Metrics
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -21,25 +23,19 @@ class ClaudeCoachRepository(private val database: LocalHealthDatabase) {
      */
     fun buildClaudeProPrompt(
         userQuestion: String,
-        recentReports: List<DailyReadinessReport>
+        recentReports: List<DayMetrics>
     ): String {
         val latest = recentReports.firstOrNull()
-        val avgHrv = recentReports.take(14).map { it.overnightHrvMs }.average().takeIf { !it.isNaN() } ?: 59.0
-        val avgRhr = recentReports.take(14).map { it.restingHrBpm }.average().takeIf { !it.isNaN() } ?: 54.0
-        val avgSleep = recentReports.take(14).map { it.totalSleepMin }.average().takeIf { !it.isNaN() } ?: 432.0
+        fun avg(f: (DayMetrics) -> Double?) = recentReports.take(14).mapNotNull(f).takeIf { it.isNotEmpty() }?.average()
+        fun hm(min: Int?) = min?.let { "${it / 60}h ${it % 60}m" } ?: "not recorded"
+        fun n(v: Number?, unit: String = "") = v?.let { "${(it.toDouble()).roundToInt()}$unit" } ?: "not recorded"
 
         return buildString {
-            appendLine("You are my Health++ recovery coach. Keep replies concise (max 3 short lines) and compare numbers to my normal baseline.")
+            appendLine("You are my Health++ recovery coach. Keep replies concise (max 3 short lines) and compare numbers to my normal baseline. \"not recorded\" means the band has no data; don't guess it.")
             if (latest != null) {
-                val sleepH = latest.totalSleepMin / 60
-                val sleepM = latest.totalSleepMin % 60
-                val deepH = latest.deepSleepMin / 60
-                val deepM = latest.deepSleepMin % 60
-                val remH = latest.remSleepMin / 60
-                val remM = latest.remSleepMin % 60
-                appendLine("Today (${latest.date}): Readiness ${latest.readinessScore}/100, Sleep Score ${latest.sleepScore}/100, Strain ${latest.strainScore}/21.")
-                appendLine("Vitals: HRV ${latest.overnightHrvMs.roundToInt()} ms (normal ${avgHrv.roundToInt()} ms), RHR ${latest.restingHrBpm.roundToInt()} bpm (normal ${avgRhr.roundToInt()} bpm), SpO2 ${latest.spo2AvgPct.roundToInt()}%, Skin Temp ${String.format("%+.1f", latest.skinTempDeltaC)} °C, Steps ${latest.steps}.")
-                appendLine("Sleep: ${sleepH}h ${sleepM}m total (normal ${(avgSleep / 60).toInt()}h ${(avgSleep % 60).toInt()}m) — Deep ${deepH}h ${deepM}m, REM ${remH}h ${remM}m.")
+                appendLine("Today (${latest.date}): Readiness ${n(latest.readiness)}/100, Sleep Score ${n(latest.sleepScore)}/100, Strain ${latest.strain ?: "not recorded"}/21.")
+                appendLine("Vitals: HRV ${n(latest.hrvMs, " ms")} (normal ${n(avg { it.hrvMs }, " ms")}), RHR ${n(latest.rhrBpm, " bpm")} (normal ${n(avg { it.rhrBpm }, " bpm")}), SpO2 ${n(latest.spo2Pct, "%")}, Skin Temp ${latest.skinTempDeltaC?.let { String.format("%+.1f °C", it) } ?: "not recorded"}, Steps ${latest.steps ?: "not recorded"}.")
+                appendLine("Sleep: ${hm(latest.sleepMin)} total (normal ${hm(avg { it.sleepMin?.toDouble() }?.roundToInt())}) — Deep ${hm(latest.sleep?.deepMin)}, REM ${hm(latest.sleep?.remMin)}.")
             }
             appendLine("Question: $userQuestion")
         }.trim()
@@ -51,7 +47,7 @@ class ClaudeCoachRepository(private val database: LocalHealthDatabase) {
     suspend fun syncToHomelab(
         homelabBaseUrl: String,
         apiToken: String,
-        recentReports: List<DailyReadinessReport>
+        recentReports: List<DayMetrics>
     ): Result<String> = withContext(Dispatchers.IO) {
         try {
             val cleanUrl = homelabBaseUrl.trimEnd('/') + "/api/v1/sync"
@@ -86,22 +82,25 @@ class ClaudeCoachRepository(private val database: LocalHealthDatabase) {
                     }
                 })
                 put("daily_summaries", JSONArray().apply {
+                    // shortcut: days with any missing metric are skipped until the server accepts nulls (1c);
+                    // the current server would store a missing value as 0. Upgrade with the 1c server change.
                     recentReports.forEach { r ->
+                        val s = r.sleep ?: return@forEach
                         put(JSONObject().apply {
-                            put("date", r.date)
-                            put("readiness_score", r.readinessScore)
-                            put("sleep_score", r.sleepScore)
-                            put("strain_score", r.strainScore)
-                            put("overnight_hrv_ms", r.overnightHrvMs)
-                            put("morning_rmssd_ms", r.morningRmssdMs ?: 0.0)
-                            put("resting_hr_bpm", r.restingHrBpm)
-                            put("total_sleep_min", r.totalSleepMin)
-                            put("deep_sleep_min", r.deepSleepMin)
-                            put("rem_sleep_min", r.remSleepMin)
-                            put("light_sleep_min", r.lightSleepMin)
-                            put("spo2_avg_pct", r.spo2AvgPct)
-                            put("skin_temp_delta_c", r.skinTempDeltaC)
-                            put("steps", r.steps)
+                            put("date", r.date.toString())
+                            put("readiness_score", r.readiness ?: return@forEach)
+                            put("sleep_score", r.sleepScore ?: return@forEach)
+                            put("strain_score", r.strain ?: return@forEach)
+                            put("overnight_hrv_ms", r.hrvMs ?: return@forEach)
+                            r.morningRmssdMs?.let { put("morning_rmssd_ms", it) } // absent = no morning check (server's 0)
+                            put("resting_hr_bpm", r.rhrBpm ?: return@forEach)
+                            put("total_sleep_min", s.totalSleepMin)
+                            put("deep_sleep_min", s.deepMin)
+                            put("rem_sleep_min", s.remMin)
+                            put("light_sleep_min", s.lightMin)
+                            put("spo2_avg_pct", r.spo2Pct ?: return@forEach)
+                            put("skin_temp_delta_c", r.skinTempDeltaC ?: return@forEach)
+                            put("steps", r.steps ?: return@forEach)
                         })
                     }
                 })
@@ -140,28 +139,29 @@ class ClaudeCoachRepository(private val database: LocalHealthDatabase) {
     suspend fun askClaudeCoach(
         messages: List<ChatMessage>,
         includeHealthContext: Boolean,
-        recentReports: List<DailyReadinessReport>,
+        recentReports: List<DayMetrics>,
         homelabBaseUrl: String,
+        apiToken: String,
         anthropicApiKey: String,
         model: String = "claude-sonnet-4-5"
     ): String = withContext(Dispatchers.IO) {
         val contextArray = JSONArray().apply {
             recentReports.take(14).forEach { r ->
                 put(JSONObject().apply {
-                    put("date", r.date)
-                    put("readiness", r.readinessScore)
-                    put("sleep_score", r.sleepScore)
-                    put("strain", r.strainScore)
-                    put("hrv_ms", r.overnightHrvMs)
-                    put("hrv_30d_baseline_ms", r.hrvBaseline30dMs)
-                    put("rhr_bpm", r.restingHrBpm)
-                    put("sleep_min", r.totalSleepMin)
-                    put("post_1200_noon_stitched_min", r.post1200NoonExtendedMin)
-                    put("deep_min", r.deepSleepMin)
-                    put("rem_min", r.remSleepMin)
-                    put("spo2_pct", r.spo2AvgPct)
-                    put("temp_delta_c", r.skinTempDeltaC)
-                    put("steps", r.steps)
+                    put("date", r.date.toString())
+                    put("readiness", r.readiness ?: JSONObject.NULL)
+                    put("sleep_score", r.sleepScore ?: JSONObject.NULL)
+                    put("strain", r.strain ?: JSONObject.NULL)
+                    put("hrv_ms", r.hrvMs ?: JSONObject.NULL)
+                    put("hrv_30d_baseline_ms", MetricInsights.baseline(Metrics.hrv, recentReports, r.date)?.mean ?: JSONObject.NULL)
+                    put("rhr_bpm", r.rhrBpm ?: JSONObject.NULL)
+                    put("sleep_min", r.sleepMin ?: JSONObject.NULL)
+                    put("post_1200_noon_stitched_min", r.sleep?.post1200NoonExtendedMin ?: JSONObject.NULL)
+                    put("deep_min", r.sleep?.deepMin ?: JSONObject.NULL)
+                    put("rem_min", r.sleep?.remMin ?: JSONObject.NULL)
+                    put("spo2_pct", r.spo2Pct ?: JSONObject.NULL)
+                    put("temp_delta_c", r.skinTempDeltaC ?: JSONObject.NULL)
+                    put("steps", r.steps ?: JSONObject.NULL)
                 })
             }
         }
@@ -187,6 +187,7 @@ class ClaudeCoachRepository(private val database: LocalHealthDatabase) {
                     readTimeout = 35000
                     doOutput = true
                     setRequestProperty("Content-Type", "application/json")
+                    if (apiToken.isNotBlank()) setRequestProperty("X-Api-Token", apiToken)
                 }
                 OutputStreamWriter(conn.outputStream, Charsets.UTF_8).use { it.write(reqJson.toString()) }
                 if (conn.responseCode in 200..299) {
@@ -244,38 +245,22 @@ class ClaudeCoachRepository(private val database: LocalHealthDatabase) {
             }
         }
 
-        // 3. Concise 3-line Health++ physiological response (0 API cost)
+        // 3. Local fallback from real values only (0 API cost)
         val today = recentReports.firstOrNull()
-        val lastQ = messages.lastOrNull()?.content?.lowercase() ?: ""
-        return@withContext if (today != null) {
-            val hrv = today.overnightHrvMs.roundToInt()
-            val baseHrv = today.hrvBaseline30dMs.roundToInt().coerceAtLeast(1)
-            val pct = (((today.overnightHrvMs - today.hrvBaseline30dMs) / baseHrv) * 100).roundToInt()
-            val rhr = today.restingHrBpm.roundToInt()
-            val sleepH = today.totalSleepMin / 60
-            val sleepM = today.totalSleepMin % 60
-            val deepH = today.deepSleepMin / 60
-            val deepM = today.deepSleepMin % 60
-
-            when {
-                lastQ.contains("hrv") -> buildString {
-                    appendLine("Your HRV reached $hrv ms (${if (pct >= 0) "↑ $pct%" else "↓ ${-pct}%"} vs normal).")
-                    appendLine("Resting HR settled at $rhr bpm overnight.")
-                    append("Your nervous system rebounded well from yesterday.")
-                }
-                lastQ.contains("sleep") || lastQ.contains("deep") -> buildString {
-                    appendLine("You slept ${sleepH}h ${sleepM.toString().padStart(2, '0')}m (Score ${today.sleepScore}).")
-                    appendLine("Deep sleep hit ${deepH}h ${deepM.toString().padStart(2, '0')}m, above your normal range.")
-                    append("That restorative sleep lifted your recovery to ${today.readinessScore}.")
-                }
-                else -> buildString {
-                    appendLine("Yes. Your recovery is ${today.readinessScore}, well within optimal range.")
-                    appendLine("HRV is $hrv ms and resting HR dropped to $rhr bpm.")
-                    append("Good day for intervals or heavy strength training.")
-                }
-            }
-        } else {
-            "Sync your band on Today to unlock personalized recovery guidance."
+        val hrv = today?.hrvMs?.roundToInt()
+        val rhr = today?.rhrBpm?.roundToInt()
+        if (today == null || hrv == null || rhr == null) {
+            return@withContext "Coach is offline. Your data is safe; try again later."
+        }
+        val base = MetricInsights.baseline(Metrics.hrv, recentReports, today.date)
+        val vsNormal = base?.let {
+            val pct = ((today.hrvMs - it.mean) / it.mean * 100).roundToInt()
+            " (${if (pct >= 0) "↑ $pct%" else "↓ ${-pct}%"} vs normal)"
+        } ?: ""
+        return@withContext buildString {
+            appendLine("Coach is offline, so here are your numbers.")
+            appendLine("HRV $hrv ms$vsNormal, resting HR $rhr bpm.")
+            append(today.sleepMin?.let { "You slept ${it / 60}h ${(it % 60).toString().padStart(2, '0')}m." } ?: "No sleep recorded last night.")
         }
     }
 }

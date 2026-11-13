@@ -363,19 +363,19 @@ Synthesized from this review's findings. Each task derives from a specific findi
   - Surfaced by: Sections 1/5, D12, D18
   - Files: ui/MainDashboardScreen.kt → ui/today, ui/trends, ui/sleep, ui/settings, ui/components, ui/DashboardViewModel.kt; app/build.gradle.kts
   - Verify: `./gradlew :app:assembleDebug` green; identical screens on device
-- [ ] **T2 (P1, human: ~1d / CC: ~40min)** — domain — 1b: DailySeriesRepository (nullable, real only), MetricRegistry, baseline/status/extremeLabel with D14 floors
+- [x] **T2 (P1, human: ~1d / CC: ~40min)** — domain — 1b: DailySeriesRepository (nullable, real only), MetricRegistry, baseline/status/extremeLabel with D14 floors
   - Surfaced by: root-cause table, 1.1–1.3, D14
   - Files: domain/DailySeriesRepository.kt, domain/MetricInsights.kt, src/test/.../MetricInsightsTest.kt
   - Verify: `./gradlew :app:testDebugUnitTest` (a high outlier says "Highest"; lower RHR is GOOD; a flat series stays grey)
-- [ ] **T3 (P1, human: ~4h / CC: ~25min)** — domain — 1b: Sleep score v2 (minutes-from-noon timing, 03:00 cap); real times in Sleep Detail
+- [x] **T3 (P1, human: ~4h / CC: ~25min)** — domain — 1b: Sleep score v2 (minutes-from-noon timing, 03:00 cap); real times in Sleep Detail
   - Surfaced by: #10, Outside voice #7
   - Files: domain/SleepAndReadinessEngine.kt, ui/sleep, src/test/.../SleepScoreTest.kt
   - Verify: golden tests (23:00–06:30 ≥ 85; 03:15–10:45 ≤ 70; 23:50/00:10 midpoints adjacent)
-- [ ] **T4 (P1, human: ~4h / CC: ~25min)** — data — 1b: remove all hardcoded fakes; greeting; AppSettings wiring for URL, token and units
+- [x] **T4 (P1, human: ~4h / CC: ~25min)** — data — 1b: remove all hardcoded fakes; greeting; AppSettings wiring for URL, token and units
   - Surfaced by: 1.1 list, Outside voice #6
   - Files: ui/*, ble/J2208BleManager.kt, data/AppSettings.kt
   - Verify: fresh state shows "—" and empty states; a test asserts none of the known literals remain
-- [ ] **T5 (P1, human: ~1d / CC: ~45min)** — data+server — 1b/1c: CleanupJob, upsert that keeps `uploaded`, all-table batched upload, server routes + migration
+- [ ] **T5 (P1, human: ~1d / CC: ~45min)** — data+server — 1b/1c (1b part done: CleanupJob BACKUP_COPY → LOCAL_DELETE, parks at RESTORE_PENDING): CleanupJob, upsert that keeps `uploaded`, all-table batched upload, server routes + migration
   - Surfaced by: D4/D9/D15/D16, N1–N6, Outside voice #5
   - Files: data/LocalHealthDatabase.kt, data/CleanupJob.kt, ai/ClaudeCoachRepository.kt, homelab-server/app/main.py, homelab-server/test_server.py
   - Verify: migration test (real rows survive, seed rows go); server pytest for purge, paging, 503 and the migration

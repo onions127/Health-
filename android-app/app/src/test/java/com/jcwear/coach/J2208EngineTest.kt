@@ -2,7 +2,9 @@ package com.jcwear.coach
 
 import com.jcwear.coach.ble.J2208Protocol
 import com.jcwear.coach.domain.SleepAndReadinessEngine
+import com.jcwear.coach.domain.buildDaySeries
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
@@ -62,16 +64,18 @@ class J2208EngineTest {
         assertTrue("Expected post-12:00 noon sleep extension > 45m, got ${session.post1200NoonExtendedMin}", session.post1200NoonExtendedMin >= 45)
         assertTrue(session.totalSleepMin >= 405)
 
-        val report = SleepAndReadinessEngine.buildDailyReadinessReport(
-            targetDate = LocalDate.of(2026, 11, 12),
-            sleepSessions = stitched,
+        val day = buildDaySeries(
+            sleepBlocks = listOf(sleepBlock),
             hrvRecords = listOf(J2208Protocol.HrvRecord("2026-11-12T06:30:00", 68, 1, 54, 25, 115, 75, "")),
             hrRecords = hrs,
             spo2Records = listOf(J2208Protocol.Spo2Record("2026-11-12T06:00:00", 98, "")),
             tempRecords = listOf(J2208Protocol.TempRecord("2026-11-12T06:00:00", 36.3, "")),
-            stepRecords = steps
-        )
-        assertTrue(report.readinessScore in 70..100)
-        assertEquals(session.post1200NoonExtendedMin, report.post1200NoonExtendedMin)
+            stepRecords = steps,
+            today = LocalDate.of(2026, 11, 12),
+            morningRmssd = null
+        ).last()
+        assertEquals(session.post1200NoonExtendedMin, day.sleep?.post1200NoonExtendedMin)
+        assertEquals(68.0, day.hrvMs!!, 0.01)
+        assertNull("No history yet, so no readiness", day.readiness)
     }
 }

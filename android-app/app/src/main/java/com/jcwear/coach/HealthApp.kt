@@ -7,6 +7,7 @@ import android.util.Log
 import com.jcwear.coach.ai.ClaudeCoachRepository
 import com.jcwear.coach.ble.J2208BleManager
 import com.jcwear.coach.data.AppSettings
+import com.jcwear.coach.data.CleanupJob
 import com.jcwear.coach.data.LocalHealthDatabase
 import java.io.IOException
 
@@ -26,6 +27,8 @@ class HealthApp : Application() {
         super.onCreate()
         container = AppContainer(this)
         importBundledHistoryOnce(container)
+        // Fast (one DB copy + a delete) and runs before any sync can write, so it stays on startup.
+        CleanupJob(container.database, container.settings, getDatabasePath(CleanupJob.BACKUP_NAME)).runLocalSteps()
     }
 
     /** Phase 0: merge the bundled real band history once (insert-only, never overwrites). */

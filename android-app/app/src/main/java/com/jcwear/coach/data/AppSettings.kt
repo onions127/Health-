@@ -28,7 +28,18 @@ class AppSettings(context: Context) {
         get() = prefs.getBoolean(KEY_BUNDLED_HISTORY_IMPORTED, false)
         set(value) = prefs.edit().putBoolean(KEY_BUNDLED_HISTORY_IMPORTED, value).apply()
 
+    var useMetricUnits: Boolean
+        get() = prefs.getBoolean(KEY_METRIC_UNITS, true)
+        set(value) = prefs.edit().putBoolean(KEY_METRIC_UNITS, value).apply()
+
+    /** One-time fake-row cleanup progress (plan 1.1); null = not started. See CleanupJob. */
+    var cleanupState: String?
+        get() = prefs.getString(KEY_CLEANUP_STATE, null)
+        set(value) = prefs.edit().putString(KEY_CLEANUP_STATE, value).apply()
+
     companion object {
+        private const val KEY_METRIC_UNITS = "use_metric_units"
+        private const val KEY_CLEANUP_STATE = "cleanup_state"
         const val PREFS_NAME = "app_settings"
         private const val KEY_BUNDLED_HISTORY_IMPORTED = "bundled_history_imported"
         const val DEFAULT_HOMELAB_URL = "https://sterver.tail24d7a.ts.net:8443"
