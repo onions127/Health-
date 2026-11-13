@@ -359,7 +359,7 @@ Synthesized from this review's findings. Each task derives from a specific findi
   - Surfaced by: Outside voice #3, D17
   - Files: MainActivity.kt, data/LocalHealthDatabase.kt, data/AppSettings.kt
   - Verify: fresh install shows July–Nov history; a second launch adds 0 rows
-- [ ] **T1 (P1, human: ~1d / CC: ~45min)** — ui — 1a: DashboardViewModel + IO loading + per-screen split, no behavior change
+- [x] **T1 (P1, human: ~1d / CC: ~45min)** — ui — 1a: DashboardViewModel + IO loading + per-screen split, no behavior change
   - Surfaced by: Sections 1/5, D12, D18
   - Files: ui/MainDashboardScreen.kt → ui/today, ui/trends, ui/sleep, ui/settings, ui/components, ui/DashboardViewModel.kt; app/build.gradle.kts
   - Verify: `./gradlew :app:assembleDebug` green; identical screens on device
