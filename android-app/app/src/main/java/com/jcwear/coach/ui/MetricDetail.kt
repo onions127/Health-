@@ -30,14 +30,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jcwear.coach.domain.DayMetrics
 import com.jcwear.coach.domain.MetricInsights
+import com.jcwear.coach.domain.Smoothing
 import com.jcwear.coach.domain.Metrics
 import com.jcwear.coach.domain.Status
 import kotlin.math.roundToInt
-
-/** Trailing 3-day mean of the days that have a value; null when none of the 3 has one (gaps stay gaps). */
-internal fun rolling3(values: List<Double?>): List<Double?> = values.indices.map { i ->
-    values.subList((i - 2).coerceAtLeast(0), i + 1).filterNotNull().takeIf { it.isNotEmpty() }?.average()
-}
 
 // ============================================================================
 // DETAIL & HISTORY VIEW (Week / Month / 3M / Year + 3-day average + outliers)
@@ -76,7 +72,7 @@ internal fun MetricDetailView(
             MetricInsights.status(def, v, b) != Status.NORMAL
         }
     }
-    val rollVals = remember(rawVals) { rolling3(rawVals) }
+    val segments = remember(rawVals, selectedRange) { Smoothing.forRange(rawVals, selectedRange) }
 
     // Back header
     Row(
@@ -227,13 +223,10 @@ internal fun MetricDetailView(
                             )
                         }
 
-                        // 3-day average; a day with no data in its window breaks the line
+                        // Smoothed line over real days only; gaps start a new segment
                         val path = Path()
-                        var penDown = false
-                        rollVals.forEachIndexed { i, rv ->
-                            if (rv == null) { penDown = false; return@forEachIndexed }
-                            if (penDown) path.lineTo(xFor(i), yFor(rv)) else path.moveTo(xFor(i), yFor(rv))
-                            penDown = true
+                        segments.forEach { seg ->
+                            seg.forEachIndexed { k, (i, v) -> if (k == 0) path.moveTo(xFor(i), yFor(v)) else path.lineTo(xFor(i), yFor(v)) }
                         }
                         drawPath(
                             path = path,
@@ -278,7 +271,7 @@ internal fun MetricDetailView(
             }
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("━ 3-day average", color = HealthColors.TextSecondary, fontSize = 13.sp)
+                Text(Smoothing.label(selectedRange)?.let { "━ $it" } ?: "● Daily values", color = HealthColors.TextSecondary, fontSize = 13.sp)
                 Text("● Outside your normal", color = HealthColors.TextSecondary, fontSize = 13.sp)
             }
         }

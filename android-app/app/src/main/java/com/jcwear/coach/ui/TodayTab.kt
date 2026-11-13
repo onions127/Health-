@@ -80,6 +80,7 @@ internal fun TodayTabView(
     syncPill: Pair<String, Boolean>,
     syncing: Boolean,
     batteryPct: Int?,
+    useMetricUnits: Boolean,
     onSyncPillClick: () -> Unit,
     onExitHistory: () -> Unit,
     onStartMorningCheck: () -> Unit,
@@ -286,24 +287,30 @@ internal fun TodayTabView(
         }
     }
 
-    // 7. Activity: steps against the normal range
+    // 7. Activity: steps · distance, ring = progress toward your normal (plan 2.4)
     val stepsBase = MetricInsights.baseline(Metrics.steps, days, day.date)
     HealthCard(onClick = { onOpenMetricDetail("steps") }) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                val distance = day.distanceKm?.let {
+                    if (useMetricUnits) String.format(Locale.US, " · %.1f km", it)
+                    else String.format(Locale.US, " · %.1f mi", it * 0.621371)
+                } ?: ""
                 Text(
-                    text = day.steps?.let { "Steps  ${String.format(Locale.US, "%,d", it)}" } ?: "No steps yet today",
+                    text = day.steps?.let { "${String.format(Locale.US, "%,d", it)} steps$distance" } ?: "No steps yet today",
                     color = HealthColors.TextPrimary,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 if (day.steps != null) InsightChip(Metrics.steps, days, day)
             }
-            day.steps?.let { StepsNormalBandBar(steps = it, normalMin = stepsBase?.low?.roundToInt(), normalMax = stepsBase?.high?.roundToInt()) }
+            if (day.steps != null && stepsBase != null) {
+                ScoreRingGauge(score = (day.steps * 100.0 / stepsBase.mean).roundToInt().coerceAtMost(100), size = 48.dp, showRadialGlow = false)
+            }
         }
     }
 }

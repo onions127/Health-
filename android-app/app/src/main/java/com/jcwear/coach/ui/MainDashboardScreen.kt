@@ -78,6 +78,7 @@ fun MainDashboardScreen(
     // Navigation & UI state
     var currentTab by remember { mutableStateOf(MainTab.TODAY) }
     var activeDetailMetric by remember { mutableStateOf<String?>(null) }
+    var sleepNightIdx by remember { mutableStateOf<Int?>(null) } // a night opened from Sleep Trends
     var checkStep by remember { mutableStateOf(CheckFlowStep.NONE) }
     var checkCountdown by remember { mutableStateOf(60) }
     var morningCheckCompleted by remember { mutableStateOf(false) }
@@ -178,7 +179,12 @@ fun MainDashboardScreen(
 
                 activeDetailMetric != null -> {
                     val metricId = activeDetailMetric!!
-                    if (metricId == "sleep") {
+                    val night = sleepNightIdx
+                    if (night != null) {
+                        SleepDetailView(day = days[night.coerceAtMost(days.lastIndex)], days = days, onBack = { sleepNightIdx = null })
+                    } else if (metricId == "sleepTrends") {
+                        SleepTrendsView(days = days, onOpenNight = { sleepNightIdx = it }, onBack = { activeDetailMetric = null })
+                    } else if (metricId == "sleep") {
                         SleepDetailView(day = activeDay, days = days, onBack = { activeDetailMetric = null })
                     } else {
                         MetricDetailView(
@@ -204,6 +210,7 @@ fun MainDashboardScreen(
                         syncPill = syncPill,
                         syncing = syncing,
                         batteryPct = batteryPct,
+                        useMetricUnits = useMetricUnits,
                         onSyncPillClick = {
                             when ((syncState as? SyncState.Failed)?.reason) {
                                 SyncFailureReason.PERMISSION_MISSING -> onRequestBlePermissions() // sync starts once granted
@@ -319,6 +326,7 @@ fun MainDashboardScreen(
             activeTab = currentTab,
             onSelectTab = { tab ->
                 activeDetailMetric = null
+                sleepNightIdx = null
                 checkStep = CheckFlowStep.NONE
                 currentTab = tab
             },

@@ -24,6 +24,7 @@ data class DayMetrics(
     val spo2Pct: Double? = null,
     val skinTempDeltaC: Double? = null,
     val steps: Int? = null,
+    val distanceKm: Double? = null,
     /** Whoop-style strain, 0-21. */
     val strain: Double? = null,
     val readiness: Int? = null,
@@ -56,7 +57,8 @@ fun buildDaySeries(
     tempRecords: List<TempRecord>,
     stepRecords: List<StepEpochRecord>,
     today: LocalDate,
-    morningRmssd: Double?
+    morningRmssd: Double?,
+    heightCm: Double? = null
 ): List<DayMetrics> {
     fun <T> byDate(items: List<T>, time: (T) -> String, ok: (T) -> Boolean) = items
         .filter(ok)
@@ -98,6 +100,7 @@ fun buildDaySeries(
                 ?.let { s -> s.take((s.size * 0.15).roundToInt().coerceAtLeast(1)).average() }?.round1(),
             spo2Pct = spo2ByDay[d]?.map { it.spo2Pct.toDouble() }?.average()?.round1(),
             steps = steps,
+            distanceKm = distanceKm(steps, stepsByDay[d]?.sumOf { it.distanceKm }, heightCm),
             strain = strain
         )
     }

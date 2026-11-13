@@ -389,7 +389,8 @@ internal fun MiniSparklineCanvas(
     values: List<Float>,
     normalMin: Float?,
     normalMax: Float?,
-    color: Color
+    color: Color,
+    lastDotColor: Color = color
 ) {
     Canvas(modifier = Modifier.size(width = 92.dp, height = 30.dp)) {
         if (values.isEmpty()) return@Canvas
@@ -424,55 +425,9 @@ internal fun MiniSparklineCanvas(
             style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
         )
         drawCircle(
-            color = color,
-            radius = 3.dp.toPx(),
+            color = lastDotColor,
+            radius = 3.5.dp.toPx(),
             center = Offset(xFor(values.lastIndex), yFor(values.last()))
-        )
-    }
-}
-
-@Composable
-internal fun StepsNormalBandBar(
-    steps: Int,
-    normalMin: Int?,
-    normalMax: Int?
-) {
-    val maxScale = maxOf(13000f, steps * 1.1f, (normalMax ?: 0) * 1.1f)
-    val barColor = if (normalMin == null || steps >= normalMin) HealthColors.ScoreGreen else HealthColors.ScoreAmber
-    Canvas(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(18.dp)
-    ) {
-        val w = size.width
-        val h = size.height
-        drawRoundRect(
-            color = Color(0x14FFFFFF),
-            topLeft = Offset(0f, h * 0.25f),
-            size = Size(w, h * 0.5f),
-            cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
-        )
-        if (normalMin != null && normalMax != null) {
-            val nLeft = (normalMin / maxScale) * w
-            val nWidth = ((normalMax - normalMin) / maxScale) * w
-            drawRoundRect(
-                color = Color(0x26FFFFFF),
-                topLeft = Offset(nLeft, 0f),
-                size = Size(nWidth, h),
-                cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
-            )
-        }
-        val fillW = ((steps / maxScale).coerceIn(0.05f, 1f)) * w
-        drawRoundRect(
-            color = barColor,
-            topLeft = Offset(0f, h * 0.25f),
-            size = Size(fillW, h * 0.5f),
-            cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
-        )
-        drawCircle(
-            color = HealthColors.TextPrimary,
-            radius = 5.dp.toPx(),
-            center = Offset(fillW, h / 2f)
         )
     }
 }

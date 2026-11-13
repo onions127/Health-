@@ -44,11 +44,14 @@ internal fun TrendsTabView(
 
     val today = days.last()
     val slice30 = days.takeLast(30)
-    listOf(Metrics.hrv, Metrics.rhr, Metrics.sleep, Metrics.readiness, Metrics.strain, Metrics.spo2, Metrics.skinTemp)
+    listOf(Metrics.hrv, Metrics.rhr, Metrics.sleep, Metrics.readiness, Metrics.steps, Metrics.strain, Metrics.spo2, Metrics.skinTemp)
         .forEach { def ->
             val values = slice30.mapNotNull(def.extract)
             val base = MetricInsights.baseline(def, days, today.date)
-            HealthCard(onClick = { onOpenMetricDetail(def.id) }) {
+            val todayVal = def.extract(today)
+            // Plan 2.1: color means one thing, today's status (green good / red bad / grey normal)
+            val todayColor = todayVal?.let { statusColor(MetricInsights.chip(def, days, today.date).second) } ?: HealthColors.TextSecondary
+            HealthCard(onClick = { onOpenMetricDetail(if (def == Metrics.sleep) "sleepTrends" else def.id) }) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -58,12 +61,16 @@ internal fun TrendsTabView(
                         Text(def.label, color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                values.takeIf { it.isNotEmpty() }?.let { "avg ${def.format(it.average())}" } ?: "No data",
-                                color = HealthColors.TextPrimary,
+                                todayVal?.let { "Today ${def.format(it)}" } ?: "Today —",
+                                color = todayColor,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
-                            if (def.extract(today) != null) InsightChip(def, days, today)
+                            Text(
+                                values.takeIf { it.isNotEmpty() }?.let { "avg ${def.format(it.average())}" } ?: "No data",
+                                color = HealthColors.TextSecondary,
+                                fontSize = 13.sp
+                            )
                         }
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -71,7 +78,8 @@ internal fun TrendsTabView(
                             values = values.map { it.toFloat() },
                             normalMin = base?.band(def)?.first?.toFloat(),
                             normalMax = base?.band(def)?.second?.toFloat(),
-                            color = HealthColors.TextSecondary
+                            color = HealthColors.TextSecondary,
+                            lastDotColor = if (todayVal != null) todayColor else HealthColors.TextSecondary
                         )
                         Text("›", color = HealthColors.TextSecondary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     }

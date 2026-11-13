@@ -383,7 +383,7 @@ Synthesized from this review's findings. Each task derives from a specific findi
   - Surfaced by: #8, Section 2, Outside voice #4, D13
   - Files: ble/J2208BleManager.kt, ble/SyncCoordinator.kt, ui/today, ui/settings
   - Verify: fake-GATT unit test (two triggers → one session); on device, BT off → "Bluetooth off" pill
-- [ ] **T7 (P2, human: ~1d / CC: ~40min)** — ui — Phase 2: Trends from the registry, gap-aware smoothing, Sleep Trends page, distance
+- [x] **T7 (P2, human: ~1d / CC: ~40min)** — ui — Phase 2: Trends from the registry, gap-aware smoothing, Sleep Trends page, distance
   - Surfaced by: #3, #4, #6, #11
   - Files: ui/trends, ui/sleep, domain/Smoothing.kt + tests
   - Verify: smoothing tests (flat stays flat, gaps break the line); colors follow direction
