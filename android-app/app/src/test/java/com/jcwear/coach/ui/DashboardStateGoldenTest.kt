@@ -48,8 +48,15 @@ class DashboardStateGoldenTest {
         val actual = days.filter { it.hasData }.joinToString("\n") { d ->
             // Per-minute epochs are left out; times and stage totals pin the session.
             val s = d.sleep?.let { "${it.startTime}..${it.endTime} asleep=${it.totalSleepMin} deep=${it.deepMin} rem=${it.remMin} awake=${it.awakeMin}" }
-            "${d.copy(sleep = null)} sleep=$s"
+            // Breakdowns are checked below; the golden keeps the pre-S3 projection.
+            "${d.copy(sleep = null, sleepParts = null, recoveryParts = null, dailyParts = null)}".replace(", sleepParts=null, recoveryParts=null, dailyParts=null", "") + " sleep=$s"
         } + "\n"
+        // S3: every shown score is its breakdown's score, so the sheet can't disagree with the number.
+        days.forEach { d ->
+            assertEquals(d.sleepScore, d.sleepParts?.score)
+            assertEquals(d.recovery, d.recoveryParts?.score)
+            assertEquals(d.daily, d.dailyParts?.score)
+        }
         assertEquals("Gap days stay empty, not filled", 90 - 21, days.count { !it.hasData })
 
         if (!golden.exists()) {

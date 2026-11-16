@@ -18,6 +18,10 @@ data class DayMetrics(
     val date: LocalDate,
     val sleep: StitchedSleepSession? = null,
     val sleepScore: Int? = null,
+    /** Parts behind sleepScore / recovery / daily (S3); each score is its breakdown's score. */
+    val sleepParts: ScoreBreakdown? = null,
+    val recoveryParts: ScoreBreakdown? = null,
+    val dailyParts: ScoreBreakdown? = null,
     val hrvMs: Double? = null,
     val morningRmssdMs: Double? = null,
     val rhrBpm: Double? = null,
@@ -118,11 +122,12 @@ fun buildDaySeries(
     return raw.mapIndexed { i, day ->
         val prior14 = raw.subList((i - 14).coerceAtLeast(0), i)
         val prior30 = raw.subList((i - 30).coerceAtLeast(0), i)
-        val sleepScore = day.sleep?.let { s ->
-            SleepAndReadinessEngine.sleepScore(
+        val sleepParts = day.sleep?.let { s ->
+            SleepAndReadinessEngine.sleepScoreParts(
                 s, prior14.mapNotNull { p -> p.sleep?.let { SleepAndReadinessEngine.minutesFromNoon(SleepAndReadinessEngine.midpoint(it).toLocalTime()) } }
             )
         }
+        val sleepScore = sleepParts?.score
         val todayTemp = tempByDay[day.date]?.map { it.tempC }?.average()
         val tempBase = prior30.flatMap { p -> tempByDay[p.date].orEmpty().map { it.tempC } }.takeIf { it.isNotEmpty() }?.average()
         val tempDelta = if (todayTemp != null && tempBase != null) Math.round((todayTemp - tempBase) * 100.0) / 100.0 else null
@@ -133,12 +138,14 @@ fun buildDaySeries(
             rhrBase = prior30.mapNotNull { it.rhrBpm }.takeIf { it.size >= 3 }?.average(),
             sleepScore = sleepScore, spo2 = day.spo2Pct, tempDelta = tempDelta
         )
-        val recovery = if (day.hrvMs != null && day.rhrBpm != null)
-            (day.hrvMs * 0.92 + (90 - day.rhrBpm) * 0.72).roundToInt().coerceIn(0, 100) else null
+        val recoveryParts = if (day.hrvMs != null && day.rhrBpm != null) recoveryParts(day.hrvMs, day.rhrBpm) else null
         val strain100 = day.strain100
-        val daily = if (readiness != null && sleepScore != null && strain100 != null)
-            (readiness * 0.42 + sleepScore * 0.36 + strain100 * 0.22).roundToInt().coerceIn(0, 100) else null
-        day.copy(sleepScore = sleepScore, skinTempDeltaC = tempDelta, readiness = readiness, recovery = recovery, daily = daily)
+        val dailyParts = if (readiness != null && sleepScore != null && strain100 != null) dailyParts(readiness, sleepScore, strain100) else null
+        day.copy(
+            sleepScore = sleepScore, skinTempDeltaC = tempDelta, readiness = readiness,
+            recovery = recoveryParts?.score, daily = dailyParts?.score,
+            sleepParts = sleepParts, recoveryParts = recoveryParts, dailyParts = dailyParts
+        )
     }
 }
 

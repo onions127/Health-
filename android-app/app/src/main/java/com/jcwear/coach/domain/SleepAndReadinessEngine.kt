@@ -178,7 +178,9 @@ object SleepAndReadinessEngine {
      * timing 15% (asleep by 02:00 full, 0 by 04:00). Onset after 03:00 caps the score at 70.
      * No stages recorded: restorative is dropped and the rest reweighted (50 / 12.5 / 18.75 / 18.75).
      */
-    fun sleepScore(s: StitchedSleepSession, priorMidpointsMfn: List<Int>): Int {
+    fun sleepScore(s: StitchedSleepSession, priorMidpointsMfn: List<Int>): Int = sleepScoreParts(s, priorMidpointsMfn).score
+
+    fun sleepScoreParts(s: StitchedSleepSession, priorMidpointsMfn: List<Int>): ScoreBreakdown {
         val duration = (s.totalSleepMin / 450.0 * 100.0).coerceIn(0.0, 100.0)
         val staged = s.deepMin + s.lightMin + s.remMin // unstaged minutes stay out of the share
         val restorativeShare = if (staged > 0) (s.deepMin + s.remMin).toDouble() / staged else 0.0
@@ -192,12 +194,23 @@ object SleepAndReadinessEngine {
         }
         val onset = minutesFromNoon(s.startTime.toLocalTime())
         val timing = ((960.0 - onset) / 120.0 * 100.0).coerceIn(0.0, 100.0) // 02:00 = 840, 04:00 = 960
-        val raw = if (s.stagesAvailable) {
-            0.40 * duration + 0.20 * restorative + 0.10 * s.sleepEfficiencyPct + 0.15 * regularity + 0.15 * timing
-        } else {
-            0.50 * duration + 0.125 * s.sleepEfficiencyPct + 0.1875 * regularity + 0.1875 * timing
-        }
-        val score = raw.roundToInt().coerceIn(0, 100)
-        return if (onset >= 900) score.coerceAtMost(70) else score // 03:00 = 900
+        val efficiency = s.sleepEfficiencyPct.toDouble()
+        val parts = if (s.stagesAvailable) listOf(
+            ScorePart("Duration", 0.40, duration),
+            ScorePart("Deep + REM share", 0.20, restorative),
+            ScorePart("Efficiency", 0.10, efficiency),
+            ScorePart("Regular timing", 0.15, regularity),
+            ScorePart("Asleep by 02:00", 0.15, timing)
+        ) else listOf(
+            ScorePart("Duration", 0.50, duration),
+            ScorePart("Efficiency", 0.125, efficiency),
+            ScorePart("Regular timing", 0.1875, regularity),
+            ScorePart("Asleep by 02:00", 0.1875, timing)
+        )
+        return ScoreBreakdown(
+            parts,
+            cap = 70.takeIf { onset >= 900 }, // 03:00 = 900
+            basis = "Last night + ${priorMidpointsMfn.size} nights for your routine"
+        )
     }
 }

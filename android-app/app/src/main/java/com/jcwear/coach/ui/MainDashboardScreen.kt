@@ -224,12 +224,13 @@ fun MainDashboardScreen(
                         SleepDetailView(
                             day = nightDay, days = days, onSaveLabel = viewModel::saveLabel,
                             onBack = { sleepNightIdx = null; editNightKey = null },
-                            openEditor = editNightKey != null && editNightKey == nightDay.sleep?.sessionKey
+                            openEditor = editNightKey != null && editNightKey == nightDay.sleep?.sessionKey,
+                            lastSyncAt = settings.lastSyncAt
                         )
                     } else if (metricId == "sleepTrends") {
                         SleepTrendsView(days = days, onOpenNight = { sleepNightIdx = it }, onBack = { activeDetailMetric = null })
                     } else if (metricId == "sleep") {
-                        SleepDetailView(day = activeDay, days = days, onSaveLabel = viewModel::saveLabel, onBack = { activeDetailMetric = null })
+                        SleepDetailView(day = activeDay, days = days, onSaveLabel = viewModel::saveLabel, onBack = { activeDetailMetric = null }, lastSyncAt = settings.lastSyncAt)
                     } else {
                         MetricDetailView(
                             metricId = metricId,
@@ -268,6 +269,7 @@ fun MainDashboardScreen(
                         onOpenVerdictSheet = { activeSheet = ActiveSheet.VERDICT },
                         onToggleDailyExpand = { dailyExpanded = !dailyExpanded },
                         onToggleRecoveryExpand = { recoveryExpanded = !recoveryExpanded },
+                        lastSyncAt = settings.lastSyncAt,
                         onOpenMetricDetail = { metricId ->
                             selectedChartDayIdx = viewingHistoryDayIndex ?: days.lastIndex
                             activeDetailMetric = metricId

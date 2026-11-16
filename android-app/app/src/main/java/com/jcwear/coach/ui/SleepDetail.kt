@@ -52,7 +52,8 @@ internal fun SleepDetailView(
     days: List<DayMetrics>,
     onSaveLabel: (SleepLabel) -> Unit,
     onBack: () -> Unit,
-    openEditor: Boolean = false
+    openEditor: Boolean = false,
+    lastSyncAt: Long = 0L
 ) {
     Row(
         modifier = Modifier
@@ -119,7 +120,7 @@ internal fun SleepDetailView(
                 color = HealthColors.TextSecondary, fontSize = 13.sp
             )
         }
-        Spacer(Modifier.height(8.dp))
+        ScoreSource("Sleep Score", day.sleepParts, lastSyncAt, sleepNotes(session))
         SleepLabelRow(session, openEditor, onSaveLabel)
     }
 

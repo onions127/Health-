@@ -89,6 +89,8 @@ internal fun TodayTabView(
     onToggleDailyExpand: () -> Unit,
     onToggleRecoveryExpand: () -> Unit,
     onOpenMetricDetail: (String) -> Unit
+,
+    lastSyncAt: Long = 0L
 ) {
     val spo2Low = day.spo2Pct?.let { it < 95.0 } == true
 
@@ -200,6 +202,7 @@ internal fun TodayTabView(
     HealthCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             ScoreHeaderRow("Daily Score", day.daily, Metrics.daily, days, day, onToggleDailyExpand)
+            ScoreSource("Daily Score", day.dailyParts, lastSyncAt)
             AnimatedVisibility(
                 visible = dailyExpanded,
                 enter = expandVertically() + fadeIn(),
@@ -237,6 +240,7 @@ internal fun TodayTabView(
     HealthCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             ScoreHeaderRow("Recovery", day.recovery, Metrics.recovery, days, day, onToggleRecoveryExpand)
+            ScoreSource("Recovery", day.recoveryParts, lastSyncAt)
             AnimatedVisibility(
                 visible = recoveryExpanded,
                 enter = expandVertically() + fadeIn(),
