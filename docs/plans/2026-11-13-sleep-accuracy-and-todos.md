@@ -130,6 +130,12 @@ Root cause: we treat the band's sleep window as truth, and there's no ground tru
 - Channel creation and the permission check live in one shared `notify/Notifications.kt` used by S5 and S6.
 - Every BACKGROUND run writes the notifier's outcome (`notified` or `skipped: <code>`, codes `toggle_off | outside_window | already_sent | no_sleep | night_open | sync_failed`, the same list as the `shouldNotify` table) into Recent syncs, so a missing morning notification is explainable from Settings → Sync.
 - On-device check (S5 checklist): sync at ~06:00 while still in bed and confirm in logcat whether the band hands over the 0x53 block it's still recording. If it only hands over finished blocks, "last epoch ≥ 45 min old" can't tell an open night from a closed one: then also require the last block to be shorter than its 120-epoch maximum.
+- **S5 on-device checklist** (built 2026-11-16; `shouldNotify` is `MorningNotifier.skipReason`):
+  - [x] Edit deep link: `adb shell am start -n com.jcwear.coach/.MainActivity --es session_key 2026-11-15T23:41:00 --ez open_editor true` opens that night with the editor.
+  - [ ] Settings → Morning summary → On; allow notifications.
+  - [ ] Next morning: notification after a background sync; Recent syncs line ends "morning notified" (or "morning skipped: <code>").
+  - [ ] Looks right on the notification: it goes away, night shows "Confirmed by you". Edit opens the editor.
+  - [ ] ~06:00 sync while still in bed: does the band hand over the open 0x53 block? Decides `NIGHT_OPEN_BY_BLOCK_LENGTH`.
 - Tests: `shouldNotify` decision table (outside time window, already sent, no sleep, night still open, toggle off, failed sync); the receiver writes exactly one CONFIRMED label, is idempotent on a double tap, never overwrites an EDITED label, and keeps the notification when the write fails (Robolectric).
 
 ### S6: Bedtime reminder (D7, effort M; needs S1 + S5 labels, not the S2 gate)
