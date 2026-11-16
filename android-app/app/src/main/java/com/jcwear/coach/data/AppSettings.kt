@@ -85,7 +85,19 @@ class AppSettings(context: Context) {
         get() = prefs.getFloat(KEY_WEIGHT_KG, 0f).takeIf { it > 0f }?.toDouble()
         set(value) = prefs.edit().putFloat(KEY_WEIGHT_KG, value?.toFloat() ?: 0f).apply()
 
+    /** Morning "scores ready" notification (S5), off until the user turns it on. */
+    var morningNotifyEnabled: Boolean
+        get() = prefs.getBoolean(KEY_MORNING_NOTIFY, false)
+        set(value) = prefs.edit().putBoolean(KEY_MORNING_NOTIFY, value).apply()
+
+    /** ISO date of the last morning notification; blank = never. */
+    var lastMorningNotifyDate: String
+        get() = prefs.getString(KEY_LAST_MORNING_NOTIFY, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_LAST_MORNING_NOTIFY, value).apply()
+
     companion object {
+        private const val KEY_MORNING_NOTIFY = "morning_notify_enabled"
+        private const val KEY_LAST_MORNING_NOTIFY = "last_morning_notify_date"
         private const val KEY_PROFILE_NAME = "profile_name"
         private const val KEY_HEIGHT_CM = "profile_height_cm"
         private const val KEY_WEIGHT_KG = "profile_weight_kg"

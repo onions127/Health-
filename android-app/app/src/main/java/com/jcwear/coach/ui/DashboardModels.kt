@@ -158,5 +158,6 @@ fun recentSyncLine(e: org.json.JSONObject): String = listOfNotNull(
     e.optInt("rows", -1).takeIf { it >= 0 }?.let { "$it rows" },
     e.optLong("ms", -1).takeIf { it >= 0 }?.let { "${it / 1000} s" },
     e.optString("backup").takeIf { it.isNotEmpty() }?.let { "backup $it" },
+    e.optString("morning").takeIf { it.isNotEmpty() }?.let { "morning $it" },
     e.optLong("drift_s", 0).takeIf { kotlin.math.abs(it) > 120 }?.let { "clock ${it / 60} min off" }
 ).joinToString(" · ")

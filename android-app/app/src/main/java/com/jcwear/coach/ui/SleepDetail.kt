@@ -37,10 +37,10 @@ import com.jcwear.coach.domain.SleepAndReadinessEngine
 import com.jcwear.coach.domain.SleepLabel
 import com.jcwear.coach.domain.anchorEdit
 import com.jcwear.coach.domain.checkEdit
+import com.jcwear.coach.domain.labelFor
 import java.time.Duration
 import java.time.LocalDateTime
 import java.time.LocalTime
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 // ============================================================================
@@ -271,25 +271,6 @@ private fun SleepLabelRow(
         dismissButton = {
             TextButton(onClick = { if (confirm != null) confirm = null else editing = false }) { Text("Cancel") }
         }
-    )
-}
-
-private fun labelFor(
-    s: SleepAndReadinessEngine.StitchedSleepSession,
-    kind: LabelKind,
-    onset: LocalDateTime,
-    wake: LocalDateTime
-): SleepLabel {
-    val zone = ZoneId.systemDefault()
-    return SleepLabel(
-        sessionKey = s.sessionKey,
-        onset = onset.atZone(zone).toOffsetDateTime(),
-        wake = wake.atZone(zone).toOffsetDateTime(),
-        kind = kind,
-        bandOnset = s.bandStartTime.atZone(zone).toOffsetDateTime(),
-        bandWake = s.bandEndTime.atZone(zone).toOffsetDateTime(),
-        shownSource = if (s.provenance == Provenance.ADJUSTED) Provenance.ADJUSTED else Provenance.BAND,
-        createdAt = System.currentTimeMillis()
     )
 }
 

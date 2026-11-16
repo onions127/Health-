@@ -94,6 +94,22 @@ class SyncCoordinatorTest {
     }
 
     @Test
+    fun joinerOfAFailedRunSeesTheFailure() = runBlocking {
+        val band = FakeBand().apply {
+            gate = CompletableDeferred()
+            incomplete = true
+        }
+        val c = coordinator(band)
+        val open = c.sync("OPEN") // app-open run
+        val background = c.sync("BACKGROUND") // the worker joins it
+        band.gate!!.complete(Unit)
+        assertTrue(background.await() is SyncState.Failed)
+        assertSame(open, background)
+        c.annotateLatest("morning", "skipped: sync_failed")
+        assertEquals("skipped: sync_failed", JSONArray(c.recentSyncsJson.value).getJSONObject(0).getString("morning"))
+    }
+
+    @Test
     fun morningCheckWaitsForARunningSync() = runBlocking {
         val band = FakeBand().apply { gate = CompletableDeferred() }
         val c = coordinator(band)

@@ -7,7 +7,15 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import android.database.sqlite.SQLiteException
+import com.jcwear.coach.AppContainer
 import com.jcwear.coach.HealthApp
+import com.jcwear.coach.domain.DailySeriesRepository
+import com.jcwear.coach.domain.SleepAndReadinessEngine
+import com.jcwear.coach.notify.MorningNotifier
+import com.jcwear.coach.notify.Notifications
+import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.TimeUnit
 
@@ -15,11 +23,37 @@ import java.util.concurrent.TimeUnit
 class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
-        val coordinator = (applicationContext as HealthApp).container.syncCoordinator
-        // A sync already running (app open, pull) is joined, never doubled.
-        val finished = withTimeoutOrNull(BUDGET_MS) { coordinator.sync("BACKGROUND").join() }
-        if (finished == null) Log.w(TAG, "Background sync exceeded ${BUDGET_MS / 1000} s")
+        val c = (applicationContext as HealthApp).container
+        // A sync already running (app open, pull) is joined, never doubled; its outcome is ours.
+        val state = withTimeoutOrNull(BUDGET_MS) { runCatching { c.syncCoordinator.sync("BACKGROUND").await() }.getOrNull() }
+        if (state == null) Log.w(TAG, "Background sync failed or exceeded ${BUDGET_MS / 1000} s")
+        try {
+            c.syncCoordinator.annotateLatest("morning", morningNotify(c, state is SyncState.Synced))
+        } catch (e: SQLiteException) {
+            Log.w(TAG, "Morning notifier couldn't read the DB", e)
+        }
         return Result.success() // the next 30-min run is the retry
+    }
+
+    /** Posts the morning summary when due; returns "notified" or "skipped: <code>" for Recent syncs. */
+    private fun morningNotify(c: AppContainer, syncOk: Boolean): String {
+        val now = LocalDateTime.now()
+        val today = if (syncOk) {
+            DailySeriesRepository(c.database).load(now.toLocalDate(), c.bleManager.morningRmssdMs.value, c.settings.heightCm, c.settings.weightKg).lastOrNull()
+        } else null
+        val bandEnd = today?.sleep?.bandEndTime
+        val lastBlockEpochs = bandEnd?.let { end ->
+            c.database.getAllSleepBlocks().filter { it.unitMinutes == 1 }.lastOrNull { b ->
+                SleepAndReadinessEngine.parseDateTime(b.deviceTime)?.truncatedTo(ChronoUnit.MINUTES)
+                    ?.plusMinutes(b.stages.size - 1L) == end
+            }?.stages?.size
+        }
+        MorningNotifier.skipReason(syncOk, c.settings.morningNotifyEnabled, now, c.settings.lastMorningNotifyDate, today, lastBlockEpochs)
+            ?.let { return "skipped: $it" }
+        val night = today!!.sleep!!
+        if (!Notifications.postMorning(applicationContext, MorningNotifier.text(today), night)) return "skipped: no_permission"
+        c.settings.lastMorningNotifyDate = now.toLocalDate().toString()
+        return "notified"
     }
 
     companion object {

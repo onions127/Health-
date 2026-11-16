@@ -5,7 +5,9 @@ import android.companion.AssociationRequest
 import android.companion.BluetoothLeDeviceFilter
 import android.companion.CompanionDeviceManager
 import android.bluetooth.le.ScanFilter
+import android.content.Intent
 import android.content.IntentSender
+import com.jcwear.coach.notify.Notifications
 import android.widget.Toast
 import androidx.activity.result.IntentSenderRequest
 import androidx.compose.runtime.mutableStateOf
@@ -32,6 +34,39 @@ class MainActivity : ComponentActivity() {
     @Suppress("DEPRECATION") // getMyAssociations needs API 33; minSdk is 26
     private fun isCompanionPaired() = cdm?.associations?.isNotEmpty() == true
     private val companionPaired = mutableStateOf(false)
+    private val morningNotifyOn = mutableStateOf(false)
+    /** Night to open from the notification's Edit action (session_key); consumed by the dashboard. */
+    private val openNightKey = mutableStateOf<String?>(null)
+
+    private val notifyPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        setMorningNotify(granted)
+        if (!granted) Toast.makeText(this, "Allow notifications in system settings", Toast.LENGTH_LONG).show()
+    }
+
+    private fun setMorningNotify(on: Boolean) {
+        container.settings.morningNotifyEnabled = on
+        morningNotifyOn.value = on
+    }
+
+    private fun toggleMorningNotify() {
+        when {
+            morningNotifyOn.value -> setMorningNotify(false)
+            Build.VERSION.SDK_INT >= 33 -> notifyPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            else -> setMorningNotify(true)
+        }
+    }
+
+    private fun readNightExtra(intent: Intent?) {
+        if (intent?.getBooleanExtra(Notifications.EXTRA_OPEN_EDITOR, false) == true) {
+            openNightKey.value = intent.getStringExtra(Notifications.EXTRA_SESSION_KEY)
+            Notifications.cancelMorning(this)
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        readNightExtra(intent)
+    }
 
     private val companionLauncher = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { r ->
         companionPaired.value = isCompanionPaired()
@@ -71,6 +106,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         SyncWorker.schedule(this)
         companionPaired.value = isCompanionPaired()
+        morningNotifyOn.value = container.settings.morningNotifyEnabled
+        readNightExtra(intent)
 
         setContent {
             MainDashboardScreen(
@@ -83,7 +120,11 @@ class MainActivity : ComponentActivity() {
                 companionPaired = companionPaired.value,
                 onPairCompanion = ::pairAsCompanion,
                 onForgetBand = ::forgetBand,
-                onRequestBlePermissions = ::requestBlePermissions
+                onRequestBlePermissions = ::requestBlePermissions,
+                morningNotifyOn = morningNotifyOn.value,
+                onToggleMorningNotify = ::toggleMorningNotify,
+                openNightKey = openNightKey.value,
+                onNightOpened = { openNightKey.value = null }
             )
         }
     }

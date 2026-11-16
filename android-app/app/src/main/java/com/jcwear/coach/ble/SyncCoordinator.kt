@@ -6,6 +6,8 @@ import com.jcwear.coach.data.CleanupJob
 import com.jcwear.coach.data.HomelabClient
 import com.jcwear.coach.domain.DayMetrics
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -52,7 +54,7 @@ class SyncCoordinator(
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 ) {
     private val mutex = Mutex()
-    private var current: Job? = null
+    private var current: Deferred<SyncState>? = null
 
     private val _state = MutableStateFlow<SyncState>(settings.lastSyncAt.takeIf { it > 0 }?.let { SyncState.Synced(it) } ?: SyncState.Idle)
     val state: StateFlow<SyncState> = _state
@@ -61,9 +63,20 @@ class SyncCoordinator(
     /** JSON array of the last 20 events, newest first. */
     val recentSyncsJson: StateFlow<String> = _recent
 
+    /** Every joiner of the same run gets that run's final state (Synced or Failed). */
     @Synchronized
-    fun sync(trigger: String): Job =
-        current?.takeIf { it.isActive } ?: scope.launch { mutex.withLock { run(trigger) } }.also { current = it }
+    fun sync(trigger: String): Deferred<SyncState> =
+        current?.takeIf { it.isActive } ?: scope.async { mutex.withLock { run(trigger); _state.value } }.also { current = it }
+
+    /** Adds [key] to the newest Recent syncs event (e.g. the morning notifier's outcome). */
+    @Synchronized
+    fun annotateLatest(key: String, value: String) {
+        val all = JSONArray(settings.recentSyncsJson)
+        if (all.length() == 0) return
+        all.getJSONObject(0).put(key, value)
+        settings.recentSyncsJson = all.toString()
+        _recent.value = settings.recentSyncsJson
+    }
 
     /** Backup only (Settings → Back up now), under the same lock. */
     fun backupNow(): Job = scope.launch {
@@ -156,6 +169,7 @@ class SyncCoordinator(
         }
     }
 
+    @Synchronized
     private fun record(event: JSONObject) {
         val old = JSONArray(settings.recentSyncsJson)
         val out = JSONArray().put(event)

@@ -96,7 +96,9 @@ internal fun SettingsTabView(
     weightText: String,
     onSaveName: (String) -> Unit,
     onSaveHeight: (String) -> Unit,
-    onSaveWeight: (String) -> Unit
+    onSaveWeight: (String) -> Unit,
+    morningNotifyOn: Boolean,
+    onToggleMorningNotify: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -214,6 +216,21 @@ internal fun SettingsTabView(
                 text = if (useMetricUnits) "Metric · km, °C" else "Imperial · mi, °F",
                 onClick = onToggleUnits
             )
+        }
+    }
+
+    // Notifications
+    HealthCard(onClick = onToggleMorningNotify) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Morning summary", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Text("One notification when your scores are ready", color = HealthColors.TextSecondary, fontSize = 13.sp)
+            }
+            SecondaryActionButton(text = if (morningNotifyOn) "On" else "Off", onClick = onToggleMorningNotify)
         }
     }
 

@@ -53,7 +53,11 @@ fun MainDashboardScreen(
     companionPaired: Boolean,
     onPairCompanion: () -> Unit,
     onForgetBand: () -> Unit,
-    onRequestBlePermissions: () -> Unit
+    onRequestBlePermissions: () -> Unit,
+    morningNotifyOn: Boolean,
+    onToggleMorningNotify: () -> Unit,
+    openNightKey: String?,
+    onNightOpened: () -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -82,6 +86,7 @@ fun MainDashboardScreen(
     var currentTab by remember { mutableStateOf(MainTab.TODAY) }
     var activeDetailMetric by remember { mutableStateOf<String?>(null) }
     var sleepNightIdx by remember { mutableStateOf<Int?>(null) } // a night opened from Sleep Trends
+    var editNightKey by remember { mutableStateOf<String?>(null) } // open that night's editor (notification Edit)
     var checkStep by remember { mutableStateOf(CheckFlowStep.NONE) }
     var checkCountdown by remember { mutableStateOf(60) }
     var morningCheckCompleted by remember { mutableStateOf(false) }
@@ -158,6 +163,16 @@ fun MainDashboardScreen(
     }
 
     val today = days.last()
+    LaunchedEffect(openNightKey, days) {
+        val key = openNightKey ?: return@LaunchedEffect
+        val idx = days.indexOfLast { it.sleep?.sessionKey == key }
+        if (idx >= 0) {
+            activeDetailMetric = "sleepTrends"
+            sleepNightIdx = idx
+            editNightKey = key
+        }
+        onNightOpened()
+    }
     val activeDay = viewingHistoryDayIndex?.let { days.getOrNull(it) } ?: today
     // Coach and backup get real days only, newest first.
     val recentReal = days.filter { it.hasData }.reversed().take(30)
@@ -205,7 +220,12 @@ fun MainDashboardScreen(
                     val metricId = activeDetailMetric!!
                     val night = sleepNightIdx
                     if (night != null) {
-                        SleepDetailView(day = days[night.coerceAtMost(days.lastIndex)], days = days, onSaveLabel = viewModel::saveLabel, onBack = { sleepNightIdx = null })
+                        val nightDay = days[night.coerceAtMost(days.lastIndex)]
+                        SleepDetailView(
+                            day = nightDay, days = days, onSaveLabel = viewModel::saveLabel,
+                            onBack = { sleepNightIdx = null; editNightKey = null },
+                            openEditor = editNightKey != null && editNightKey == nightDay.sleep?.sessionKey
+                        )
                     } else if (metricId == "sleepTrends") {
                         SleepTrendsView(days = days, onOpenNight = { sleepNightIdx = it }, onBack = { activeDetailMetric = null })
                     } else if (metricId == "sleep") {
@@ -344,7 +364,9 @@ fun MainDashboardScreen(
                         weightText = settings.weightKg?.let { String.format(java.util.Locale.US, "%.0f", if (useMetricUnits) it else it / 0.45359237) } ?: "",
                         onSaveName = { profileName = it; settings.profileName = it },
                         onSaveHeight = { settings.heightCm = parseHeightCm(it, useMetricUnits); viewModel.refresh() },
-                        onSaveWeight = { settings.weightKg = parseWeightKg(it, useMetricUnits); viewModel.refresh() }
+                        onSaveWeight = { settings.weightKg = parseWeightKg(it, useMetricUnits); viewModel.refresh() },
+                        morningNotifyOn = morningNotifyOn,
+                        onToggleMorningNotify = onToggleMorningNotify
                     )
                 }
             }

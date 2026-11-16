@@ -24,6 +24,25 @@ data class SleepLabel(
     val createdAt: Long
 )
 
+/** A label for the night as the user saw it; [onset]/[wake] are the user's times (the shown ones for CONFIRMED). */
+fun labelFor(
+    s: StitchedSleepSession,
+    kind: LabelKind,
+    onset: LocalDateTime,
+    wake: LocalDateTime,
+    zone: ZoneId = ZoneId.systemDefault(),
+    now: Long = System.currentTimeMillis()
+): SleepLabel = SleepLabel(
+    sessionKey = s.sessionKey,
+    onset = onset.atZone(zone).toOffsetDateTime(),
+    wake = wake.atZone(zone).toOffsetDateTime(),
+    kind = kind,
+    bandOnset = s.bandStartTime.atZone(zone).toOffsetDateTime(),
+    bandWake = s.bandEndTime.atZone(zone).toOffsetDateTime(),
+    shownSource = if (s.provenance == Provenance.ADJUSTED) Provenance.ADJUSTED else Provenance.BAND,
+    createdAt = now
+)
+
 /** Exact key match first; else the session the label overlaps most (a stitch-rule change can move a start). */
 fun matchSession(sessions: List<StitchedSleepSession>, key: String, onset: LocalDateTime, wake: LocalDateTime): StitchedSleepSession? =
     sessions.firstOrNull { it.sessionKey == key } ?: sessions
