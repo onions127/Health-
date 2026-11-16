@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jcwear.coach.ble.J2208BleManager
+import com.jcwear.coach.data.CsvExporter
 import com.jcwear.coach.data.LocalHealthDatabase
 import com.jcwear.coach.domain.DayMetrics
 import com.jcwear.coach.domain.SleepLabel
@@ -53,6 +54,11 @@ class DashboardViewModel(
     }
 
     fun refresh() = refreshTick.update { it + 1 }
+
+    /** S4: zip of every table + daily summary in [cacheDir]/exports; throws on failure (nothing else changes). */
+    suspend fun exportAll(cacheDir: java.io.File, days: List<DayMetrics>): java.io.File = withContext(Dispatchers.IO) {
+        CsvExporter(database, java.io.File(cacheDir, "exports")).export(days, LocalDate.now())
+    }
 
     fun saveLabel(label: SleepLabel) {
         viewModelScope.launch(Dispatchers.IO) {

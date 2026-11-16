@@ -98,7 +98,9 @@ internal fun SettingsTabView(
     onSaveHeight: (String) -> Unit,
     onSaveWeight: (String) -> Unit,
     morningNotifyOn: Boolean,
-    onToggleMorningNotify: () -> Unit
+    onToggleMorningNotify: () -> Unit,
+    exportStatus: String?,
+    onExportAll: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -216,6 +218,24 @@ internal fun SettingsTabView(
                 text = if (useMetricUnits) "Metric · km, °C" else "Imperial · mi, °F",
                 onClick = onToggleUnits
             )
+        }
+    }
+
+    // Data (S4)
+    HealthCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Data", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    exportStatus ?: "CSV zip of all band data. Saved in app cache until shared; share it to keep it.",
+                    color = HealthColors.TextSecondary, fontSize = 13.sp
+                )
+            }
+            SecondaryActionButton(text = "Export all data", onClick = onExportAll)
         }
     }
 

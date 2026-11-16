@@ -37,6 +37,7 @@ import com.jcwear.coach.domain.MetricInsights
 import com.jcwear.coach.domain.parseHeightCm
 import com.jcwear.coach.domain.parseWeightKg
 import com.jcwear.coach.domain.Metrics
+import androidx.core.content.FileProvider
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -87,6 +88,7 @@ fun MainDashboardScreen(
     var activeDetailMetric by remember { mutableStateOf<String?>(null) }
     var sleepNightIdx by remember { mutableStateOf<Int?>(null) } // a night opened from Sleep Trends
     var editNightKey by remember { mutableStateOf<String?>(null) } // open that night's editor (notification Edit)
+    var exportStatus by remember { mutableStateOf<String?>(null) }
     var checkStep by remember { mutableStateOf(CheckFlowStep.NONE) }
     var checkCountdown by remember { mutableStateOf(60) }
     var morningCheckCompleted by remember { mutableStateOf(false) }
@@ -368,7 +370,28 @@ fun MainDashboardScreen(
                         onSaveHeight = { settings.heightCm = parseHeightCm(it, useMetricUnits); viewModel.refresh() },
                         onSaveWeight = { settings.weightKg = parseWeightKg(it, useMetricUnits); viewModel.refresh() },
                         morningNotifyOn = morningNotifyOn,
-                        onToggleMorningNotify = onToggleMorningNotify
+                        onToggleMorningNotify = onToggleMorningNotify,
+                        exportStatus = exportStatus,
+                        onExportAll = {
+                            if (exportStatus != EXPORTING) scope.launch {
+                                exportStatus = EXPORTING
+                                exportStatus = try {
+                                    val zip = viewModel.exportAll(context.cacheDir, days)
+                                    val uri = FileProvider.getUriForFile(context, context.packageName + ".files", zip)
+                                    context.startActivity(
+                                        Intent.createChooser(
+                                            Intent(Intent.ACTION_SEND).setType("application/zip").putExtra(Intent.EXTRA_STREAM, uri)
+                                                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION),
+                                            "Share Health++ export"
+                                        )
+                                    )
+                                    null
+                                } catch (e: Exception) {
+                                    if (e is kotlinx.coroutines.CancellationException) throw e
+                                    "Export failed: ${e.message ?: e.javaClass.simpleName}. Free space and try again."
+                                }
+                            }
+                        }
                     )
                 }
             }
@@ -439,3 +462,5 @@ internal fun launchClaudeProAppOrWeb(context: Context) {
         context.startActivity(webIntent)
     } catch (_: Exception) {}
 }
+
+private const val EXPORTING = "Exporting…"
