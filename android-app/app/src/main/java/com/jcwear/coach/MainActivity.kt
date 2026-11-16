@@ -22,6 +22,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jcwear.coach.ui.DashboardViewModel
+import com.jcwear.coach.ui.HealthTheme
 import com.jcwear.coach.ui.MainDashboardScreen
 
 class MainActivity : ComponentActivity() {
@@ -138,29 +139,31 @@ class MainActivity : ComponentActivity() {
         readNightExtra(intent)
 
         setContent {
-            MainDashboardScreen(
-                viewModel = viewModel { DashboardViewModel(container.database, container.bleManager) },
-                settings = container.settings,
-                bleManager = container.bleManager,
-                syncCoordinator = container.syncCoordinator,
-                coachRepo = container.coachRepo,
-                cleanupPending = container.cleanup.serverStepsPending,
-                companionPaired = companionPaired.value,
-                onPairCompanion = ::pairAsCompanion,
-                onForgetBand = ::forgetBand,
-                onRequestBlePermissions = ::requestBlePermissions,
-                morningNotifyOn = morningNotifyOn.value,
-                onToggleMorningNotify = ::toggleMorningNotify,
-                bedtime = BedtimeUi(
-                    on = bedtimeOn.value,
-                    status = bedtimeStatus.value,
-                    latest = BedtimeReminder.format(latestBedtimeMfn.value),
-                    onToggle = { toggleNotify(bedtimeOn.value, ::setBedtime) },
-                    onShiftLatest = ::shiftLatestBedtime
-                ),
-                openNightKey = openNightKey.value,
-                onNightOpened = { openNightKey.value = null }
-            )
+            HealthTheme {
+                MainDashboardScreen(
+                    viewModel = viewModel { DashboardViewModel(container.database, container.bleManager) },
+                    settings = container.settings,
+                    bleManager = container.bleManager,
+                    syncCoordinator = container.syncCoordinator,
+                    coachRepo = container.coachRepo,
+                    cleanupPending = container.cleanup.serverStepsPending,
+                    companionPaired = companionPaired.value,
+                    onPairCompanion = ::pairAsCompanion,
+                    onForgetBand = ::forgetBand,
+                    onRequestBlePermissions = ::requestBlePermissions,
+                    morningNotifyOn = morningNotifyOn.value,
+                    onToggleMorningNotify = ::toggleMorningNotify,
+                    bedtime = BedtimeUi(
+                        on = bedtimeOn.value,
+                        status = bedtimeStatus.value,
+                        latest = BedtimeReminder.format(latestBedtimeMfn.value),
+                        onToggle = { toggleNotify(bedtimeOn.value, ::setBedtime) },
+                        onShiftLatest = ::shiftLatestBedtime
+                    ),
+                    openNightKey = openNightKey.value,
+                    onNightOpened = { openNightKey.value = null }
+                )
+            }
         }
     }
 
