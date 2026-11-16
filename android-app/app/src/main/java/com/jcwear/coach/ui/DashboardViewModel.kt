@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.jcwear.coach.ble.J2208BleManager
 import com.jcwear.coach.data.LocalHealthDatabase
 import com.jcwear.coach.domain.DayMetrics
+import com.jcwear.coach.domain.SleepLabel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
@@ -51,6 +53,17 @@ class DashboardViewModel(
     }
 
     fun refresh() = refreshTick.update { it + 1 }
+
+    fun saveLabel(label: SleepLabel) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                database.putLabel(label)
+            } catch (e: SQLiteException) {
+                Log.e("DashboardViewModel", "Label save failed", e)
+            }
+            refresh()
+        }
+    }
 
     override fun onCleared() {
         bleManager.onDataUpdated = null

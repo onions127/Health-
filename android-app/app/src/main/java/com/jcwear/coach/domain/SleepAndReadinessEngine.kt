@@ -18,12 +18,17 @@ import kotlin.math.ln
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
+/** Where a night's times come from. EDITED iff the night has an EDITED label. */
+enum class Provenance { BAND, ADJUSTED, EDITED }
+
 object SleepAndReadinessEngine {
+
+    /** Asleep, but the band has no stage for this minute (inside a user-edited window). Not a band code. */
+    const val STAGE_UNSTAGED = 0
 
     data class SleepEpochMinute(
         val timestamp: LocalDateTime,
-        val stageCode: Int, // 1=Deep, 2=Light, 3=REM, 5=Awake
-        val inferredPostNoon: Boolean = false
+        val stageCode: Int // 0=Unstaged (ours), 1=Deep, 2=Light, 3=REM, 5=Awake
     )
 
     data class StitchedSleepSession(
@@ -35,10 +40,24 @@ object SleepAndReadinessEngine {
         val lightMin: Int,
         val remMin: Int,
         val awakeMin: Int,
-        val post1200NoonExtendedMin: Int,
         val sleepEfficiencyPct: Int,
-        val epochs: List<SleepEpochMinute>
-    )
+        val epochs: List<SleepEpochMinute>,
+        /** False when the band recorded no deep and no REM at all (light-only night). */
+        val stagesAvailable: Boolean = deepMin + remMin > 0,
+        /** What the band itself reported; differs from start/end/total once a label or the refiner moves the night. */
+        val bandStartTime: LocalDateTime = startTime,
+        val bandEndTime: LocalDateTime = endTime,
+        val bandTotalSleepMin: Int = totalSleepMin,
+        val provenance: Provenance = Provenance.BAND,
+        /** A CONFIRMED label exists for this night. */
+        val confirmed: Boolean = false
+    ) {
+        /** Band's first epoch, minute precision: the stable key for sleep_labels. */
+        val sessionKey: String get() = sessionKeyOf(bandStartTime)
+        val unstagedMin: Int get() = totalSleepMin - deepMin - lightMin - remMin
+    }
+
+    fun sessionKeyOf(t: LocalDateTime): String = t.truncatedTo(ChronoUnit.MINUTES).format(isoFormat)
 
     private val isoFormat: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
 
@@ -48,22 +67,37 @@ object SleepAndReadinessEngine {
         null
     }
 
-    /**
-     * Reconstructs continuous sleep sessions without the 12:00 (12:00 PM noon military time) cutoff.
-     *
-     * 1. Expands all raw 0x53 sleep blocks into 1-minute epochs and merges blocks separated by < 45 mins.
-     * 2. If a session ends near 12:00 (e.g., 11:45..12:05 military time) because the band firmware's
-     *    internal sleep window stops at 12:00 noon, inspects post-12:00 0x52 step records and 0x55/0x56
-     *    heart rate records. As long as steps remain 0 (or <= 3 steps/10min) and HR stays below the
-     *    user's sleeping HR threshold, appends post-12:00 sleep epochs until actual wake-up!
-     */
-    fun stitchSleepSessions(
-        sleepBlocks: List<SleepBlockRecord>,
-        stepRecords: List<StepEpochRecord>,
-        hrRecords: List<HrRecord>
-    ): List<StitchedSleepSession> {
+    /** Builds a session from minute epochs (sorted, distinct). */
+    fun sessionOf(epochs: List<SleepEpochMinute>): StitchedSleepSession {
+        val deep = epochs.count { it.stageCode == J2208Protocol.STAGE_DEEP }
+        val light = epochs.count { it.stageCode == J2208Protocol.STAGE_LIGHT }
+        val rem = epochs.count { it.stageCode == J2208Protocol.STAGE_REM }
+        val unstaged = epochs.count { it.stageCode == STAGE_UNSTAGED }
+        val awake = epochs.count { it.stageCode == J2208Protocol.STAGE_AWAKE }
+        val asleep = deep + light + rem + unstaged
+        val efficiency = ((asleep * 100.0) / (asleep + awake).coerceAtLeast(1)).roundToInt().coerceIn(0, 100)
+        val end = epochs.last().timestamp
+        return StitchedSleepSession(
+            wakeDate = end.toLocalDate().toString(),
+            startTime = epochs.first().timestamp,
+            endTime = end,
+            totalSleepMin = asleep,
+            deepMin = deep,
+            lightMin = light,
+            remMin = rem,
+            awakeMin = awake,
+            sleepEfficiencyPct = efficiency,
+            epochs = epochs
+        )
+    }
+
+    /** Expands raw 0x53 blocks into 1-minute epochs and merges blocks separated by <= 45 min. */
+    fun stitchSleepSessions(sleepBlocks: List<SleepBlockRecord>): List<StitchedSleepSession> {
         val rawMinutes = mutableListOf<SleepEpochMinute>()
         for (block in sleepBlocks.sortedBy { it.deviceTime }) {
+            // shortcut: 5-min records (34-byte stride guess) are not sleep stages: 231 of 233 on the phone hold codes
+            // like 82/109/215 and dates 2000-2035, and they padded nights by up to 2 h. Revisit if that packet is decoded.
+            if (block.unitMinutes != 1) continue
             // Truncate seconds: overlapping blocks (02:24:01 vs 02:23:01) must collapse to the same minute, not count twice.
             val start = parseDateTime(block.deviceTime)?.truncatedTo(ChronoUnit.MINUTES) ?: continue
             val unit = block.unitMinutes.coerceAtLeast(1)
@@ -71,126 +105,41 @@ object SleepAndReadinessEngine {
                 val rawStage = block.stages[idx]
                 val stage = if (rawStage == 30) J2208Protocol.STAGE_LIGHT else rawStage
                 for (m in 0 until unit) {
-                    val ts = start.plusMinutes((idx * unit + m).toLong())
-                    rawMinutes.add(SleepEpochMinute(ts, stage, inferredPostNoon = false))
+                    rawMinutes.add(SleepEpochMinute(start.plusMinutes((idx * unit + m).toLong()), stage))
                 }
             }
         }
         if (rawMinutes.isEmpty()) return emptyList()
 
-        val deduped = rawMinutes
-            .distinctBy { it.timestamp }
-            .sortedBy { it.timestamp }
-
-        // Group into contiguous sessions allowing up to 45 minutes gap
         val sessions = mutableListOf<MutableList<SleepEpochMinute>>()
-        for (epoch in deduped) {
-            if (sessions.isEmpty()) {
-                sessions.add(mutableListOf(epoch))
+        for (epoch in rawMinutes.distinctBy { it.timestamp }.sortedBy { it.timestamp }) {
+            val current = sessions.lastOrNull()
+            if (current != null && Duration.between(current.last().timestamp, epoch.timestamp).toMinutes() <= 45) {
+                current.add(epoch)
             } else {
-                val current = sessions.last()
-                val gapMin = Duration.between(current.last().timestamp, epoch.timestamp).toMinutes()
-                if (gapMin <= 45) {
-                    current.add(epoch)
-                } else {
-                    sessions.add(mutableListOf(epoch))
-                }
+                sessions.add(mutableListOf(epoch))
             }
         }
+        return sessions.map { sessionOf(it) }
+    }
 
-        val parsedSteps = stepRecords.mapNotNull { rec ->
-            parseDateTime(rec.deviceTime)?.let { it to rec }
-        }.sortedBy { it.first }
-
-        val parsedHrs = hrRecords.mapNotNull { rec ->
-            if (rec.bpm in 35..210) parseDateTime(rec.deviceTime)?.let { it to rec.bpm } else null
-        }.sortedBy { it.first }
-
-        return sessions.map { sessionEpochs ->
-            val firstTs = sessionEpochs.first().timestamp
-            val lastRawTs = sessionEpochs.last().timestamp
-
-            // Compute sleeping HR baseline during this session
-            val sessionHrs = parsedHrs
-                .filter { !it.first.isBefore(firstTs) && !it.first.isAfter(lastRawTs) }
-                .map { it.second }
-            val sleepHrBaseline = if (sessionHrs.isNotEmpty()) sessionHrs.average() else 58.0
-            val wakeHrThreshold = (sleepHrBaseline + 12.0).coerceAtLeast(68.0)
-
-            // Check if the session was cut off near 12:00 (12:00 PM noon military time)
-            val cutOffNearNoon = lastRawTs.hour == 11 && lastRawTs.minute >= 40 ||
-                (lastRawTs.hour == 12 && lastRawTs.minute <= 10)
-
-            if (cutOffNearNoon) {
-                val noonStart = lastRawTs.plusMinutes(1)
-                val maxExtendUntil = lastRawTs.toLocalDate().atTime(17, 0)
-                var cursor = noonStart
-                var consecutiveActiveMinutes = 0
-
-                while (!cursor.isAfter(maxExtendUntil)) {
-                    // Find nearest step epoch within 15 minutes
-                    val stepRec = parsedSteps.firstOrNull {
-                        abs(Duration.between(it.first, cursor).toMinutes()) <= 10
-                    }?.second
-                    val nearbyHr = parsedHrs
-                        .filter { abs(Duration.between(it.first, cursor).toMinutes()) <= 12 }
-                        .map { it.second }
-                        .average()
-                        .takeIf { !it.isNaN() }
-
-                    val lowMotion = stepRec == null || stepRec.steps <= 4
-                    val lowHr = nearbyHr == null || nearbyHr <= wakeHrThreshold
-
-                    if (lowMotion && lowHr) {
-                        val stage = if (nearbyHr != null && nearbyHr <= sleepHrBaseline - 2.0) {
-                            J2208Protocol.STAGE_DEEP
-                        } else if ((Duration.between(firstTs, cursor).toMinutes() % 90L) in 60L..85L) {
-                            J2208Protocol.STAGE_REM
-                        } else {
-                            J2208Protocol.STAGE_LIGHT
-                        }
-                        sessionEpochs.add(
-                            SleepEpochMinute(
-                                timestamp = cursor,
-                                stageCode = stage,
-                                inferredPostNoon = true
-                            )
-                        )
-                        consecutiveActiveMinutes = 0
-                    } else {
-                        consecutiveActiveMinutes++
-                        if (consecutiveActiveMinutes >= 10) break
-                    }
-                    cursor = cursor.plusMinutes(1)
-                }
-            }
-
-            val deepMin = sessionEpochs.count { it.stageCode == J2208Protocol.STAGE_DEEP }
-            val lightMin = sessionEpochs.count { it.stageCode == J2208Protocol.STAGE_LIGHT }
-            val remMin = sessionEpochs.count { it.stageCode == J2208Protocol.STAGE_REM }
-            val awakeMin = sessionEpochs.count { it.stageCode == J2208Protocol.STAGE_AWAKE }
-            val postNoonMin = sessionEpochs.count {
-                it.inferredPostNoon || (it.timestamp.hour in 12..17 && it.stageCode != J2208Protocol.STAGE_AWAKE)
-            }
-            val totalAsleep = deepMin + lightMin + remMin
-            val totalInBed = (totalAsleep + awakeMin).coerceAtLeast(1)
-            val efficiency = ((totalAsleep * 100.0) / totalInBed).roundToInt().coerceIn(0, 100)
-
-            val endTs = sessionEpochs.last().timestamp
-            StitchedSleepSession(
-                wakeDate = endTs.toLocalDate().toString(),
-                startTime = firstTs,
-                endTime = endTs,
-                totalSleepMin = totalAsleep,
-                deepMin = deepMin,
-                lightMin = lightMin,
-                remMin = remMin,
-                awakeMin = awakeMin,
-                post1200NoonExtendedMin = postNoonMin,
-                sleepEfficiencyPct = efficiency,
-                epochs = sessionEpochs
-            )
-        }
+    /**
+     * The night set to exactly [onset, wake] (user edit): band epochs outside are dropped, band stages
+     * inside kept, minutes with no band epoch count as asleep but unstaged (no stage is invented).
+     * Keeps the band's stagesAvailable so an edit never turns a light-only night into a staged one.
+     */
+    fun applyEditedWindow(s: StitchedSleepSession, onset: LocalDateTime, wake: LocalDateTime): StitchedSleepSession {
+        val from = onset.truncatedTo(ChronoUnit.MINUTES)
+        val to = wake.truncatedTo(ChronoUnit.MINUTES)
+        val byTs = s.epochs.associateBy { it.timestamp }
+        val epochs = generateSequence(from) { it.plusMinutes(1) }.takeWhile { it.isBefore(to) }
+            .map { byTs[it] ?: SleepEpochMinute(it, STAGE_UNSTAGED) }.toList()
+        if (epochs.isEmpty()) return s
+        return sessionOf(epochs).copy(
+            stagesAvailable = s.stagesAvailable,
+            bandStartTime = s.bandStartTime, bandEndTime = s.bandEndTime, bandTotalSleepMin = s.bandTotalSleepMin,
+            provenance = Provenance.EDITED
+        )
     }
 
     /**
@@ -219,17 +168,20 @@ object SleepAndReadinessEngine {
         s.startTime.plusMinutes(Duration.between(s.startTime, s.endTime).toMinutes() / 2)
 
     /** Main sleep: onset 18:00-12:00 (naps at 12:00-18:00 never count), longest wins. */
-    fun isMainSleepCandidate(s: StitchedSleepSession): Boolean = minutesFromNoon(s.startTime.toLocalTime()) >= 360
+    fun isMainSleepCandidate(s: StitchedSleepSession): Boolean = isMainSleepCandidate(s.startTime.toLocalTime())
+
+    fun isMainSleepCandidate(onset: LocalTime): Boolean = minutesFromNoon(onset) >= 360
 
     /**
      * Sleep score v2 (plan 1.4), 0-100: duration 40%, restorative 20%, efficiency 10%,
      * regularity 15% (midpoint vs median of [priorMidpointsMfn]; none yet = full marks),
      * timing 15% (asleep by 02:00 full, 0 by 04:00). Onset after 03:00 caps the score at 70.
+     * No stages recorded: restorative is dropped and the rest reweighted (50 / 12.5 / 18.75 / 18.75).
      */
     fun sleepScore(s: StitchedSleepSession, priorMidpointsMfn: List<Int>): Int {
-        val asleep = s.totalSleepMin
-        val duration = (asleep / 450.0 * 100.0).coerceIn(0.0, 100.0)
-        val restorativeShare = if (asleep > 0) (s.deepMin + s.remMin).toDouble() / asleep else 0.0
+        val duration = (s.totalSleepMin / 450.0 * 100.0).coerceIn(0.0, 100.0)
+        val staged = s.deepMin + s.lightMin + s.remMin // unstaged minutes stay out of the share
+        val restorativeShare = if (staged > 0) (s.deepMin + s.remMin).toDouble() / staged else 0.0
         val restorative = (restorativeShare / 0.38 * 100.0).coerceIn(0.0, 100.0)
         val regularity = if (priorMidpointsMfn.isEmpty()) 100.0 else {
             val sorted = priorMidpointsMfn.sorted()
@@ -240,8 +192,12 @@ object SleepAndReadinessEngine {
         }
         val onset = minutesFromNoon(s.startTime.toLocalTime())
         val timing = ((960.0 - onset) / 120.0 * 100.0).coerceIn(0.0, 100.0) // 02:00 = 840, 04:00 = 960
-        val score = (0.40 * duration + 0.20 * restorative + 0.10 * s.sleepEfficiencyPct +
-            0.15 * regularity + 0.15 * timing).roundToInt().coerceIn(0, 100)
+        val raw = if (s.stagesAvailable) {
+            0.40 * duration + 0.20 * restorative + 0.10 * s.sleepEfficiencyPct + 0.15 * regularity + 0.15 * timing
+        } else {
+            0.50 * duration + 0.125 * s.sleepEfficiencyPct + 0.1875 * regularity + 0.1875 * timing
+        }
+        val score = raw.roundToInt().coerceIn(0, 100)
         return if (onset >= 900) score.coerceAtMost(70) else score // 03:00 = 900
     }
 }

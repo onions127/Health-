@@ -44,7 +44,7 @@ class DailySeriesRepository(private val db: LocalHealthDatabase) {
     fun load(today: LocalDate, morningRmssd: Double?, heightCm: Double? = null, weightKg: Double? = null): List<DayMetrics> = buildDaySeries(
         db.getAllSleepBlocks(), db.getAllHrvRecords(), db.getAllHrRecords(),
         db.getAllSpo2Records(), db.getAllTempRecords(), db.getAllStepRecords(),
-        today, morningRmssd, heightCm, weightKg
+        today, morningRmssd, heightCm, weightKg, db.getAllSleepLabels()
     )
 }
 
@@ -62,7 +62,8 @@ fun buildDaySeries(
     today: LocalDate,
     morningRmssd: Double?,
     heightCm: Double? = null,
-    weightKg: Double? = null
+    weightKg: Double? = null,
+    sleepLabels: List<SleepLabel> = emptyList()
 ): List<DayMetrics> {
     fun <T> byDate(items: List<T>, time: (T) -> String, ok: (T) -> Boolean) = items
         .filter(ok)
@@ -75,7 +76,8 @@ fun buildDaySeries(
     val tempByDay = byDate(tempRecords, { it.deviceTime }, { it.tempC in 31.0..41.0 })
     val stepsByDay = byDate(stepRecords, { it.deviceTime }, { true })
 
-    val sessions = SleepAndReadinessEngine.stitchSleepSessions(sleepBlocks, stepRecords, hrRecords)
+    // Order: stitch -> labels -> (S2 refiner) -> main pick.
+    val sessions = applyLabels(SleepAndReadinessEngine.stitchSleepSessions(sleepBlocks), sleepLabels)
     val mainSleepByDay = sessions
         .filter { SleepAndReadinessEngine.isMainSleepCandidate(it) }
         .groupBy { LocalDate.parse(it.wakeDate) }

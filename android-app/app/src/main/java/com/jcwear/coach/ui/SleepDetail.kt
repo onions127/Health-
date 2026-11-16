@@ -5,9 +5,18 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimeInput
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,9 +30,17 @@ import androidx.compose.ui.unit.sp
 import com.jcwear.coach.ble.J2208Protocol
 import com.jcwear.coach.domain.DayMetrics
 import com.jcwear.coach.domain.Metrics
+import com.jcwear.coach.domain.EditCheck
+import com.jcwear.coach.domain.LabelKind
+import com.jcwear.coach.domain.Provenance
 import com.jcwear.coach.domain.SleepAndReadinessEngine
+import com.jcwear.coach.domain.SleepLabel
+import com.jcwear.coach.domain.anchorEdit
+import com.jcwear.coach.domain.checkEdit
 import java.time.Duration
 import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 // ============================================================================
@@ -33,7 +50,9 @@ import java.time.format.DateTimeFormatter
 internal fun SleepDetailView(
     day: DayMetrics,
     days: List<DayMetrics>,
-    onBack: () -> Unit
+    onSaveLabel: (SleepLabel) -> Unit,
+    onBack: () -> Unit,
+    openEditor: Boolean = false
 ) {
     Row(
         modifier = Modifier
@@ -92,6 +111,23 @@ internal fun SleepDetailView(
         if (session.startTime.hour in 3..11) {
             Text("Asleep after 03:00, so the score is capped at 70.", color = HealthColors.TextSecondary, fontSize = 13.sp)
         }
+        val bandDiffers = Duration.between(session.bandStartTime, session.startTime).abs().toMinutes() > 10 ||
+            Duration.between(session.bandEndTime, session.endTime).abs().toMinutes() > 10
+        if (bandDiffers) {
+            Text(
+                "Band reported ${formatSleepHm(session.bandTotalSleepMin)} (${session.bandStartTime.format(hm)}–${session.bandEndTime.format(hm)})",
+                color = HealthColors.TextSecondary, fontSize = 13.sp
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        SleepLabelRow(session, openEditor, onSaveLabel)
+    }
+
+    if (!session.stagesAvailable) {
+        HealthCard {
+            Text("Your band didn't record sleep stages this night.", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        }
+        return
     }
 
     // Hypnogram from the band's per-minute stages
@@ -152,15 +188,109 @@ internal fun SleepDetailView(
             ).forEach { (name, min, color) ->
                 StageDurationRow(name, formatSleepHm(min), "${min * 100 / inBed}% of the night", color)
             }
-            if (session.post1200NoonExtendedMin > 0) {
+            if (session.unstagedMin > 0) {
                 Text(
-                    "Includes ${session.post1200NoonExtendedMin}m after 12:00 estimated from steps and heart rate.",
+                    "${formatSleepHm(session.unstagedMin)} of your edited night has no band stages.",
                     color = HealthColors.TextSecondary,
                     fontSize = 13.sp
                 )
             }
         }
     }
+}
+
+/** "Looks right" / "Edit" under the night's times; edited/confirmed nights say so. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SleepLabelRow(
+    session: SleepAndReadinessEngine.StitchedSleepSession,
+    openEditor: Boolean,
+    onSaveLabel: (SleepLabel) -> Unit
+) {
+    var editing by remember(session.sessionKey) { mutableStateOf(openEditor) }
+    val status = when {
+        session.provenance == Provenance.EDITED -> "Edited by you"
+        session.confirmed -> "Confirmed by you"
+        else -> null
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(status ?: "Is this right?", color = HealthColors.TextSecondary, fontSize = 13.sp, modifier = Modifier.weight(1f))
+        if (status == null) {
+            TextButton(onClick = { onSaveLabel(labelFor(session, LabelKind.CONFIRMED, session.startTime, session.endTime)) }) {
+                Text("Looks right")
+            }
+        }
+        TextButton(onClick = { editing = true }) { Text("Edit") }
+    }
+    if (!editing) return
+
+    val onsetState = rememberTimePickerState(session.startTime.hour, session.startTime.minute, is24Hour = true)
+    val wakeState = rememberTimePickerState(session.endTime.hour, session.endTime.minute, is24Hour = true)
+    var error by remember { mutableStateOf<String?>(null) }
+    var confirm by remember { mutableStateOf<String?>(null) }
+    val (onset, wake) = anchorEdit(
+        session.bandStartTime,
+        LocalTime.of(onsetState.hour, onsetState.minute),
+        LocalTime.of(wakeState.hour, wakeState.minute)
+    )
+    fun save() {
+        onSaveLabel(labelFor(session, LabelKind.EDITED, onset, wake))
+        editing = false
+    }
+    AlertDialog(
+        onDismissRequest = { editing = false },
+        title = { Text(confirm ?: "Edit sleep times") },
+        text = {
+            if (confirm == null) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Fell asleep")
+                    TimeInput(onsetState)
+                    Text("Woke")
+                    TimeInput(wakeState)
+                    error?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp) }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                if (confirm != null) {
+                    save()
+                } else {
+                    when (val check = checkEdit(onset, wake)) {
+                        EditCheck.Ok -> save()
+                        is EditCheck.Confirm -> confirm = check.message
+                        is EditCheck.Invalid -> error = check.message
+                    }
+                }
+            }) { Text("Save") }
+        },
+        dismissButton = {
+            TextButton(onClick = { if (confirm != null) confirm = null else editing = false }) { Text("Cancel") }
+        }
+    )
+}
+
+private fun labelFor(
+    s: SleepAndReadinessEngine.StitchedSleepSession,
+    kind: LabelKind,
+    onset: LocalDateTime,
+    wake: LocalDateTime
+): SleepLabel {
+    val zone = ZoneId.systemDefault()
+    return SleepLabel(
+        sessionKey = s.sessionKey,
+        onset = onset.atZone(zone).toOffsetDateTime(),
+        wake = wake.atZone(zone).toOffsetDateTime(),
+        kind = kind,
+        bandOnset = s.bandStartTime.atZone(zone).toOffsetDateTime(),
+        bandWake = s.bandEndTime.atZone(zone).toOffsetDateTime(),
+        shownSource = if (s.provenance == Provenance.ADJUSTED) Provenance.ADJUSTED else Provenance.BAND,
+        createdAt = System.currentTimeMillis()
+    )
 }
 
 /** Consecutive same-stage minutes as (start minute, length, level 0=awake 1=REM 2=light 3=deep); unknown codes are skipped. */

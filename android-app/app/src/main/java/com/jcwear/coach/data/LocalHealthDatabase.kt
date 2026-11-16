@@ -13,14 +13,18 @@ import com.jcwear.coach.ble.J2208Protocol.SleepBlockRecord
 import com.jcwear.coach.ble.J2208Protocol.Spo2Record
 import com.jcwear.coach.ble.J2208Protocol.StepEpochRecord
 import com.jcwear.coach.ble.J2208Protocol.TempRecord
+import com.jcwear.coach.domain.LabelKind
+import com.jcwear.coach.domain.Provenance
+import com.jcwear.coach.domain.SleepLabel
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException
+import java.time.OffsetDateTime
 
 class LocalHealthDatabase(private val appContext: Context) :
-    SQLiteOpenHelper(appContext, "jcwear_local_health.db", null, 3) {
+    SQLiteOpenHelper(appContext, "jcwear_local_health.db", null, 4) {
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
@@ -92,10 +96,72 @@ class LocalHealthDatabase(private val appContext: Context) :
             """.trimIndent()
         )
         addUploadedColumns(db)
+        createSleepLabels(db)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 3) addUploadedColumns(db)
+        if (oldVersion < 4) createSleepLabels(db)
+    }
+
+    /** No-op so a later rollback (v5 -> v4) keeps working. Rolling back below v4 can't be helped: see the S1 checklist. */
+    override fun onDowngrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+
+    /** v4: user ground truth per night. Not a history table: never uploaded, restored or seed-cleaned. */
+    private fun createSleepLabels(db: SQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS sleep_labels (
+                session_key TEXT PRIMARY KEY,
+                onset TEXT NOT NULL,
+                wake TEXT NOT NULL,
+                kind TEXT NOT NULL,
+                band_onset TEXT NOT NULL,
+                band_wake TEXT NOT NULL,
+                shown_source TEXT NOT NULL,
+                created_at INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+    }
+
+    /** EDITED replaces any row; CONFIRMED is insert-or-ignore so it never overwrites an EDITED label. */
+    fun putLabel(label: SleepLabel) {
+        val cv = ContentValues().apply {
+            put("session_key", label.sessionKey)
+            put("onset", label.onset.toString())
+            put("wake", label.wake.toString())
+            put("kind", label.kind.name)
+            put("band_onset", label.bandOnset.toString())
+            put("band_wake", label.bandWake.toString())
+            put("shown_source", label.shownSource.name)
+            put("created_at", label.createdAt)
+        }
+        val conflict = if (label.kind == LabelKind.EDITED) SQLiteDatabase.CONFLICT_REPLACE else SQLiteDatabase.CONFLICT_IGNORE
+        writableDatabase.insertWithOnConflict("sleep_labels", null, cv, conflict)
+    }
+
+    fun getAllSleepLabels(): List<SleepLabel> {
+        val out = mutableListOf<SleepLabel>()
+        readableDatabase.rawQuery(
+            "SELECT session_key, onset, wake, kind, band_onset, band_wake, shown_source, created_at FROM sleep_labels", null
+        ).use { c ->
+            while (c.moveToNext()) {
+                runCatching {
+                    SleepLabel(
+                        sessionKey = c.getString(0),
+                        onset = OffsetDateTime.parse(c.getString(1)),
+                        wake = OffsetDateTime.parse(c.getString(2)),
+                        kind = LabelKind.valueOf(c.getString(3)),
+                        bandOnset = OffsetDateTime.parse(c.getString(4)),
+                        bandWake = OffsetDateTime.parse(c.getString(5)),
+                        shownSource = Provenance.valueOf(c.getString(6)),
+                        createdAt = c.getLong(7)
+                    )
+                }.onSuccess(out::add).onFailure { Log.w(TAG, "Skipping bad sleep label: ${it.message}") }
+            }
+        }
+        return out
     }
 
     /** v3: per-row "sent to the home server" flag, so band backfills with old timestamps still upload. */

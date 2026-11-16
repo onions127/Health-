@@ -21,7 +21,7 @@ class SleepScoreTest {
             }
         }
         val block = SleepBlockRecord(start, 1, minutes, 0, 0, 0, 0, stages, "test")
-        return SleepAndReadinessEngine.stitchSleepSessions(listOf(block), emptyList(), emptyList()).single()
+        return SleepAndReadinessEngine.stitchSleepSessions(listOf(block)).single()
     }
 
     private fun mfn(h: Int, m: Int) = SleepAndReadinessEngine.minutesFromNoon(LocalTime.of(h, m))
@@ -70,7 +70,7 @@ class SleepScoreTest {
     fun overlappingBlocksWithDifferentSecondsAreNotCountedTwice() {
         val a = SleepBlockRecord("2026-11-12T02:24:01", 1, 120, 0, 120, 0, 0, List(120) { 2 }, "a")
         val b = SleepBlockRecord("2026-11-12T04:23:01", 1, 60, 0, 60, 0, 0, List(60) { 2 }, "b")
-        val s = SleepAndReadinessEngine.stitchSleepSessions(listOf(a, b), emptyList(), emptyList()).single()
+        val s = SleepAndReadinessEngine.stitchSleepSessions(listOf(a, b)).single()
         assertEquals(179, s.totalSleepMin) // 02:24-05:22, one shared minute
         assertEquals(LocalDateTime.of(2026, 11, 12, 2, 24), s.startTime)
     }

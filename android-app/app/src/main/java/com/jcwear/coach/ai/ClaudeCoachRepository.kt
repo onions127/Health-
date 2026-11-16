@@ -35,7 +35,7 @@ class ClaudeCoachRepository(private val database: LocalHealthDatabase) {
             if (latest != null) {
                 appendLine("Today (${latest.date}): Readiness ${n(latest.readiness)}/100, Sleep Score ${n(latest.sleepScore)}/100, Strain ${latest.strain ?: "not recorded"}/21.")
                 appendLine("Vitals: HRV ${n(latest.hrvMs, " ms")} (normal ${n(avg { it.hrvMs }, " ms")}), RHR ${n(latest.rhrBpm, " bpm")} (normal ${n(avg { it.rhrBpm }, " bpm")}), SpO2 ${n(latest.spo2Pct, "%")}, Skin Temp ${latest.skinTempDeltaC?.let { String.format("%+.1f °C", it) } ?: "not recorded"}, Steps ${latest.steps ?: "not recorded"}.")
-                appendLine("Sleep: ${hm(latest.sleepMin)} total (normal ${hm(avg { it.sleepMin?.toDouble() }?.roundToInt())}) — Deep ${hm(latest.sleep?.deepMin)}, REM ${hm(latest.sleep?.remMin)}.")
+                appendLine("Sleep: ${hm(latest.sleepMin)} total (normal ${hm(avg { it.sleepMin?.toDouble() }?.roundToInt())}) — ${latest.sleep?.let { if (it.stagesAvailable) "Deep ${hm(it.deepMin)}, REM ${hm(it.remMin)}" else "stages not recorded" } ?: "stages not recorded"}.")
             }
             appendLine("Question: $userQuestion")
         }.trim()
@@ -67,9 +67,8 @@ class ClaudeCoachRepository(private val database: LocalHealthDatabase) {
                     put("hrv_30d_baseline_ms", MetricInsights.baseline(Metrics.hrv, recentReports, r.date)?.mean ?: JSONObject.NULL)
                     put("rhr_bpm", r.rhrBpm ?: JSONObject.NULL)
                     put("sleep_min", r.sleepMin ?: JSONObject.NULL)
-                    put("post_1200_noon_stitched_min", r.sleep?.post1200NoonExtendedMin ?: JSONObject.NULL)
-                    put("deep_min", r.sleep?.deepMin ?: JSONObject.NULL)
-                    put("rem_min", r.sleep?.remMin ?: JSONObject.NULL)
+                    put("deep_min", r.sleep?.takeIf { it.stagesAvailable }?.deepMin ?: JSONObject.NULL)
+                    put("rem_min", r.sleep?.takeIf { it.stagesAvailable }?.remMin ?: JSONObject.NULL)
                     put("spo2_pct", r.spo2Pct ?: JSONObject.NULL)
                     put("temp_delta_c", r.skinTempDeltaC ?: JSONObject.NULL)
                     put("steps", r.steps ?: JSONObject.NULL)

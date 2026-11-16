@@ -205,11 +205,11 @@ fun MainDashboardScreen(
                     val metricId = activeDetailMetric!!
                     val night = sleepNightIdx
                     if (night != null) {
-                        SleepDetailView(day = days[night.coerceAtMost(days.lastIndex)], days = days, onBack = { sleepNightIdx = null })
+                        SleepDetailView(day = days[night.coerceAtMost(days.lastIndex)], days = days, onSaveLabel = viewModel::saveLabel, onBack = { sleepNightIdx = null })
                     } else if (metricId == "sleepTrends") {
                         SleepTrendsView(days = days, onOpenNight = { sleepNightIdx = it }, onBack = { activeDetailMetric = null })
                     } else if (metricId == "sleep") {
-                        SleepDetailView(day = activeDay, days = days, onBack = { activeDetailMetric = null })
+                        SleepDetailView(day = activeDay, days = days, onSaveLabel = viewModel::saveLabel, onBack = { activeDetailMetric = null })
                     } else {
                         MetricDetailView(
                             metricId = metricId,
