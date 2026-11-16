@@ -282,14 +282,13 @@ internal fun TodayTabView(
                         val upTo = days.filter { !it.date.isAfter(day.date) }
                         SparklineVitalRow(
                             // The HRV number is the one behind today's scores; the sparkline stays overnight-only.
-                            title = if (def == Metrics.hrv) {
-                                "${if (day.morningRmssdMs != null) "HRV (morning check)" else def.label} · ${day.scoreHrvMs?.roundToInt() ?: "—"}"
-                            } else {
-                                "${def.label} · ${def.extract(day)?.roundToInt() ?: "—"}"
-                            },
+                            title = "${def.label} · ${(if (def == Metrics.hrv) day.scoreHrvMs else def.extract(day))?.roundToInt() ?: "—"}",
                             unit = unit,
-                            contextText = MetricInsights.extremeLabel(def, days, day.date)
-                                ?: MetricInsights.chip(def, days, day.date).first,
+                            contextText = if (def == Metrics.hrv && day.morningRmssdMs != null) {
+                                "Morning check" + (day.hrvMs?.let { " · overnight ${it.roundToInt()}" } ?: "")
+                            } else {
+                                MetricInsights.extremeLabel(def, days, day.date) ?: MetricInsights.chip(def, days, day.date).first
+                            },
                             values = upTo.takeLast(7).mapNotNull(def.extract).map { it.toFloat() },
                             normalMin = base?.low?.toFloat(),
                             normalMax = base?.high?.toFloat(),
