@@ -7,7 +7,9 @@ import android.companion.CompanionDeviceManager
 import android.bluetooth.le.ScanFilter
 import android.content.Intent
 import android.content.IntentSender
+import com.jcwear.coach.notify.BedtimeReminder
 import com.jcwear.coach.notify.Notifications
+import com.jcwear.coach.ui.BedtimeUi
 import android.widget.Toast
 import androidx.activity.result.IntentSenderRequest
 import androidx.compose.runtime.mutableStateOf
@@ -35,12 +37,42 @@ class MainActivity : ComponentActivity() {
     private fun isCompanionPaired() = cdm?.associations?.isNotEmpty() == true
     private val companionPaired = mutableStateOf(false)
     private val morningNotifyOn = mutableStateOf(false)
+    private val bedtimeOn = mutableStateOf(false)
+    private val bedtimeStatus = mutableStateOf("")
+    private val latestBedtimeMfn = mutableStateOf(BedtimeReminder.DEFAULT_LATEST_MFN)
+    /** Which toggle asked for the notification permission. */
+    private var pendingNotifyToggle: (Boolean) -> Unit = {}
     /** Night to open from the notification's Edit action (session_key); consumed by the dashboard. */
     private val openNightKey = mutableStateOf<String?>(null)
 
     private val notifyPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        setMorningNotify(granted)
+        pendingNotifyToggle(granted)
         if (!granted) Toast.makeText(this, "Allow notifications in system settings", Toast.LENGTH_LONG).show()
+    }
+
+    /** Turns a notification feature on (asking for the permission first on API 33+) or off. */
+    private fun toggleNotify(on: Boolean, set: (Boolean) -> Unit) {
+        if (on || Build.VERSION.SDK_INT < 33) return set(!on)
+        pendingNotifyToggle = set
+        notifyPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
+
+    private fun setBedtime(on: Boolean) {
+        container.settings.bedtimeReminderEnabled = on
+        bedtimeOn.value = on
+        replanBedtime()
+    }
+
+    private fun replanBedtime() {
+        bedtimeStatus.value = BedtimeReminder.plan(this)
+    }
+
+    private fun shiftLatestBedtime(deltaMin: Int) {
+        val v = (container.settings.latestBedtimeMfn + deltaMin)
+            .coerceIn(BedtimeReminder.LATEST_RANGE_MFN.first, BedtimeReminder.LATEST_RANGE_MFN.last)
+        container.settings.latestBedtimeMfn = v
+        latestBedtimeMfn.value = v
+        replanBedtime()
     }
 
     private fun setMorningNotify(on: Boolean) {
@@ -48,13 +80,7 @@ class MainActivity : ComponentActivity() {
         morningNotifyOn.value = on
     }
 
-    private fun toggleMorningNotify() {
-        when {
-            morningNotifyOn.value -> setMorningNotify(false)
-            Build.VERSION.SDK_INT >= 33 -> notifyPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            else -> setMorningNotify(true)
-        }
-    }
+    private fun toggleMorningNotify() = toggleNotify(morningNotifyOn.value, ::setMorningNotify)
 
     private fun readNightExtra(intent: Intent?) {
         if (intent?.getBooleanExtra(Notifications.EXTRA_OPEN_EDITOR, false) == true) {
@@ -107,6 +133,8 @@ class MainActivity : ComponentActivity() {
         SyncWorker.schedule(this)
         companionPaired.value = isCompanionPaired()
         morningNotifyOn.value = container.settings.morningNotifyEnabled
+        bedtimeOn.value = container.settings.bedtimeReminderEnabled
+        latestBedtimeMfn.value = container.settings.latestBedtimeMfn
         readNightExtra(intent)
 
         setContent {
@@ -123,6 +151,13 @@ class MainActivity : ComponentActivity() {
                 onRequestBlePermissions = ::requestBlePermissions,
                 morningNotifyOn = morningNotifyOn.value,
                 onToggleMorningNotify = ::toggleMorningNotify,
+                bedtime = BedtimeUi(
+                    on = bedtimeOn.value,
+                    status = bedtimeStatus.value,
+                    latest = BedtimeReminder.format(latestBedtimeMfn.value),
+                    onToggle = { toggleNotify(bedtimeOn.value, ::setBedtime) },
+                    onShiftLatest = ::shiftLatestBedtime
+                ),
                 openNightKey = openNightKey.value,
                 onNightOpened = { openNightKey.value = null }
             )
@@ -132,6 +167,7 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         container.syncCoordinator.sync("OPEN") // a sync already running is joined, not doubled
+        replanBedtime()
     }
 
     private fun requestBlePermissions() {

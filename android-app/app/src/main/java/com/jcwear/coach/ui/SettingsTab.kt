@@ -99,6 +99,7 @@ internal fun SettingsTabView(
     onSaveWeight: (String) -> Unit,
     morningNotifyOn: Boolean,
     onToggleMorningNotify: () -> Unit,
+    bedtime: BedtimeUi,
     exportStatus: String?,
     onExportAll: () -> Unit
 ) {
@@ -254,6 +255,32 @@ internal fun SettingsTabView(
         }
     }
 
+    // Bedtime reminder (S6)
+    HealthCard {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Bedtime reminder", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    Text(bedtime.status.ifBlank { "30 min before your usual bedtime" }, color = HealthColors.TextSecondary, fontSize = 13.sp)
+                }
+                SecondaryActionButton(text = if (bedtime.on) "On" else "Off", onClick = bedtime.onToggle)
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Latest bedtime ${bedtime.latest}", color = HealthColors.TextSecondary, fontSize = 13.sp, modifier = Modifier.weight(1f))
+                SecondaryActionButton(text = "−15 min", onClick = { bedtime.onShiftLatest(-15) })
+                SecondaryActionButton(text = "+15 min", onClick = { bedtime.onShiftLatest(15) })
+            }
+        }
+    }
+
     // 4. About
     HealthCard {
         Row(
@@ -286,3 +313,12 @@ private fun ProfileField(label: String, initial: String, keyboard: KeyboardType,
         modifier = Modifier.fillMaxWidth()
     )
 }
+
+/** Settings state for the bedtime reminder (S6). */
+data class BedtimeUi(
+    val on: Boolean,
+    val status: String,
+    val latest: String,
+    val onToggle: () -> Unit,
+    val onShiftLatest: (Int) -> Unit
+)

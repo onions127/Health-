@@ -35,6 +35,7 @@
             </intent-filter>
         </activity>
         <receiver android:name=".notify.SleepLabelReceiver" android:exported="false" />
+        <receiver android:name=".notify.BedtimeReminderReceiver" android:exported="false" />
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.files"

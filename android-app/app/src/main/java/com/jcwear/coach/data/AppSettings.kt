@@ -95,7 +95,31 @@ class AppSettings(context: Context) {
         get() = prefs.getString(KEY_LAST_MORNING_NOTIFY, "") ?: ""
         set(value) = prefs.edit().putString(KEY_LAST_MORNING_NOTIFY, value).apply()
 
+    /** Bedtime reminder (S6), off by default. */
+    var bedtimeReminderEnabled: Boolean
+        get() = prefs.getBoolean(KEY_BEDTIME_ON, false)
+        set(value) = prefs.edit().putBoolean(KEY_BEDTIME_ON, value).apply()
+
+    /** Latest bedtime as minutes from noon (01:30 = 810), 23:00-02:00. */
+    var latestBedtimeMfn: Int
+        get() = prefs.getInt(KEY_LATEST_BEDTIME, 810)
+        set(value) = prefs.edit().putInt(KEY_LATEST_BEDTIME, value).apply()
+
+    /** HH:mm of the planned reminder, for its text. */
+    var nextBedtimeReminder: String
+        get() = prefs.getString(KEY_NEXT_BEDTIME, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_NEXT_BEDTIME, value).apply()
+
+    /** Evening (ISO date) the last reminder fired for; a 00:45 reminder belongs to the previous evening. */
+    var lastBedtimeReminderDate: String
+        get() = prefs.getString(KEY_LAST_BEDTIME, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_LAST_BEDTIME, value).apply()
+
     companion object {
+        private const val KEY_BEDTIME_ON = "bedtime_reminder_enabled"
+        private const val KEY_LATEST_BEDTIME = "latest_bedtime_mfn"
+        private const val KEY_NEXT_BEDTIME = "next_bedtime_reminder"
+        private const val KEY_LAST_BEDTIME = "last_bedtime_reminder_date"
         private const val KEY_MORNING_NOTIFY = "morning_notify_enabled"
         private const val KEY_LAST_MORNING_NOTIFY = "last_morning_notify_date"
         private const val KEY_PROFILE_NAME = "profile_name"

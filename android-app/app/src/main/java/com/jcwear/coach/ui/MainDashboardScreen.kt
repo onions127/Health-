@@ -57,6 +57,7 @@ fun MainDashboardScreen(
     onRequestBlePermissions: () -> Unit,
     morningNotifyOn: Boolean,
     onToggleMorningNotify: () -> Unit,
+    bedtime: BedtimeUi,
     openNightKey: String?,
     onNightOpened: () -> Unit
 ) {
@@ -371,6 +372,7 @@ fun MainDashboardScreen(
                         onSaveWeight = { settings.weightKg = parseWeightKg(it, useMetricUnits); viewModel.refresh() },
                         morningNotifyOn = morningNotifyOn,
                         onToggleMorningNotify = onToggleMorningNotify,
+                        bedtime = bedtime,
                         exportStatus = exportStatus,
                         onExportAll = {
                             if (exportStatus != EXPORTING) scope.launch {

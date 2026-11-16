@@ -12,6 +12,7 @@ import com.jcwear.coach.AppContainer
 import com.jcwear.coach.HealthApp
 import com.jcwear.coach.domain.DailySeriesRepository
 import com.jcwear.coach.domain.SleepAndReadinessEngine
+import com.jcwear.coach.notify.BedtimeReminder
 import com.jcwear.coach.notify.MorningNotifier
 import com.jcwear.coach.notify.Notifications
 import java.time.LocalDateTime
@@ -29,8 +30,9 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
         if (state == null) Log.w(TAG, "Background sync failed or exceeded ${BUDGET_MS / 1000} s")
         try {
             c.syncCoordinator.annotateLatest("morning", morningNotify(c, state is SyncState.Synced))
+            BedtimeReminder.plan(applicationContext) // also restores the alarm after a reboot
         } catch (e: SQLiteException) {
-            Log.w(TAG, "Morning notifier couldn't read the DB", e)
+            Log.w(TAG, "Notifiers couldn't read the DB", e)
         }
         return Result.success() // the next 30-min run is the retry
     }

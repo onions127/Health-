@@ -19,6 +19,8 @@ import com.jcwear.coach.domain.SleepAndReadinessEngine.StitchedSleepSession
 object Notifications {
     const val CHANNEL_MORNING = "morning_summary"
     const val ID_MORNING = 1001
+    const val CHANNEL_BEDTIME = "bedtime_reminder"
+    const val ID_BEDTIME = 1002
 
     const val EXTRA_SESSION_KEY = "session_key"
     const val EXTRA_ONSET = "onset"
@@ -32,9 +34,30 @@ object Notifications {
 
     private fun ensureChannel(context: Context) {
         if (Build.VERSION.SDK_INT < 26) return
-        context.getSystemService(NotificationManager::class.java).createNotificationChannel(
-            NotificationChannel(CHANNEL_MORNING, "Morning summary", NotificationManager.IMPORTANCE_DEFAULT)
+        context.getSystemService(NotificationManager::class.java).createNotificationChannels(listOf(
+            NotificationChannel(CHANNEL_MORNING, "Morning summary", NotificationManager.IMPORTANCE_DEFAULT),
+            NotificationChannel(CHANNEL_BEDTIME, "Bedtime reminder", NotificationManager.IMPORTANCE_DEFAULT)
+        ))
+    }
+
+    fun postBedtime(context: Context, text: String): Boolean {
+        if (!canPost(context)) return false
+        ensureChannel(context)
+        val open = PendingIntent.getActivity(
+            context, "open".hashCode(),
+            Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
+        val n = NotificationCompat.Builder(context, CHANNEL_BEDTIME)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle("Time to wind down")
+            .setContentText(text)
+            .setContentIntent(open)
+            .setAutoCancel(true)
+            .build()
+        @Suppress("MissingPermission") // checked by canPost above
+        NotificationManagerCompat.from(context).notify(ID_BEDTIME, n)
+        return true
     }
 
     /** False when the permission is missing (re-checked here, at post time). */
