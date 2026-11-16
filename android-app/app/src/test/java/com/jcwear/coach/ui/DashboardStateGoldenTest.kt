@@ -44,7 +44,7 @@ class DashboardStateGoldenTest {
     fun dashboardStateMatchesGolden() {
         seedFixture(today = LocalDate.of(2026, 11, 12))
 
-        val days = buildDashboardState(db, morningRmssd = null, today = LocalDate.of(2026, 11, 12))
+        val days = buildDashboardState(db, today = LocalDate.of(2026, 11, 12))
         val actual = days.filter { it.hasData }.joinToString("\n") { d ->
             // Per-minute epochs are left out; times and stage totals pin the session.
             val s = d.sleep?.let { "${it.startTime}..${it.endTime} asleep=${it.totalSleepMin} deep=${it.deepMin} rem=${it.remMin} awake=${it.awakeMin}" }

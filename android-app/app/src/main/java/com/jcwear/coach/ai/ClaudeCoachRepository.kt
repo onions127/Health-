@@ -34,7 +34,7 @@ class ClaudeCoachRepository(private val database: LocalHealthDatabase) {
             appendLine("You are my Health++ recovery coach. Keep replies concise (max 3 short lines) and compare numbers to my normal baseline. \"not recorded\" means the band has no data; don't guess it.")
             if (latest != null) {
                 appendLine("Today (${latest.date}): Readiness ${n(latest.readiness)}/100, Sleep Score ${n(latest.sleepScore)}/100, Strain ${latest.strain ?: "not recorded"}/21.")
-                appendLine("Vitals: HRV ${n(latest.hrvMs, " ms")} (normal ${n(avg { it.hrvMs }, " ms")}), RHR ${n(latest.rhrBpm, " bpm")} (normal ${n(avg { it.rhrBpm }, " bpm")}), SpO2 ${n(latest.spo2Pct, "%")}, Skin Temp ${latest.skinTempDeltaC?.let { String.format("%+.1f °C", it) } ?: "not recorded"}, Steps ${latest.steps ?: "not recorded"}.")
+                appendLine("Vitals: HRV ${n(latest.scoreHrvMs, " ms")}${latest.morningCheck?.let { if (it.estimated) " [morning check, estimated from heart rate]" else " [morning check]" } ?: ""} (normal ${n(avg { it.hrvMs }, " ms")}), RHR ${n(latest.rhrBpm, " bpm")} (normal ${n(avg { it.rhrBpm }, " bpm")}), SpO2 ${n(latest.spo2Pct, "%")}, Skin Temp ${latest.skinTempDeltaC?.let { String.format("%+.1f °C", it) } ?: "not recorded"}, Steps ${latest.steps ?: "not recorded"}.")
                 appendLine("Sleep: ${hm(latest.sleepMin)} total (normal ${hm(avg { it.sleepMin?.toDouble() }?.roundToInt())}) — ${latest.sleep?.let { if (it.stagesAvailable) "Deep ${hm(it.deepMin)}, REM ${hm(it.remMin)}" else "stages not recorded" } ?: "stages not recorded"}.")
             }
             appendLine("Question: $userQuestion")
@@ -64,6 +64,7 @@ class ClaudeCoachRepository(private val database: LocalHealthDatabase) {
                     put("sleep_score", r.sleepScore ?: JSONObject.NULL)
                     put("strain", r.strain ?: JSONObject.NULL)
                     put("hrv_ms", r.hrvMs ?: JSONObject.NULL)
+                    put("morning_check_rmssd_ms", r.morningRmssdMs ?: JSONObject.NULL)
                     put("hrv_30d_baseline_ms", MetricInsights.baseline(Metrics.hrv, recentReports, r.date)?.mean ?: JSONObject.NULL)
                     put("rhr_bpm", r.rhrBpm ?: JSONObject.NULL)
                     put("sleep_min", r.sleepMin ?: JSONObject.NULL)
@@ -157,14 +158,15 @@ class ClaudeCoachRepository(private val database: LocalHealthDatabase) {
 
         // 3. Local fallback from real values only (0 API cost)
         val today = recentReports.firstOrNull()
-        val hrv = today?.hrvMs?.roundToInt()
+        val hrvMs = today?.scoreHrvMs
+        val hrv = hrvMs?.roundToInt()
         val rhr = today?.rhrBpm?.roundToInt()
         if (today == null || hrv == null || rhr == null) {
             return@withContext "Coach is offline. Your data is safe; try again later."
         }
         val base = MetricInsights.baseline(Metrics.hrv, recentReports, today.date)
         val vsNormal = base?.let {
-            val pct = ((today.hrvMs - it.mean) / it.mean * 100).roundToInt()
+            val pct = ((hrvMs!! - it.mean) / it.mean * 100).roundToInt()
             " (${if (pct >= 0) "↑ $pct%" else "↓ ${-pct}%"} vs normal)"
         } ?: ""
         return@withContext buildString {

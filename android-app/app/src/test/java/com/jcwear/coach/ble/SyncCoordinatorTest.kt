@@ -6,13 +6,16 @@ import com.jcwear.coach.data.AppSettings
 import com.jcwear.coach.data.CleanupJob
 import com.jcwear.coach.data.HomelabClient
 import com.jcwear.coach.data.LocalHealthDatabase
+import com.jcwear.coach.domain.MorningCheck
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -51,7 +54,16 @@ class SyncCoordinatorTest {
             return HistoryResult(rows = 42, incomplete = incomplete, clockDriftSec = 30)
         }
 
-        override suspend fun morningCheck60s(): Double? = 61.5
+        var reading: MorningReading? = MorningReading(61.5, estimated = false)
+        var cancelTarget: Job? = null
+        var cancelAfterReading: (suspend () -> Unit)? = null
+        override suspend fun morningCheck60s(): MorningReading? {
+            if (cancelAfterReading != null) {
+                while (cancelTarget == null) kotlinx.coroutines.yield()
+                cancelTarget!!.cancel() // Back pressed as the band finishes
+            }
+            return reading
+        }
         override fun disconnect() {
             disconnects++
             if (open > 0) open--
@@ -71,10 +83,16 @@ class SyncCoordinatorTest {
         context.getSharedPreferences(AppSettings.PREFS_NAME, Context.MODE_PRIVATE).edit().clear().commit()
     }
 
+    private var dataChanged = 0
+    private val saved = mutableListOf<MorningCheck>()
+    private var saveWorks = true
+
     private fun coordinator(band: FakeBand) = SyncCoordinator(
         band = band, settings = settings, homelab = HomelabClient(db, settings),
         cleanup = CleanupJob(db, settings, File(context.cacheDir, "b.db")),
-        loadDays = { emptyList() }, onDataChanged = {}, retryDelayMs = 0
+        loadDays = { emptyList() }, onDataChanged = { dataChanged++ },
+        saveMorningCheck = { check -> saveWorks.also { if (it) saved += check } },
+        now = { 1_000L }, retryDelayMs = 0
     )
 
     @Test
@@ -117,7 +135,7 @@ class SyncCoordinatorTest {
         val check = async { c.morningCheck() }
         band.gate!!.complete(Unit)
         sync.join()
-        assertEquals(61.5, check.await()!!, 0.0)
+        assertEquals(61.5, (check.await() as MorningCheckResult.Saved).check.rmssdMs, 0.0)
         assertTrue("Sessions must never overlap", !band.overlapped)
     }
 
@@ -151,8 +169,69 @@ class SyncCoordinatorTest {
     }
 
     @Test
-    fun failedMorningCheckReturnsNull() = runBlocking {
+    fun failedMorningCheckSavesNothing() = runBlocking {
         val band = FakeBand().apply { connectFailures += SyncFailure(SyncFailureReason.BLUETOOTH_OFF) }
-        assertNull(coordinator(band).morningCheck())
+        assertEquals(MorningCheckResult.MeasureFailed, coordinator(band).morningCheck())
+        assertTrue(saved.isEmpty())
+        assertEquals(0, dataChanged)
+    }
+
+    @Test
+    fun morningCheckIsSavedWithTimeAndSourceThenRefreshes() = runBlocking {
+        val result = coordinator(FakeBand()).morningCheck()
+        assertEquals(MorningCheckResult.Saved(MorningCheck(61.5, 1_000L, MorningCheck.SOURCE_HRV)), result)
+        assertEquals(1, saved.size)
+        assertEquals(1, dataChanged)
+    }
+
+    @Test
+    fun heartRateOnlyReadingIsStoredAsEstimate() = runBlocking {
+        val band = FakeBand().apply { reading = MorningReading(48.0, estimated = true) }
+        val result = coordinator(band).morningCheck() as MorningCheckResult.Saved
+        assertEquals(MorningCheck.SOURCE_HR_ESTIMATE, result.check.source)
+        assertTrue(result.check.estimated)
+    }
+
+    @Test
+    fun outOfRangeReadingIsAFailedCheck() = runBlocking {
+        for (v in listOf(14.9, 200.1, 0.0)) {
+            val band = FakeBand().apply { reading = MorningReading(v, estimated = false) }
+            assertEquals(MorningCheckResult.MeasureFailed, coordinator(band).morningCheck())
+        }
+        assertTrue(saved.isEmpty())
+    }
+
+    @Test
+    fun failedSaveReportsItKeepsTheValueAndDoesNotRefresh() = runBlocking {
+        saveWorks = false
+        val c = coordinator(FakeBand())
+        val failed = c.morningCheck() as MorningCheckResult.SaveFailed
+        assertEquals(61.5, failed.check.rmssdMs, 0.0)
+        assertEquals(0, dataChanged)
+        // Retry save writes the same measurement again, without the band.
+        saveWorks = true
+        assertEquals(MorningCheckResult.Saved(failed.check), c.retrySaveMorningCheck(failed))
+        assertEquals(listOf(failed.check), saved)
+        assertEquals(1, dataChanged)
+    }
+
+    @Test
+    fun redoWithTheSameValueStillRefreshes() = runBlocking {
+        val c = coordinator(FakeBand())
+        c.morningCheck()
+        c.morningCheck()
+        assertEquals(2, saved.size)
+        assertEquals(2, dataChanged)
+    }
+
+    @Test
+    fun cancellingRightAfterTheMeasurementStillSaves() = runBlocking {
+        val band = FakeBand().apply { cancelAfterReading = {} }
+        val job = launch(Dispatchers.Default) { coordinator(band).morningCheck() }
+        band.cancelTarget = job
+        job.join()
+        assertTrue(job.isCancelled)
+        assertEquals("the finished measurement must be stored", 1, saved.size)
+        assertEquals(1, dataChanged)
     }
 }

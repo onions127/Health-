@@ -32,6 +32,7 @@ import com.jcwear.coach.domain.DayMetrics
 import com.jcwear.coach.domain.MetricInsights
 import com.jcwear.coach.domain.Smoothing
 import com.jcwear.coach.domain.Metrics
+import com.jcwear.coach.domain.hrvCheckHeader
 import com.jcwear.coach.domain.Status
 import kotlin.math.roundToInt
 
@@ -180,6 +181,9 @@ internal fun MetricDetailView(
                     val (chipText, st) = MetricInsights.chip(def, days, selDay.date)
                     StatusChip(MetricInsights.extremeLabel(def, days, selDay.date) ?: chipText, st)
                 }
+            }
+            if (def.id == Metrics.hrv.id) {
+                hrvCheckHeader(selDay)?.let { Text(it, color = HealthColors.TextSecondary, fontSize = 13.sp) }
             }
 
             val present = rawVals.filterNotNull()

@@ -71,9 +71,6 @@ class J2208BleManager(
     private val _liveFrames = MutableStateFlow<List<J2208Protocol.LiveSensorFrame>>(emptyList())
     val liveFrames: StateFlow<List<J2208Protocol.LiveSensorFrame>> = _liveFrames
 
-    private val _morningRmssdMs = MutableStateFlow<Double?>(null)
-    val morningRmssdMs: StateFlow<Double?> = _morningRmssdMs
-
     @Volatile private var bandTime: LocalDateTime? = null
 
     @Volatile private var activeHistoryOp: Int? = null
@@ -328,8 +325,8 @@ class J2208BleManager(
         return historyBuffer.toList() to deferred.isCompleted
     }
 
-    /** 60 s live measurement. Requires [connect]. Returns RMSSD, or null when no usable HRV was measured. */
-    override suspend fun morningCheck60s(): Double? {
+    /** 60 s live measurement. Requires [connect]. Null when no usable HRV was measured. */
+    override suspend fun morningCheck60s(): MorningReading? {
         _liveFrames.value = emptyList()
         sendPacket(J2208Protocol.buildStartLiveMeasurementFrame(type = 2, start = true, openPpg = false, openPpi = true))
         for (sec in 60 downTo 1) {
@@ -345,9 +342,8 @@ class J2208BleManager(
             _liveStatus.value = "Check failed, try again"
             return null
         }
-        _morningRmssdMs.value = rmssd
         _liveStatus.value = "Morning Check Complete: HRV ${String.format("%.1f", rmssd)} ms"
-        return rmssd
+        return MorningReading(rmssd, estimated = directHrv == null)
     }
 
     companion object {

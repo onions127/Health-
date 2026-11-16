@@ -41,7 +41,7 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
     private fun morningNotify(c: AppContainer, syncOk: Boolean): String {
         val now = LocalDateTime.now()
         val today = if (syncOk) {
-            DailySeriesRepository(c.database).load(now.toLocalDate(), c.bleManager.morningRmssdMs.value, c.settings.heightCm, c.settings.weightKg).lastOrNull()
+            DailySeriesRepository(c.database).load(now.toLocalDate(), c.settings.heightCm, c.settings.weightKg).lastOrNull()
         } else null
         val bandEnd = today?.sleep?.bandEndTime
         val lastBlockEpochs = bandEnd?.let { end ->

@@ -45,8 +45,7 @@ class J2208EngineTest {
             spo2Records = listOf(J2208Protocol.Spo2Record("2026-11-12T06:00:00", 98, "")),
             tempRecords = listOf(J2208Protocol.TempRecord("2026-11-12T06:00:00", 36.3, "")),
             stepRecords = steps,
-            today = LocalDate.of(2026, 11, 12),
-            morningRmssd = null
+            today = LocalDate.of(2026, 11, 12)
         ).last()
         assertEquals(360, day.sleep?.totalSleepMin)
         assertEquals(68.0, day.hrvMs!!, 0.01)

@@ -16,7 +16,15 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import com.jcwear.coach.ble.MorningCheckResult
 import com.jcwear.coach.ble.SyncCoordinator
+import com.jcwear.coach.domain.MorningCheck
+import com.jcwear.coach.domain.localDateOf
+import java.time.LocalDate
+import java.time.ZoneId
 import com.jcwear.coach.ble.SyncFailureReason
 import com.jcwear.coach.ble.SyncState
 import org.json.JSONArray
@@ -92,8 +100,21 @@ fun MainDashboardScreen(
     var exportStatus by remember { mutableStateOf<String?>(null) }
     var checkStep by remember { mutableStateOf(CheckFlowStep.NONE) }
     var checkCountdown by remember { mutableStateOf(60) }
-    var morningCheckCompleted by remember { mutableStateOf(false) }
-    var checkResultHrv by remember { mutableStateOf<Int?>(null) }
+    var checkResult by remember { mutableStateOf<MorningCheckResult?>(null) }
+    // A check saved a moment ago, shown until the reloaded series has it (so the start card doesn't flash back).
+    var savedCheck by remember { mutableStateOf<Pair<LocalDate, MorningCheck>?>(null) }
+    fun onCheckResult(r: MorningCheckResult) {
+        checkResult = r
+        if (r is MorningCheckResult.Saved) savedCheck = localDateOf(r.check.measuredAtMs, ZoneId.systemDefault()) to r.check
+    }
+
+    // A series loaded yesterday is reloaded when the app comes back, so the morning check card returns.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_RESUME) viewModel.refreshIfDateChanged() }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     var dailyExpanded by remember { mutableStateOf(false) }
     var recoveryExpanded by remember { mutableStateOf(false) }
@@ -119,10 +140,6 @@ fun MainDashboardScreen(
     ) {
         when {
             activeSheet != ActiveSheet.NONE -> activeSheet = ActiveSheet.NONE
-            checkStep == CheckFlowStep.RESULT -> { // same as Done
-                morningCheckCompleted = checkResultHrv != null
-                checkStep = CheckFlowStep.NONE
-            }
             checkStep != CheckFlowStep.NONE -> checkStep = CheckFlowStep.NONE
             sleepNightIdx != null -> sleepNightIdx = null
             activeDetailMetric != null -> activeDetailMetric = null
@@ -138,14 +155,14 @@ fun MainDashboardScreen(
     LaunchedEffect(checkStep) {
         if (checkStep == CheckFlowStep.MEASURING) {
             checkCountdown = 60
-            checkResultHrv = null
+            checkResult = null
             val ticker = launch {
                 while (checkCountdown > 0) {
                     delay(1000)
                     checkCountdown--
                 }
             }
-            checkResultHrv = syncCoordinator.morningCheck()?.roundToInt()
+            onCheckResult(syncCoordinator.morningCheck()) // saved inside, even if this screen is left meanwhile
             ticker.cancel()
             if (checkStep == CheckFlowStep.MEASURING) checkStep = CheckFlowStep.RESULT
         }
@@ -204,17 +221,15 @@ fun MainDashboardScreen(
                         step = checkStep,
                         secondsRemaining = checkCountdown,
                         liveHrBpm = liveFrames.lastOrNull()?.hrBpm?.takeIf { it > 0 },
-                        resultHrv = checkResultHrv,
+                        result = checkResult,
                         today = today,
                         days = days,
                         onBeginMeasuring = {
                             onRequestBlePermissions()
                             checkStep = CheckFlowStep.MEASURING
                         },
-                        onDone = {
-                            morningCheckCompleted = checkResultHrv != null
-                            checkStep = CheckFlowStep.NONE
-                        },
+                        onDone = { checkStep = CheckFlowStep.NONE },
+                        onRetrySave = { failed -> scope.launch { onCheckResult(syncCoordinator.retrySaveMorningCheck(failed)) } },
                         onCancel = { checkStep = CheckFlowStep.NONE }
                     )
                 }
@@ -252,7 +267,7 @@ fun MainDashboardScreen(
                         day = activeDay,
                         days = days,
                         isHistoricalView = viewingHistoryDayIndex != null,
-                        morningCheckDone = morningCheckCompleted,
+                        morningCheck = today.morningCheck ?: savedCheck?.takeIf { it.first == today.date }?.second,
                         dailyExpanded = dailyExpanded,
                         recoveryExpanded = recoveryExpanded,
                         syncPill = syncPill,

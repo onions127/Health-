@@ -14,7 +14,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -35,11 +34,11 @@ class DashboardViewModel(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val state: StateFlow<List<DayMetrics>?> =
-        combine(refreshTick, bleManager.morningRmssdMs) { _, rmssd -> rmssd }
+        refreshTick
             // mapLatest drops a stale load when a newer refresh arrives
-            .mapLatest { rmssd ->
+            .mapLatest {
                 try {
-                    withContext(Dispatchers.IO) { buildDashboardState(database, rmssd, LocalDate.now()) }
+                    withContext(Dispatchers.IO) { buildDashboardState(database, LocalDate.now()) }
                         .also { last = it; _loadFailed.value = false }
                 } catch (e: SQLiteException) {
                     Log.e("DashboardViewModel", "Load failed; keeping last good state", e)
@@ -54,6 +53,12 @@ class DashboardViewModel(
     }
 
     fun refresh() = refreshTick.update { it + 1 }
+
+    /** Called when the app comes back to the foreground: a series loaded yesterday is reloaded for the new day. */
+    fun refreshIfDateChanged(today: LocalDate = LocalDate.now()) {
+        val loaded = last?.lastOrNull()?.date ?: return
+        if (loaded != today) refresh()
+    }
 
     /** S4: zip of every table + daily summary in [cacheDir]/exports; throws on failure (nothing else changes). */
     suspend fun exportAll(cacheDir: java.io.File, days: List<DayMetrics>): java.io.File = withContext(Dispatchers.IO) {

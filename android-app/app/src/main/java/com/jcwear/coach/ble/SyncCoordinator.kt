@@ -5,11 +5,13 @@ import com.jcwear.coach.data.AppSettings
 import com.jcwear.coach.data.CleanupJob
 import com.jcwear.coach.data.HomelabClient
 import com.jcwear.coach.domain.DayMetrics
+import com.jcwear.coach.domain.MorningCheck
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
@@ -29,11 +32,22 @@ sealed interface SyncState {
     data class Failed(val reason: SyncFailureReason, val at: Long) : SyncState
 }
 
+/** What the band measured in the 60-second check; [estimated] when it sent heart rate only and RMSSD was derived from it. */
+data class MorningReading(val rmssdMs: Double, val estimated: Boolean)
+
+/** Outcome of a morning check (R1). Only [Saved] means the value is in the database. */
+sealed interface MorningCheckResult {
+    data object MeasureFailed : MorningCheckResult
+    data class Saved(val check: MorningCheck) : MorningCheckResult
+    /** Measured but not stored; [SyncCoordinator.retrySaveMorningCheck] retries the write without re-measuring. */
+    data class SaveFailed(val check: MorningCheck) : MorningCheckResult
+}
+
 /** The band operations the coordinator needs; [J2208BleManager] in the app, a fake in tests. */
 interface BandLink {
     suspend fun connect(timeoutMs: Long = 20_000)
     suspend fun syncHistory(intervalMin: Int = 10, onStep: (String) -> Unit): HistoryResult
-    suspend fun morningCheck60s(): Double?
+    suspend fun morningCheck60s(): MorningReading?
     fun disconnect()
 }
 
@@ -49,6 +63,8 @@ class SyncCoordinator(
     private val cleanup: CleanupJob,
     private val loadDays: () -> List<DayMetrics>,
     private val onDataChanged: () -> Unit,
+    /** Writes the check to the database; true only when the row was written. */
+    private val saveMorningCheck: (MorningCheck) -> Boolean,
     private val now: () -> Long = System::currentTimeMillis,
     private val retryDelayMs: Long = 3_000,
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -87,9 +103,9 @@ class SyncCoordinator(
         }
     }
 
-    /** Morning Check under the same lock, so it never overlaps a sync. Null = check failed. */
-    suspend fun morningCheck(): Double? = mutex.withLock {
-        try {
+    /** Morning Check under the same lock, so it never overlaps a sync. */
+    suspend fun morningCheck(): MorningCheckResult = mutex.withLock {
+        val reading = try {
             connectWithRetry()
             band.morningCheck60s()
         } catch (e: SyncFailure) {
@@ -97,6 +113,22 @@ class SyncCoordinator(
             null
         } finally {
             band.disconnect()
+        }
+        if (reading == null || reading.rmssdMs !in MorningCheck.VALID_RMSSD_MS) return@withLock MorningCheckResult.MeasureFailed
+        val source = if (reading.estimated) MorningCheck.SOURCE_HR_ESTIMATE else MorningCheck.SOURCE_HRV
+        save(MorningCheck(reading.rmssdMs, now(), source))
+    }
+
+    /** "Retry save": writes an already measured check again. */
+    suspend fun retrySaveMorningCheck(failed: MorningCheckResult.SaveFailed): MorningCheckResult = save(failed.check)
+
+    /** NonCancellable: leaving the screen (Back) the moment the band finishes must not drop the measurement. */
+    private suspend fun save(check: MorningCheck): MorningCheckResult = withContext(Dispatchers.IO + NonCancellable) {
+        if (saveMorningCheck(check)) {
+            onDataChanged()
+            MorningCheckResult.Saved(check)
+        } else {
+            MorningCheckResult.SaveFailed(check)
         }
     }
 

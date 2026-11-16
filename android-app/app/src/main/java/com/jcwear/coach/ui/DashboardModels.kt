@@ -118,9 +118,8 @@ fun statusColor(st: Status): Color = when (st) {
 /** Real days, oldest first, ending today. Pure apart from the DB read, so it can be golden-tested. */
 fun buildDashboardState(
     database: LocalHealthDatabase,
-    morningRmssd: Double?,
     today: LocalDate
-): List<DayMetrics> = DailySeriesRepository(database).load(today, morningRmssd)
+): List<DayMetrics> = DailySeriesRepository(database).load(today)
 
 /** "just now", "12 min ago", "3 h ago", "2 days ago". */
 fun agoText(thenMs: Long, nowMs: Long): String {

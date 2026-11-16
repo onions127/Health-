@@ -14,6 +14,7 @@ import com.jcwear.coach.ble.J2208Protocol.Spo2Record
 import com.jcwear.coach.ble.J2208Protocol.StepEpochRecord
 import com.jcwear.coach.ble.J2208Protocol.TempRecord
 import com.jcwear.coach.domain.LabelKind
+import com.jcwear.coach.domain.MorningCheck
 import com.jcwear.coach.domain.Provenance
 import com.jcwear.coach.domain.SleepLabel
 import org.json.JSONArray
@@ -21,10 +22,11 @@ import org.json.JSONObject
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException
+import java.time.LocalDate
 import java.time.OffsetDateTime
 
 class LocalHealthDatabase(private val appContext: Context) :
-    SQLiteOpenHelper(appContext, "jcwear_local_health.db", null, 4) {
+    SQLiteOpenHelper(appContext, "jcwear_local_health.db", null, DB_VERSION) {
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
@@ -97,14 +99,16 @@ class LocalHealthDatabase(private val appContext: Context) :
         )
         addUploadedColumns(db)
         createSleepLabels(db)
+        createV5Tables(db)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 3) addUploadedColumns(db)
         if (oldVersion < 4) createSleepLabels(db)
+        if (oldVersion < 5) createV5Tables(db)
     }
 
-    /** No-op so a later rollback (v5 -> v4) keeps working. Rolling back below v4 can't be helped: see the S1 checklist. */
+    /** No-op so a rollback (v5 -> v4) keeps working. Rolling back below v4 can't be helped: see the S1 checklist. */
     override fun onDowngrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
 
     /** v4: user ground truth per night. Not a history table: never uploaded, restored or seed-cleaned. */
@@ -123,6 +127,62 @@ class LocalHealthDatabase(private val appContext: Context) :
             )
             """.trimIndent()
         )
+    }
+
+    /**
+     * v5: one morning check and one weight log per local date. Like sleep_labels, not history tables:
+     * never uploaded, restored or seed-cleaned. IF NOT EXISTS so a v5 -> v4 -> v5 round trip keeps the rows.
+     */
+    private fun createV5Tables(db: SQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS morning_checks (
+                date TEXT PRIMARY KEY,
+                rmssd_ms REAL NOT NULL,
+                measured_at INTEGER NOT NULL,
+                source TEXT NOT NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS weight_logs (
+                date TEXT PRIMARY KEY,
+                weight_kg REAL NOT NULL,
+                logged_at INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+    }
+
+    /** Stores the check for [date]; a redo the same day replaces it. False (and a log line) if the write failed. */
+    fun putMorningCheck(date: LocalDate, check: MorningCheck): Boolean = try {
+        val cv = ContentValues().apply {
+            put("date", date.toString())
+            put("rmssd_ms", check.rmssdMs)
+            put("measured_at", check.measuredAtMs)
+            put("source", check.source)
+        }
+        writableDatabase.insertWithOnConflict("morning_checks", null, cv, SQLiteDatabase.CONFLICT_REPLACE) != -1L
+    } catch (e: SQLiteException) {
+        Log.e(TAG, "morning_check_save_failed date=$date db_version=$DB_VERSION", e)
+        false
+    }
+
+    /** Throws SQLiteException on a failed read, so the dashboard takes its "Couldn't load data" path. */
+    fun getAllMorningChecks(): Map<LocalDate, MorningCheck> = try {
+        val out = linkedMapOf<LocalDate, MorningCheck>()
+        readableDatabase.rawQuery("SELECT date, rmssd_ms, measured_at, source FROM morning_checks", null).use { c ->
+            while (c.moveToNext()) {
+                runCatching { LocalDate.parse(c.getString(0)) to MorningCheck(c.getDouble(1), c.getLong(2), c.getString(3)) }
+                    .onSuccess { out[it.first] = it.second }
+                    .onFailure { Log.w(TAG, "Skipping bad morning check: ${it.message}") }
+            }
+        }
+        out
+    } catch (e: SQLiteException) {
+        Log.e(TAG, "new_tables_read_failed table=morning_checks db_version=$DB_VERSION", e)
+        throw e
     }
 
     /** EDITED replaces any row; CONFIRMED is insert-or-ignore so it never overwrites an EDITED label. */
@@ -572,6 +632,7 @@ class LocalHealthDatabase(private val appContext: Context) :
 
     companion object {
         private const val TAG = "LocalHealthDatabase"
+        const val DB_VERSION = 5
         const val BUNDLED_HISTORY_ASSET = "jcwear_local_health.db"
 
         /** Local column -> server field name, where they differ. */

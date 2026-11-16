@@ -52,6 +52,9 @@ import com.jcwear.coach.domain.DayMetrics
 import com.jcwear.coach.domain.MetricDef
 import com.jcwear.coach.domain.MetricInsights
 import com.jcwear.coach.domain.Metrics
+import com.jcwear.coach.domain.MorningCheck
+import com.jcwear.coach.domain.morningCheckDoneLine
+import java.time.ZoneId
 import com.jcwear.coach.domain.Status
 import com.jcwear.coach.domain.greetingFor
 import com.jcwear.coach.domain.verdictFor
@@ -74,7 +77,8 @@ internal fun TodayTabView(
     day: DayMetrics,
     days: List<DayMetrics>,
     isHistoricalView: Boolean,
-    morningCheckDone: Boolean,
+    /** Today's stored check, or null when none was done yet. */
+    morningCheck: MorningCheck?,
     dailyExpanded: Boolean,
     recoveryExpanded: Boolean,
     syncPill: Pair<String, Boolean>,
@@ -134,8 +138,8 @@ internal fun TodayTabView(
         }
     }
 
-    // 2. Morning Check prompt (until done that day)
-    if (!morningCheckDone && !isHistoricalView) {
+    // 2. Morning Check: the prompt until done that day, then one line with the value and Redo
+    if (!isHistoricalView && morningCheck == null) {
         HealthCard {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -144,6 +148,26 @@ internal fun TodayTabView(
             ) {
                 Text("Morning check", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                 AmberActionButton(text = "Start 60-sec check", onClick = onStartMorningCheck)
+            }
+        }
+    } else if (!isHistoricalView && morningCheck != null) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                morningCheckDoneLine(morningCheck, ZoneId.systemDefault()),
+                color = HealthColors.TextSecondary, fontSize = 13.sp, fontWeight = FontWeight.Medium,
+                modifier = Modifier.weight(1f)
+            )
+            Box(
+                modifier = Modifier
+                    .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                    .clickable(onClickLabel = "Redo morning check") { onStartMorningCheck() },
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Redo", color = HealthColors.AccentAmber, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -257,7 +281,12 @@ internal fun TodayTabView(
                         val base = MetricInsights.baseline(def, days, day.date)
                         val upTo = days.filter { !it.date.isAfter(day.date) }
                         SparklineVitalRow(
-                            title = "${def.label} · ${def.extract(day)?.roundToInt() ?: "—"}",
+                            // The HRV number is the one behind today's scores; the sparkline stays overnight-only.
+                            title = if (def == Metrics.hrv) {
+                                "${if (day.morningRmssdMs != null) "HRV (morning check)" else def.label} · ${day.scoreHrvMs?.roundToInt() ?: "—"}"
+                            } else {
+                                "${def.label} · ${def.extract(day)?.roundToInt() ?: "—"}"
+                            },
                             unit = unit,
                             contextText = MetricInsights.extremeLabel(def, days, day.date)
                                 ?: MetricInsights.chip(def, days, day.date).first,

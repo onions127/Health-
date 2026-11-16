@@ -11,7 +11,9 @@ import com.jcwear.coach.data.CleanupJob
 import com.jcwear.coach.data.HomelabClient
 import com.jcwear.coach.ble.SyncCoordinator
 import com.jcwear.coach.domain.DailySeriesRepository
+import com.jcwear.coach.domain.localDateOf
 import java.time.LocalDate
+import java.time.ZoneId
 import com.jcwear.coach.data.LocalHealthDatabase
 import java.io.IOException
 
@@ -28,8 +30,9 @@ class AppContainer(context: Context) {
         settings = settings,
         homelab = homelab,
         cleanup = cleanup,
-        loadDays = { DailySeriesRepository(database).load(LocalDate.now(), bleManager.morningRmssdMs.value, settings.heightCm, settings.weightKg) },
-        onDataChanged = { bleManager.onDataUpdated?.invoke() }
+        loadDays = { DailySeriesRepository(database).load(LocalDate.now(), settings.heightCm, settings.weightKg) },
+        onDataChanged = { bleManager.onDataUpdated?.invoke() },
+        saveMorningCheck = { check -> database.putMorningCheck(localDateOf(check.measuredAtMs, ZoneId.systemDefault()), check) }
     )
 }
 

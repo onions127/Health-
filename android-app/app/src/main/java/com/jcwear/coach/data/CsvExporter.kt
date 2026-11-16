@@ -36,7 +36,7 @@ class CsvExporter(private val db: LocalHealthDatabase, private val dir: File) {
                     w.row(listOf(
                         d.date, d.sleep?.startTime, d.sleep?.endTime, d.sleepMin, d.sleep?.deepMin, d.sleep?.remMin,
                         d.sleep?.provenance, d.sleepScore, d.hrvMs, d.rhrBpm, d.spo2Pct, d.skinTempDeltaC, d.steps,
-                        d.distanceKm, d.caloriesKcal, d.strain, d.readiness, d.recovery, d.daily
+                        d.distanceKm, d.caloriesKcal, d.strain, d.readiness, d.recovery, d.daily, d.morningRmssdMs
                     ).map { it?.toString() })
                 }
                 w.flush()
@@ -52,11 +52,13 @@ class CsvExporter(private val db: LocalHealthDatabase, private val dir: File) {
     }
 
     companion object {
-        val TABLES = LocalHealthDatabase.HISTORY_TABLES + "sleep_labels"
+        val TABLES = LocalHealthDatabase.HISTORY_TABLES + "sleep_labels" + "morning_checks"
         val SUMMARY_HEADER = listOf(
             "date", "sleep_start", "sleep_end", "sleep_min", "deep_min", "rem_min", "sleep_source", "sleep_score",
             "hrv_ms", "rhr_bpm", "spo2_pct", "skin_temp_delta_c", "steps", "distance_km", "calories_kcal",
-            "strain", "readiness", "recovery", "daily"
+            "strain", "readiness", "recovery", "daily",
+            // R1 onward: new columns are appended, never inserted. hrv_ms is the overnight average.
+            "morning_rmssd_ms"
         )
 
         /** RFC 4180: quote fields with comma, quote or line break; double inner quotes; null = empty. */

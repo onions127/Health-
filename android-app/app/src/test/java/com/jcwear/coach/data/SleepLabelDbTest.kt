@@ -60,7 +60,7 @@ class SleepLabelDbTest {
         assertEquals(1, reopened.getAllHrRecords().size)
         reopened.putLabel(label(LabelKind.EDITED, "2026-11-13T05:50+02:00"))
         assertEquals(1, reopened.getAllSleepLabels().size)
-        assertEquals(4, reopened.readableDatabase.version)
+        assertEquals(LocalHealthDatabase.DB_VERSION, reopened.readableDatabase.version)
         reopened.close()
     }
 }

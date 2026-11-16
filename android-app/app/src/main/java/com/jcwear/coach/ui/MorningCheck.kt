@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jcwear.coach.ai.ClaudeCoachRepository
 import com.jcwear.coach.ble.J2208BleManager
+import com.jcwear.coach.ble.MorningCheckResult
 import com.jcwear.coach.data.LocalHealthDatabase
 import com.jcwear.coach.domain.SleepAndReadinessEngine
 import com.jcwear.coach.domain.DayMetrics
@@ -68,14 +69,16 @@ internal fun MorningCheckFlowView(
     step: CheckFlowStep,
     secondsRemaining: Int,
     liveHrBpm: Int?,
-    /** Null after a check means it failed; nothing was stored. */
-    resultHrv: Int?,
+    /** Null while measuring. Only [MorningCheckResult.Saved] means the value was stored. */
+    result: MorningCheckResult?,
     today: DayMetrics,
     days: List<DayMetrics>,
     onBeginMeasuring: () -> Unit,
     onDone: () -> Unit,
+    onRetrySave: (MorningCheckResult.SaveFailed) -> Unit,
     onCancel: () -> Unit
 ) {
+    val resultHrv = (result as? MorningCheckResult.Saved)?.check?.rmssdMs?.roundToInt()
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -182,6 +185,18 @@ internal fun MorningCheckFlowView(
         }
 
         else -> {
+            if (result is MorningCheckResult.SaveFailed) {
+                HealthCard {
+                    Text("Couldn't save the check", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "HRV ${result.check.rmssdMs.roundToInt()} ms was measured but not stored. No need to measure again.",
+                        color = HealthColors.TextSecondary, fontSize = 13.sp
+                    )
+                }
+                AmberActionButton(text = "Retry save", onClick = { onRetrySave(result) }, modifier = Modifier.fillMaxWidth())
+                AmberActionButton(text = "Done", onClick = onDone, modifier = Modifier.fillMaxWidth())
+                return
+            }
             if (resultHrv == null) {
                 HealthCard {
                     Text("Check failed, try again", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
