@@ -1,0 +1,339 @@
+package com.jcwear.coach.ui
+
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.input.KeyboardType
+import com.jcwear.coach.domain.parseHeightCm
+import com.jcwear.coach.domain.parseWeightKg
+
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.jcwear.coach.ai.ClaudeCoachRepository
+import com.jcwear.coach.ble.J2208BleManager
+import com.jcwear.coach.data.LocalHealthDatabase
+import com.jcwear.coach.domain.SleepAndReadinessEngine
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.roundToInt
+import kotlin.math.sin
+
+// ============================================================================
+// SETTINGS TAB
+// ============================================================================
+@Composable
+internal fun SettingsTabView(
+    connectionState: String,
+    syncStatusText: String,
+    batteryPct: Int?,
+    bandNote: String?,
+    lastBackupText: String,
+    cleanupPending: Boolean,
+    recentSyncs: List<String>,
+    onForgetBand: () -> Unit,
+    companionPaired: Boolean,
+    onPairCompanion: () -> Unit,
+    homelabUrl: String,
+    useMetricUnits: Boolean,
+    historyDays: Int,
+    onOpenSyncSheet: () -> Unit,
+    onBackupNow: () -> Unit,
+    onEditServerUrl: () -> Unit,
+    onToggleUnits: () -> Unit,
+    profileName: String,
+    heightText: String,
+    weightText: String,
+    onSaveName: (String) -> Unit,
+    onSaveHeight: (String) -> Unit,
+    onSaveWeight: (String) -> Unit,
+    morningNotifyOn: Boolean,
+    onToggleMorningNotify: () -> Unit,
+    bedtime: BedtimeUi,
+    exportStatus: String?,
+    onExportAll: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column {
+            Text("Settings", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+            Text("Band & local server", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
+        }
+    }
+
+    // Profile (plan 3.3): greeting, distance and calorie estimates. Saved as you type, once valid.
+    HealthCard {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Profile", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+            ProfileField("Name", profileName, KeyboardType.Text, { true }, onSaveName)
+            key(useMetricUnits) { // re-seed the fields in the new unit
+                ProfileField(if (useMetricUnits) "Height (cm)" else "Height (in)", heightText, KeyboardType.Number,
+                    { parseHeightCm(it, useMetricUnits) != null }, onSaveHeight)
+                WeightProfileRow() // R5: weight is logged with a date; the old profile value is only the calorie fallback
+            }
+        }
+    }
+
+    // 1. Band
+    HealthCard {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Band", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+                    Text(syncStatusText, color = HealthColors.TextSecondary, fontSize = HealthType.Small)
+                    Text(connectionState, color = HealthColors.TextSecondary, fontSize = HealthType.Small, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                BatteryBadge(batteryPct)
+            }
+            bandNote?.let { Text(it, color = HealthColors.ScoreAmber, fontSize = HealthType.Small) }
+            if (companionPaired) {
+                Text("Background sync every 30 min", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
+            } else {
+                Text("Pair as companion so the band also syncs in the background.", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
+                AmberActionButton(text = "Pair as companion", onClick = onPairCompanion)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SecondaryActionButton(text = "Sync now", onClick = onOpenSyncSheet)
+                var confirmForget by remember { mutableStateOf(false) }
+                Box(
+                    modifier = Modifier.heightIn(min = 48.dp).clickable { confirmForget = true }.padding(horizontal = 14.dp),
+                    contentAlignment = Alignment.Center
+                ) { Text("Forget band", color = HealthColors.ScoreCoral, fontSize = HealthType.Small, fontWeight = FontWeight.Medium) }
+                if (confirmForget) AlertDialog(
+                    onDismissRequest = { confirmForget = false },
+                    shape = HealthShapes.Panel,
+                    title = { Text("Forget this band?") },
+                    text = { Text("It disconnects now. The next sync pairs with the first J2208 band it finds.") },
+                    confirmButton = {
+                        TextButton(onClick = { confirmForget = false; onForgetBand() }) { Text("Forget band", color = HealthColors.ScoreCoral) }
+                    },
+                    dismissButton = { TextButton(onClick = { confirmForget = false }) { Text("Cancel") } }
+                )
+            }
+        }
+    }
+
+    // 2. Backup to home server
+    HealthCard(onClick = onBackupNow) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Backup to home server", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+                    Text(lastBackupText, color = HealthColors.TextSecondary, fontSize = HealthType.Small)
+                    if (cleanupPending) Text("Finishing data cleanup…", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
+                }
+                SecondaryActionButton(text = "Back up now", onClick = onBackupNow)
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onEditServerUrl() },
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "Server · ${homelabUrl.ifBlank { "not set" }}",
+                    color = HealthColors.TextSecondary,
+                    fontSize = HealthType.Small,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                Text("Edit", color = HealthColors.AccentAmber, fontSize = HealthType.Small, fontWeight = FontWeight.Medium)
+            }
+        }
+    }
+
+    // Recent syncs (D13)
+    HealthCard {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("Recent syncs", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+            if (recentSyncs.isEmpty()) {
+                Text("No syncs yet. Open the app near your band.", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
+            }
+            recentSyncs.forEach { Text(it, color = HealthColors.TextSecondary, fontSize = HealthType.Small) }
+        }
+    }
+
+    // 3. Units
+    HealthCard(onClick = onToggleUnits) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text("Units", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+                Text("Distance, weight, temperature", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
+            }
+            SecondaryActionButton(
+                text = if (useMetricUnits) "Metric · km, kg and °C" else "Imperial · mi, lb and °F",
+                onClick = onToggleUnits
+            )
+        }
+    }
+
+    // Data (S4)
+    HealthCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Data", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+                Text(
+                    exportStatus ?: "CSV zip of all band data. Saved in app cache until shared; share it to keep it.",
+                    color = HealthColors.TextSecondary, fontSize = HealthType.Small
+                )
+            }
+            SecondaryActionButton(text = "Export all data", onClick = onExportAll)
+        }
+    }
+
+    // Notifications
+    HealthCard(onClick = onToggleMorningNotify) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Morning summary", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+                Text("One notification when your scores are ready", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
+            }
+            SecondaryActionButton(text = if (morningNotifyOn) "On" else "Off", onClick = onToggleMorningNotify)
+        }
+    }
+
+    // Bedtime reminder (S6)
+    HealthCard {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Bedtime reminder", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+                    Text(bedtime.status.ifBlank { "30 min before your usual bedtime" }, color = HealthColors.TextSecondary, fontSize = HealthType.Small)
+                }
+                SecondaryActionButton(text = if (bedtime.on) "On" else "Off", onClick = bedtime.onToggle)
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Latest bedtime ${bedtime.latest}", color = HealthColors.TextSecondary, fontSize = HealthType.Small, modifier = Modifier.weight(1f))
+                SecondaryActionButton(text = "−15 min", onClick = { bedtime.onShiftLatest(-15) })
+                SecondaryActionButton(text = "+15 min", onClick = { bedtime.onShiftLatest(15) })
+            }
+        }
+    }
+
+    // 4. About
+    HealthCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("About Health++", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+            StatusChip("$historyDays days of band data", com.jcwear.coach.domain.Status.NORMAL)
+        }
+    }
+}
+
+/** Saves on every valid (or cleared) edit; shows an error while the text is out of range. */
+@Composable
+private fun ProfileField(label: String, initial: String, keyboard: KeyboardType, isValid: (String) -> Boolean, onSave: (String) -> Unit) {
+    var text by remember { mutableStateOf(initial) }
+    val bad = text.isNotBlank() && !isValid(text)
+    OutlinedTextField(
+        value = text,
+        onValueChange = {
+            text = it
+            if (it.isBlank() || isValid(it)) onSave(it)
+        },
+        label = { Text(label) },
+        isError = bad,
+        supportingText = if (bad) { { Text("Out of range") } } else null,
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = keyboard),
+        modifier = Modifier.fillMaxWidth()
+    )
+}
+
+/** Settings state for the bedtime reminder (S6). */
+data class BedtimeUi(
+    val on: Boolean,
+    val status: String,
+    val latest: String,
+    val onToggle: () -> Unit,
+    val onShiftLatest: (Int) -> Unit
+)

@@ -111,21 +111,32 @@ class StepLogRow(Base):
 
 
 class DailyReadinessSummaryRow(Base):
+    """Every metric is nullable: a day without data stores NULL, never 0 (no column defaults)."""
     __tablename__ = "daily_readiness_summaries"
     date = Column(String(16), primary_key=True)
-    readiness_score = Column(Integer, default=0)
-    sleep_score = Column(Integer, default=0)
-    strain_score = Column(Float, default=0.0)
-    overnight_hrv_ms = Column(Float, default=0.0)
-    morning_rmssd_ms = Column(Float, default=0.0)
-    resting_hr_bpm = Column(Float, default=0.0)
-    total_sleep_min = Column(Integer, default=0)
-    deep_sleep_min = Column(Integer, default=0)
-    rem_sleep_min = Column(Integer, default=0)
-    light_sleep_min = Column(Integer, default=0)
-    spo2_avg_pct = Column(Float, default=0.0)
-    skin_temp_delta_c = Column(Float, default=0.0)
-    steps = Column(Integer, default=0)
+    readiness_score = Column(Integer)
+    sleep_score = Column(Integer)
+    strain_score = Column(Float)
+    overnight_hrv_ms = Column(Float)
+    morning_rmssd_ms = Column(Float)
+    resting_hr_bpm = Column(Float)
+    total_sleep_min = Column(Integer)
+    deep_sleep_min = Column(Integer)
+    rem_sleep_min = Column(Integer)
+    light_sleep_min = Column(Integer)
+    spo2_avg_pct = Column(Float)
+    skin_temp_delta_c = Column(Float)
+    steps = Column(Integer)
+
+
+RAW_TABLES = {
+    "sleep_blocks": SleepBlockRow,
+    "hrv_logs": HrvLogRow,
+    "hr_logs": HrLogRow,
+    "spo2_logs": Spo2LogRow,
+    "temp_logs": TempLogRow,
+    "step_logs": StepLogRow,
+}
 
 
 Base.metadata.create_all(bind=engine)
@@ -147,6 +158,12 @@ def get_db():
 def verify_token(x_api_token: str | None = Header(default=None)):
     if SYNC_API_TOKEN and x_api_token != SYNC_API_TOKEN:
         raise HTTPException(status_code=401, detail="Invalid X-Api-Token")
+
+
+def require_secured_server():
+    """Destructive endpoints never run on a server without SYNC_API_TOKEN."""
+    if not SYNC_API_TOKEN:
+        raise HTTPException(status_code=503, detail="Server not secured: set SYNC_API_TOKEN")
 
 
 class SleepBlockPayload(BaseModel):
@@ -202,19 +219,19 @@ class StepLogPayload(BaseModel):
 
 class DailySummaryPayload(BaseModel):
     date: str
-    readiness_score: int
-    sleep_score: int
-    strain_score: float
-    overnight_hrv_ms: float
-    morning_rmssd_ms: float = 0.0
-    resting_hr_bpm: float
-    total_sleep_min: int
-    deep_sleep_min: int = 0
-    rem_sleep_min: int = 0
-    light_sleep_min: int = 0
-    spo2_avg_pct: float = 0.0
-    skin_temp_delta_c: float = 0.0
-    steps: int = 0
+    readiness_score: int | None = None
+    sleep_score: int | None = None
+    strain_score: float | None = None
+    overnight_hrv_ms: float | None = None
+    morning_rmssd_ms: float | None = None
+    resting_hr_bpm: float | None = None
+    total_sleep_min: int | None = None
+    deep_sleep_min: int | None = None
+    rem_sleep_min: int | None = None
+    light_sleep_min: int | None = None
+    spo2_avg_pct: float | None = None
+    skin_temp_delta_c: float | None = None
+    steps: int | None = None
 
 
 class SyncBatchPayload(BaseModel):
@@ -325,8 +342,37 @@ def sync_batch(payload: SyncBatchPayload, db: Session = Depends(get_db)):
     return {"status": "synced", "upserted": counts}
 
 
+def _row_dict(row) -> dict[str, Any]:
+    out = {c.name: getattr(row, c.name) for c in row.__table__.columns}
+    for js, name in (("stages_json", "stages"), ("step_series_json", "step_series")):
+        if js in out:
+            out[name] = json.loads(out.pop(js) or "[]")
+    return out
+
+
 @app.get("/api/v1/restore", dependencies=[Depends(verify_token)])
-def restore_all(limit_days: int = 90, db: Session = Depends(get_db)):
+def restore_all(
+    limit_days: int = 90,
+    all: bool = False,
+    table: str | None = None,
+    after: str = "",
+    limit: int = 500,
+    db: Session = Depends(get_db),
+):
+    if all:
+        # Paged full restore of one raw table by device_time cursor. Seed (fake) rows are never returned.
+        model = RAW_TABLES.get(table or "")
+        if model is None:
+            raise HTTPException(status_code=400, detail=f"table must be one of {sorted(RAW_TABLES)}")
+        rows = (
+            db.query(model)
+            .filter(model.device_time > after, model.raw != "seed")
+            .order_by(model.device_time)
+            .limit(max(1, min(limit, 500)))
+            .all()
+        )
+        return {"table": table, "rows": [_row_dict(r) for r in rows], "next_after": rows[-1].device_time if rows else None}
+
     summaries = (
         db.query(DailyReadinessSummaryRow)
         .order_by(DailyReadinessSummaryRow.date.desc())
@@ -358,6 +404,21 @@ def restore_all(limit_days: int = 90, db: Session = Depends(get_db)):
         "hrv_logs_count": len(hrv_rows),
         "sleep_blocks_count": len(sleep_rows),
     }
+
+
+@app.post("/api/v1/purge-seeded", dependencies=[Depends(verify_token), Depends(require_secured_server)])
+def purge_seeded(db: Session = Depends(get_db)):
+    deleted = {name: db.query(model).filter(model.raw == "seed").delete(synchronize_session=False) for name, model in RAW_TABLES.items()}
+    db.commit()
+    return {"status": "purged", "deleted": deleted}
+
+
+@app.delete("/api/v1/summaries", dependencies=[Depends(verify_token), Depends(require_secured_server)])
+def delete_summaries(dates: str, db: Session = Depends(get_db)):
+    wanted = [d for d in dates.split(",") if d]
+    n = db.query(DailyReadinessSummaryRow).filter(DailyReadinessSummaryRow.date.in_(wanted)).delete(synchronize_session=False)
+    db.commit()
+    return {"status": "deleted", "deleted": n}
 
 
 @app.post("/api/v1/coach/chat", dependencies=[Depends(verify_token)])
@@ -433,10 +494,14 @@ async def coach_chat(req: CoachChatRequest, db: Session = Depends(get_db)):
         # 2. Offline deterministic fallback when neither Claude Pro CLI nor ANTHROPIC_API_KEY is active
         latest = context_rows[0] if context_rows else None
         if latest:
+            def n(v, unit=""):
+                return f"{v:.0f}{unit}" if v is not None else "not recorded"
+
+            sleep = latest["sleep_min"]
             reply = (
-                f"Recovery is {latest['readiness']} (Sleep {latest['sleep_score']}).\n"
-                f"HRV is {latest['hrv_ms']:.0f} ms and RHR is {latest['rhr_bpm']:.0f} bpm.\n"
-                f"You slept {latest['sleep_min'] // 60}h {latest['sleep_min'] % 60:02d}m."
+                f"Recovery is {n(latest['readiness'])} (Sleep {n(latest['sleep_score'])}).\n"
+                f"HRV is {n(latest['hrv_ms'], ' ms')} and RHR is {n(latest['rhr_bpm'], ' bpm')}.\n"
+                + (f"You slept {sleep // 60}h {sleep % 60:02d}m." if sleep is not None else "No sleep recorded.")
             )
         else:
             reply = "Run `claude login` on your homelab server or tap 'Ask in Claude Pro' to chat with your subscription."

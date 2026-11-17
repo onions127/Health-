@@ -2,20 +2,32 @@ package com.jcwear.coach.data
 
 import android.content.ContentValues
 import android.content.Context
+import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteException
 import android.database.sqlite.SQLiteOpenHelper
+import android.util.Log
 import com.jcwear.coach.ble.J2208Protocol.HrRecord
 import com.jcwear.coach.ble.J2208Protocol.HrvRecord
 import com.jcwear.coach.ble.J2208Protocol.SleepBlockRecord
 import com.jcwear.coach.ble.J2208Protocol.Spo2Record
 import com.jcwear.coach.ble.J2208Protocol.StepEpochRecord
 import com.jcwear.coach.ble.J2208Protocol.TempRecord
+import com.jcwear.coach.domain.LabelKind
+import com.jcwear.coach.domain.MorningCheck
+import com.jcwear.coach.domain.WeightLog
+import com.jcwear.coach.domain.Provenance
+import com.jcwear.coach.domain.SleepLabel
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.File
+import java.io.FileNotFoundException
+import java.io.IOException
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+import java.time.OffsetDateTime
 
 class LocalHealthDatabase(private val appContext: Context) :
-    SQLiteOpenHelper(appContext, "jcwear_local_health.db", null, 2) {
+    SQLiteOpenHelper(appContext, "jcwear_local_health.db", null, DB_VERSION) {
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
@@ -86,9 +98,271 @@ class LocalHealthDatabase(private val appContext: Context) :
             )
             """.trimIndent()
         )
+        addUploadedColumns(db)
+        createSleepLabels(db)
+        createV5Tables(db)
     }
 
-    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        if (oldVersion < 3) addUploadedColumns(db)
+        if (oldVersion < 4) createSleepLabels(db)
+        if (oldVersion < 5) createV5Tables(db)
+        if (oldVersion < 6) addAwakeColumn(db)
+    }
+
+    /** v6 (W2): awake periods inside an edited night, "onset/wake;onset/wake" in ISO offset time. Checked first: v4 creates it, and a v6 -> v5 -> v6 round trip keeps it. */
+    private fun addAwakeColumn(db: SQLiteDatabase) {
+        val has = db.rawQuery("PRAGMA table_info(sleep_labels)", null).use { c ->
+            generateSequence { if (c.moveToNext()) c.getString(1) else null }.any { it == "awake" }
+        }
+        if (!has) db.execSQL("ALTER TABLE sleep_labels ADD COLUMN awake TEXT NOT NULL DEFAULT ''")
+    }
+
+    /** No-op so a rollback (v5 -> v4) keeps working. Rolling back below v4 can't be helped: see the S1 checklist. */
+    override fun onDowngrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+
+    /** v4: user ground truth per night. Not a history table: never uploaded, restored or seed-cleaned. */
+    private fun createSleepLabels(db: SQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS sleep_labels (
+                session_key TEXT PRIMARY KEY,
+                onset TEXT NOT NULL,
+                wake TEXT NOT NULL,
+                kind TEXT NOT NULL,
+                band_onset TEXT NOT NULL,
+                band_wake TEXT NOT NULL,
+                shown_source TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                awake TEXT NOT NULL DEFAULT ''
+            )
+            """.trimIndent()
+        )
+    }
+
+    /**
+     * v5: one morning check and one weight log per local date. Like sleep_labels, not history tables:
+     * never uploaded, restored or seed-cleaned. IF NOT EXISTS so a v5 -> v4 -> v5 round trip keeps the rows.
+     */
+    private fun createV5Tables(db: SQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS morning_checks (
+                date TEXT PRIMARY KEY,
+                rmssd_ms REAL NOT NULL,
+                measured_at INTEGER NOT NULL,
+                source TEXT NOT NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS weight_logs (
+                date TEXT PRIMARY KEY,
+                weight_kg REAL NOT NULL,
+                logged_at INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+    }
+
+    /** Stores the check for [date]; a redo the same day replaces it. False (and a log line) if the write failed. */
+    fun putMorningCheck(date: LocalDate, check: MorningCheck): Boolean = try {
+        val cv = ContentValues().apply {
+            put("date", date.toString())
+            put("rmssd_ms", check.rmssdMs)
+            put("measured_at", check.measuredAtMs)
+            put("source", check.source)
+        }
+        writableDatabase.insertWithOnConflict("morning_checks", null, cv, SQLiteDatabase.CONFLICT_REPLACE) != -1L
+    } catch (e: SQLiteException) {
+        Log.e(TAG, "morning_check_save_failed date=$date db_version=$DB_VERSION", e)
+        false
+    }
+
+    /** One weight per day; a second log the same day replaces it. False (and a log line) if the write failed. */
+    fun putWeight(date: LocalDate, log: WeightLog): Boolean = try {
+        val cv = ContentValues().apply {
+            put("date", date.toString())
+            put("weight_kg", log.weightKg)
+            put("logged_at", log.loggedAtMs)
+        }
+        writableDatabase.insertWithOnConflict("weight_logs", null, cv, SQLiteDatabase.CONFLICT_REPLACE) != -1L
+    } catch (e: SQLiteException) {
+        Log.e(TAG, "weight_save_failed date=$date db_version=$DB_VERSION", e)
+        false
+    }
+
+    /** True when a row was removed. */
+    fun deleteWeight(date: LocalDate): Boolean = try {
+        writableDatabase.delete("weight_logs", "date = ?", arrayOf(date.toString())) > 0
+    } catch (e: SQLiteException) {
+        Log.e(TAG, "weight_delete_failed date=$date db_version=$DB_VERSION", e)
+        false
+    }
+
+    /** Throws SQLiteException on a failed read, like [getAllMorningChecks]. */
+    fun getAllWeightLogs(): Map<LocalDate, WeightLog> = try {
+        val out = linkedMapOf<LocalDate, WeightLog>()
+        readableDatabase.rawQuery("SELECT date, weight_kg, logged_at FROM weight_logs", null).use { c ->
+            while (c.moveToNext()) {
+                runCatching { LocalDate.parse(c.getString(0)) to WeightLog(c.getDouble(1), c.getLong(2)) }
+                    .onSuccess { out[it.first] = it.second }
+                    .onFailure { Log.w(TAG, "Skipping bad weight log: ${it.message}") }
+            }
+        }
+        out
+    } catch (e: SQLiteException) {
+        Log.e(TAG, "new_tables_read_failed table=weight_logs db_version=$DB_VERSION", e)
+        throw e
+    }
+
+    /** Throws SQLiteException on a failed read, so the dashboard takes its "Couldn't load data" path. */
+    fun getAllMorningChecks(): Map<LocalDate, MorningCheck> = try {
+        val out = linkedMapOf<LocalDate, MorningCheck>()
+        readableDatabase.rawQuery("SELECT date, rmssd_ms, measured_at, source FROM morning_checks", null).use { c ->
+            while (c.moveToNext()) {
+                runCatching { LocalDate.parse(c.getString(0)) to MorningCheck(c.getDouble(1), c.getLong(2), c.getString(3)) }
+                    .onSuccess { out[it.first] = it.second }
+                    .onFailure { Log.w(TAG, "Skipping bad morning check: ${it.message}") }
+            }
+        }
+        out
+    } catch (e: SQLiteException) {
+        Log.e(TAG, "new_tables_read_failed table=morning_checks db_version=$DB_VERSION", e)
+        throw e
+    }
+
+    /** EDITED replaces any row; CONFIRMED is insert-or-ignore so it never overwrites an EDITED label. */
+    fun putLabel(label: SleepLabel) {
+        val cv = ContentValues().apply {
+            put("session_key", label.sessionKey)
+            put("onset", label.onset.toString())
+            put("wake", label.wake.toString())
+            put("kind", label.kind.name)
+            put("band_onset", label.bandOnset.toString())
+            put("band_wake", label.bandWake.toString())
+            put("shown_source", label.shownSource.name)
+            put("created_at", label.createdAt)
+            put("awake", label.awake.joinToString(";") { (a, b) -> "$a/$b" })
+        }
+        val conflict = if (label.kind == LabelKind.EDITED) SQLiteDatabase.CONFLICT_REPLACE else SQLiteDatabase.CONFLICT_IGNORE
+        writableDatabase.insertWithOnConflict("sleep_labels", null, cv, conflict)
+    }
+
+    fun getAllSleepLabels(): List<SleepLabel> {
+        val out = mutableListOf<SleepLabel>()
+        readableDatabase.rawQuery(
+            "SELECT session_key, onset, wake, kind, band_onset, band_wake, shown_source, created_at, awake FROM sleep_labels", null
+        ).use { c ->
+            while (c.moveToNext()) {
+                runCatching {
+                    SleepLabel(
+                        sessionKey = c.getString(0),
+                        onset = OffsetDateTime.parse(c.getString(1)),
+                        wake = OffsetDateTime.parse(c.getString(2)),
+                        kind = LabelKind.valueOf(c.getString(3)),
+                        bandOnset = OffsetDateTime.parse(c.getString(4)),
+                        bandWake = OffsetDateTime.parse(c.getString(5)),
+                        shownSource = Provenance.valueOf(c.getString(6)),
+                        createdAt = c.getLong(7),
+                        awake = c.getString(8).split(";").filter { it.isNotBlank() }.map {
+                            val (a, b) = it.split("/")
+                            OffsetDateTime.parse(a) to OffsetDateTime.parse(b)
+                        }
+                    )
+                }.onSuccess(out::add).onFailure { Log.w(TAG, "Skipping bad sleep label: ${it.message}") }
+            }
+        }
+        return out
+    }
+
+    /** v3: per-row "sent to the home server" flag, so band backfills with old timestamps still upload. */
+    private fun addUploadedColumns(db: SQLiteDatabase) {
+        for (table in HISTORY_TABLE_COLUMNS.keys) {
+            db.execSQL("ALTER TABLE $table ADD COLUMN uploaded INTEGER NOT NULL DEFAULT 0")
+        }
+    }
+
+    /**
+     * UPDATE-then-INSERT for band data (ON CONFLICT DO UPDATE needs API 30; minSdk is 26).
+     * `uploaded` is reset only when the row's data actually changed, so re-fetching history doesn't re-upload it.
+     */
+    private fun writeBandRow(db: SQLiteDatabase, table: String, cv: ContentValues) {
+        if (db.insertWithOnConflict(table, null, cv, SQLiteDatabase.CONFLICT_IGNORE) != -1L) return
+        val cols = cv.keySet().filter { it != "device_time" }
+        val changed = ContentValues(cv).apply { remove("device_time"); put("uploaded", 0) }
+        db.update(
+            table, changed,
+            "device_time = ? AND (" + cols.joinToString(" OR ") { "$it IS NOT ?" } + ")",
+            arrayOf(cv.getAsString("device_time")) + cols.map { cv.getAsString(it) }
+        )
+    }
+
+    /** Up to [limit] rows not yet on the server, as JSON in the server's field names. */
+    fun pendingUpload(table: String, limit: Int = 500): List<JSONObject> {
+        val out = mutableListOf<JSONObject>()
+        readableDatabase.rawQuery("SELECT * FROM $table WHERE uploaded = 0 ORDER BY device_time LIMIT $limit", null).use { c ->
+            while (c.moveToNext()) {
+                val o = JSONObject()
+                for (i in 0 until c.columnCount) {
+                    val col = c.getColumnName(i)
+                    if (col == "uploaded") continue
+                    val name = TO_SERVER[col] ?: col
+                    when {
+                        col.endsWith("_csv") -> o.put(name, JSONArray((c.getString(i) ?: "").split(",").mapNotNull { it.toIntOrNull() }))
+                        c.getType(i) == Cursor.FIELD_TYPE_INTEGER -> o.put(name, c.getLong(i))
+                        c.getType(i) == Cursor.FIELD_TYPE_FLOAT -> o.put(name, c.getDouble(i))
+                        c.isNull(i) -> o.put(name, JSONObject.NULL)
+                        else -> o.put(name, c.getString(i))
+                    }
+                }
+                out += o
+            }
+        }
+        return out
+    }
+
+    fun markUploaded(table: String, deviceTimes: List<String>) {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            deviceTimes.forEach { db.execSQL("UPDATE $table SET uploaded = 1 WHERE device_time = ?", arrayOf(it)) }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    /** Inserts server rows whose key is missing locally (a local row always wins); returns rows added. */
+    fun insertRestored(table: String, rows: List<JSONObject>): Int {
+        val columns = HISTORY_TABLE_COLUMNS[table] ?: return 0
+        val db = writableDatabase
+        var added = 0
+        db.beginTransaction()
+        try {
+            for (o in rows) {
+                if (o.optString("raw") == "seed") continue // belt and braces: the server already filters these
+                val cv = ContentValues().apply { put("uploaded", 1) }
+                for (col in columns) {
+                    val key = TO_SERVER[col] ?: col
+                    if (!o.has(key) || o.isNull(key)) continue
+                    if (col.endsWith("_csv")) {
+                        val arr = o.getJSONArray(key)
+                        cv.put(col, (0 until arr.length()).joinToString(",") { arr.get(it).toString() }) // column affinity converts numeric text
+                    } else {
+                        cv.put(col, o.get(key).toString()) // column affinity converts numeric text
+                    }
+                }
+                if (db.insertWithOnConflict(table, null, cv, SQLiteDatabase.CONFLICT_IGNORE) != -1L) added++
+            }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+        return added
+    }
+
 
     fun upsertSleepBlocks(records: List<SleepBlockRecord>) {
         val db = writableDatabase
@@ -106,7 +380,7 @@ class LocalHealthDatabase(private val appContext: Context) :
                     put("stages_csv", r.stages.joinToString(","))
                     put("raw_hex", r.rawHex)
                 }
-                db.insertWithOnConflict("sleep_blocks", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+                writeBandRow(db, "sleep_blocks", cv)
             }
             db.setTransactionSuccessful()
         } finally {
@@ -129,7 +403,7 @@ class LocalHealthDatabase(private val appContext: Context) :
                     put("bp_dia", r.bpDia)
                     put("raw_hex", r.rawHex)
                 }
-                db.insertWithOnConflict("hrv_logs", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+                writeBandRow(db, "hrv_logs", cv)
             }
             db.setTransactionSuccessful()
         } finally {
@@ -147,7 +421,7 @@ class LocalHealthDatabase(private val appContext: Context) :
                     put("bpm", r.bpm)
                     put("raw_hex", r.rawHex)
                 }
-                db.insertWithOnConflict("hr_logs", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+                writeBandRow(db, "hr_logs", cv)
             }
             db.setTransactionSuccessful()
         } finally {
@@ -165,7 +439,7 @@ class LocalHealthDatabase(private val appContext: Context) :
                     put("spo2_pct", r.spo2Pct)
                     put("raw_hex", r.rawHex)
                 }
-                db.insertWithOnConflict("spo2_logs", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+                writeBandRow(db, "spo2_logs", cv)
             }
             db.setTransactionSuccessful()
         } finally {
@@ -183,7 +457,7 @@ class LocalHealthDatabase(private val appContext: Context) :
                     put("temp_c", r.tempC)
                     put("raw_hex", r.rawHex)
                 }
-                db.insertWithOnConflict("temp_logs", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+                writeBandRow(db, "temp_logs", cv)
             }
             db.setTransactionSuccessful()
         } finally {
@@ -204,7 +478,7 @@ class LocalHealthDatabase(private val appContext: Context) :
                     put("sub_steps_csv", r.subMinuteSteps.joinToString(","))
                     put("raw_hex", r.rawHex)
                 }
-                db.insertWithOnConflict("step_logs", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+                writeBandRow(db, "step_logs", cv)
             }
             db.setTransactionSuccessful()
         } finally {
@@ -309,132 +583,127 @@ class LocalHealthDatabase(private val appContext: Context) :
     }
 
     /**
-     * Seeds initial 14-day baseline data if the database is completely empty,
-     * including a sleep session that crosses 12:00 (noon military time) to demonstrate
-     * the Post-12:00 Noon Sleep Stitcher before the first BLE sync, and ensures
-     * all 14 days in the rolling window have daily HRV/RHR records (including a physiological outlier).
+     * Result of merging an external band-history database into this one.
+     * [insertedByTable] counts only rows that were new; rows whose device_time already exists
+     * locally are left untouched (the local row always wins).
      */
-    fun seedInitialBaselineIfEmpty() {
-        if (getAllSleepBlocks().size < 50) {
-            try {
-                close()
-                val dbFile = appContext.getDatabasePath("jcwear_local_health.db")
-                dbFile.parentFile?.mkdirs()
-                appContext.assets.open("jcwear_local_health.db").use { input ->
-                    dbFile.outputStream().use { output ->
-                        input.copyTo(output)
-                    }
-                }
-            } catch (_: Exception) {
-                // Fall back to synthetic seed if asset copy fails
-            }
-        }
-        ensureFourteenDayWindowPopulated()
+    data class ImportResult(val insertedByTable: Map<String, Int>) {
+        val totalInserted: Int get() = insertedByTable.values.sum()
     }
 
-    private fun ensureFourteenDayWindowPopulated() {
-        val fmt = DateTimeFormatter.ISO_LOCAL_DATE_TIME
-        val today = LocalDate.now()
-        val existingHrvDates = getAllHrvRecords().mapNotNull {
-            runCatching { LocalDate.parse(it.deviceTime.take(10)) }.getOrNull()
-        }.toSet()
-        val existingSleepDates = getAllSleepBlocks().mapNotNull {
-            runCatching { LocalDate.parse(it.deviceTime.take(10)) }.getOrNull()
-        }.toSet()
-
-        val hrvBaselinePattern = listOf(58, 60, 56, 61, 59, 62, 57, 42, 59, 63, 61, 65, 62, 64)
-        val rhrBaselinePattern = listOf(55, 55, 56, 54, 55, 54, 55, 61, 55, 54, 54, 53, 54, 54)
-
-        val hrvList = mutableListOf<HrvRecord>()
-        val hrList = mutableListOf<HrRecord>()
-        val spo2List = mutableListOf<Spo2Record>()
-        val tempList = mutableListOf<TempRecord>()
-        val stepList = mutableListOf<StepEpochRecord>()
-        val sleepList = mutableListOf<SleepBlockRecord>()
-
-        for (d in 13 downTo 0) {
-            val date = today.minusDays(d.toLong())
-            if (date !in existingHrvDates) {
-                val patternIdx = (13 - d).coerceIn(0, hrvBaselinePattern.lastIndex)
-                val hrvVal = hrvBaselinePattern[patternIdx]
-                val rhrVal = rhrBaselinePattern[patternIdx]
-                hrvList.add(
-                    HrvRecord(
-                        deviceTime = date.atTime(6, 30).format(fmt),
-                        hrvMs = hrvVal,
-                        vascularAging = 1,
-                        hrBpm = rhrVal,
-                        stress = if (hrvVal < 48) 54 else 28,
-                        bpSys = 116,
-                        bpDia = 74,
-                        rawHex = "seed"
-                    )
-                )
-                hrList.add(HrRecord(date.atTime(5, 0).format(fmt), rhrVal, "seed"))
-                hrList.add(HrRecord(date.atTime(12, 15).format(fmt), rhrVal + 1, "seed"))
-                hrList.add(HrRecord(date.atTime(17, 30).format(fmt), 118, "seed"))
-                spo2List.add(Spo2Record(date.atTime(6, 0).format(fmt), 97 + (d % 2), "seed"))
-                tempList.add(TempRecord(date.atTime(6, 0).format(fmt), 36.2 + (if (d == 0) 0.2 else 0.0), "seed"))
-                stepList.add(
-                    StepEpochRecord(
-                        deviceTime = date.atTime(12, 10).format(fmt),
-                        steps = if (d == 0) 0 else 450,
-                        caloriesKcal = 18.0,
-                        distanceKm = 0.35,
-                        subMinuteSteps = List(10) { 0 },
-                        rawHex = "seed"
-                    )
-                )
-                stepList.add(
-                    StepEpochRecord(
-                        deviceTime = date.atTime(18, 0).format(fmt),
-                        steps = 7200 + (d % 4) * 900,
-                        caloriesKcal = 310.0,
-                        distanceKm = 5.4,
-                        subMinuteSteps = List(10) { 80 },
-                        rawHex = "seed"
-                    )
-                )
+    /**
+     * Merges the band-history dump bundled in assets ([BUNDLED_HISTORY_ASSET], the owner's real
+     * J2208 data) into the live database with INSERT OR IGNORE. Never overwrites or deletes.
+     *
+     * Android can't open an asset as a SQLite file directly, so it is copied to the cache dir,
+     * ATTACHed, merged and then deleted. Returns null if the asset isn't packaged (it is
+     * gitignored, so a fresh clone builds without it).
+     */
+    fun importBundledHistory(): ImportResult? {
+        val tmp = File(appContext.cacheDir, "bundled_history_import.db")
+        try {
+            appContext.assets.open(BUNDLED_HISTORY_ASSET).use { input ->
+                tmp.outputStream().use { output -> input.copyTo(output) }
             }
+        } catch (e: FileNotFoundException) {
+            Log.i(TAG, "No bundled history asset packaged; skipping import")
+            return null
         }
+        try {
+            return importHistoryFrom(tmp)
+        } finally {
+            tmp.delete()
+        }
+    }
 
-        if (today !in existingSleepDates) {
-            // Seed today's sleep ending right at 12:00 noon + post-12:00 0-step/low-HR until 12:50
-            val sleepStart = today.atTime(6, 0)
-            val stages360 = MutableList(360) { idx ->
-                when {
-                    idx % 90 in 15..35 -> 1 // Deep
-                    idx % 90 in 65..85 -> 3 // REM
-                    else -> 2               // Light
+    /** Merges every known table from [source] into this DB; a local row with the same key wins. */
+    fun importHistoryFrom(source: File): ImportResult {
+        val db = writableDatabase
+        val inserted = linkedMapOf<String, Int>()
+        db.execSQL("ATTACH DATABASE ? AS src", arrayOf(source.absolutePath))
+        try {
+            val sourceTables = db.rawQuery(
+                "SELECT name FROM src.sqlite_master WHERE type = 'table'", null
+            ).use { c -> buildSet { while (c.moveToNext()) add(c.getString(0)) } }
+
+            db.beginTransaction()
+            try {
+                for ((table, columns) in HISTORY_TABLE_COLUMNS) {
+                    if (table !in sourceTables) {
+                        inserted[table] = 0
+                        continue
+                    }
+                    val cols = columns.joinToString(", ")
+                    db.execSQL("INSERT OR IGNORE INTO main.$table ($cols) SELECT $cols FROM src.$table")
+                    inserted[table] = db.rawQuery("SELECT changes()", null)
+                        .use { c -> if (c.moveToFirst()) c.getInt(0) else 0 }
                 }
+                db.setTransactionSuccessful()
+            } finally {
+                db.endTransaction()
             }
-            sleepList.add(
-                SleepBlockRecord(
-                    deviceTime = sleepStart.format(fmt),
-                    unitMinutes = 1,
-                    count = 360,
-                    deepMin = stages360.count { it == 1 },
-                    lightMin = stages360.count { it == 2 },
-                    remMin = stages360.count { it == 3 },
-                    awakeMin = 0,
-                    stages = stages360,
-                    rawHex = "seed"
-                )
-            )
-            for (m in 0..40 step 10) {
-                val ts = today.atTime(12, m).format(fmt)
-                stepList.add(StepEpochRecord(ts, 0, 0.0, 0.0, List(10) { 0 }, "seed"))
-                hrList.add(HrRecord(ts, 55, "seed"))
-            }
-            stepList.add(StepEpochRecord(today.atTime(13, 0).format(fmt), 180, 8.0, 0.14, List(10) { 18 }, "seed"))
-            hrList.add(HrRecord(today.atTime(13, 0).format(fmt), 86, "seed"))
+        } finally {
+            db.execSQL("DETACH DATABASE src")
         }
+        val result = ImportResult(inserted)
+        Log.i(TAG, "History import inserted ${result.totalInserted} rows: $inserted")
+        return result
+    }
 
-        if (sleepList.isNotEmpty()) upsertSleepBlocks(sleepList)
-        if (hrvList.isNotEmpty()) upsertHrvRecords(hrvList)
-        if (hrList.isNotEmpty()) upsertHrRecords(hrList)
-        if (spo2List.isNotEmpty()) upsertSpo2Records(spo2List)
-        if (tempList.isNotEmpty()) upsertTempRecords(tempList)
-        if (stepList.isNotEmpty()) upsertStepRecords(stepList)
+    /**
+     * Consistent copy of the live DB to [target]: VACUUM INTO (SQLite 3.27+), else WAL checkpoint + file copy.
+     * Throws if the copy can't be made, so callers never delete without a backup.
+     */
+    fun backupTo(target: File) {
+        if (target.exists() && !target.delete()) throw IOException("Can't replace ${target.path}")
+        val db = writableDatabase
+        try {
+            db.execSQL("VACUUM INTO ?", arrayOf(target.absolutePath))
+        } catch (e: SQLiteException) {
+            Log.i(TAG, "VACUUM INTO unavailable (${e.message}); checkpoint + copy instead")
+            db.rawQuery("PRAGMA wal_checkpoint(TRUNCATE)", null).use { it.moveToFirst() }
+            File(db.path).copyTo(target, overwrite = true)
+        }
+        if (!target.isFile || target.length() == 0L) throw IOException("Backup missing at ${target.path}")
+    }
+
+    /** Deletes the old seeder's fake rows (raw_hex = 'seed') in one transaction; returns counts per table. */
+    fun deleteSeedRows(): Map<String, Int> {
+        val db = writableDatabase
+        val counts = linkedMapOf<String, Int>()
+        db.beginTransaction()
+        try {
+            for (table in HISTORY_TABLE_COLUMNS.keys) {
+                counts[table] = db.delete(table, "raw_hex = ?", arrayOf("seed"))
+            }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+        return counts
+    }
+
+    companion object {
+        private const val TAG = "LocalHealthDatabase"
+        const val DB_VERSION = 6
+        const val BUNDLED_HISTORY_ASSET = "jcwear_local_health.db"
+
+        /** Local column -> server field name, where they differ. */
+        private val TO_SERVER = mapOf(
+            "hrv_ms" to "hrv", "hr_bpm" to "hr", "raw_hex" to "raw",
+            "stages_csv" to "stages", "sub_steps_csv" to "step_series"
+        )
+
+        val HISTORY_TABLES: Set<String> get() = HISTORY_TABLE_COLUMNS.keys
+
+        /** Column lists must match onCreate; used so the merge never depends on column order. */
+        private val HISTORY_TABLE_COLUMNS = linkedMapOf(
+            "sleep_blocks" to listOf("device_time", "unit_minutes", "count", "deep_min", "light_min", "rem_min", "awake_min", "stages_csv", "raw_hex"),
+            "hrv_logs" to listOf("device_time", "hrv_ms", "vascular_aging", "hr_bpm", "stress", "bp_sys", "bp_dia", "raw_hex"),
+            "hr_logs" to listOf("device_time", "bpm", "raw_hex"),
+            "spo2_logs" to listOf("device_time", "spo2_pct", "raw_hex"),
+            "temp_logs" to listOf("device_time", "temp_c", "raw_hex"),
+            "step_logs" to listOf("device_time", "steps", "calories_kcal", "distance_km", "sub_steps_csv", "raw_hex")
+        )
     }
 }

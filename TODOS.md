@@ -1,0 +1,27 @@
+# TODOS
+
+Deferred from the CEO review of `docs/plans/2026-11-12-health-plus-fixes.md` (2026-11-12).
+
+- [ ] **Data provenance under scores** (D5). A small line such as "Based on 23 nights · synced 07:12", and tapping a score shows its inputs. Reuses the baseline engine's day counts. Effort S. Deferred to keep the trust-fix release small.
+- [ ] **Morning "scores ready" notification** (D6). After the background sync pulls last night's data: "Daily 82 · Good day for a hard session". Needs Phase 1d background sync and notification permission. Effort S.
+- [ ] **Bedtime reminder** (D7). An evening nudge based on your usual bedtime, tied to the sleep timing score. Needs the validated timing score and notifications first. Effort M.
+- [ ] **CSV export** (D8). Settings → Export all data through the Android share sheet. Effort S. Sterver already backs the data up, so this is nice-to-have.
+
+From the 1a on-device test (2026-11-13):
+
+- [x] **Sleep duration far too long** (P0, #10). Resolved 2026-11-16 (S0, `docs/plans/2026-11-13-sleep-night-13nov.md`): the band was right on 12 → 13 (3h 43m) and 13 → 14 (11h 12m), user-confirmed; junk 5-min records that padded nights by up to 2 h are now ignored, and Sleep Detail has Looks right / Edit. Original report: 13 Nov: Sleep Detail said 10h 34m, 23:10 – 06:30; real night was asleep ~01:00–02:00, awake 05:50. The 23:10 – 06:30 window and stage minutes were hardcoded (fixed in 1b, which shows the band's real start/end). The total is the band's own data: the stitcher merges every 0x53 block with gaps of 45 min or less, and the J2208 logs long runs of plain "light" sleep while you lie still awake (e.g. 11 Nov 00:05–08:51 is all light, zero deep/REM). 1b also stops overlapping blocks (02:24:01 vs 02:23:01) counting the same minute twice. Next: compare 1b's "Fell asleep / Woke" with reality for a few nights, then trim leading/trailing light-only runs using HR and steps (sleep onset = first deep/REM or HR drop; wake = first steps or HR rise). Effort M.
+- [x] **Unpair / forget the band** (P1, done in 1c: Settings → Band → Forget band). Settings → Band → "Forget band": disconnect and close GATT, clear the saved band address (today `KNOWN_BAND_MAC` is hardcoded in `J2208BleManager`), and drop the CompanionDeviceManager association once 1d adds it. The next sync then scans for any J2208. Fits with 1c (it touches connect). Effort S.
+- [x] **Score rings drawn as ovals** (UI). The score text squeezed the ring box sideways; fixed in 1c (ring keeps its size, text wraps).
+
+All open items above are planned in `docs/plans/2026-11-13-sleep-accuracy-and-todos.md` (S0–S6).
+
+Deferred from the /autoplan review of `docs/plans/2026-11-13-sleep-accuracy-and-todos.md` (2026-11-13):
+
+- [ ] **Back up sleep labels to sterver** (P2). **What:** upload `sleep_labels` with the normal merge sync and restore them with `CONFLICT_IGNORE`. **Why:** labels are the one dataset that can't be re-fetched from the band; a reinstall or lost phone loses them. **Cons:** server table + restore route. **Context:** S1 adds the local table; server is `homelab-server/app/main.py`. **Effort:** human M / CC S. **Depends on:** S1.
+- [ ] **HR-based mid-night wake bouts (WASO)** (P3). **What:** mark sustained HR rises inside the night as awake minutes. **Why:** efficiency is only as good as the band's awake stage. **Cons:** easy to over-trim; needs tuning. **Context:** reuse `SleepRules` and the S2 harness. **Effort:** human M / CC S. **Depends on:** S2 with ≥ 7 labeled nights.
+- [ ] **Phone-activity sleep signal** (P2, revisit after S0). **What:** screen-on/unlock events as an "awake" veto at night boundaries. **Why:** if the user lies awake on the phone, the band can't see it but the phone can. **Cons:** `PACKAGE_USAGE_STATS` special permission, new personal data. **Context:** only worth it if S0 shows band HR/steps can't see the 13 Nov wake. **Effort:** human M / CC S. **Depends on:** S0.
+- [ ] **Health Connect export** (P3). **What:** write sleep sessions and HR to Health Connect. **Why:** other apps could read the corrected nights. **Cons:** new dependency and permissions; CSV covers backup. **Effort:** human M / CC S. **Depends on:** S1/S2.
+- [ ] **Back up weight logs and morning checks to sterver** (P2). **What:** upload `weight_logs` and `morning_checks` with the normal merge sync and restore them with `CONFLICT_IGNORE`. **Why:** Android auto-backup carries the database, but there is no server copy. **Cons:** two server tables + restore route. **Context:** deferred at the 2026-11-17 /autoplan gate (T3a); same shape as the sleep-labels item above. **Effort:** human M / CC S. **Depends on:** R1, R5a.
+- [ ] **Weight goal / target line** (P3). **What:** optional target weight drawn on the weight chart. **Why:** asked for by reviewers, not by the user. **Cons:** turns a neutral metric into a judged one. **Effort:** human S / CC S. **Depends on:** R5b.
+- [ ] **"Remove morning check" action** (P3). **What:** delete today's stored check. **Why:** Redo covers a bad reading; removal covers a check taken by mistake. **Effort:** human S / CC S. **Depends on:** R1.
+- [ ] **SyncCoordinator.sync returns Deferred<SyncOutcome> shared with joiners** (P3). **Context:** carried from the 2026-11-13 plan; not found in `SyncCoordinator.kt`. **Effort:** human ~4h / CC S.
