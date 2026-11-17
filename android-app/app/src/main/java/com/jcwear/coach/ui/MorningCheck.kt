@@ -93,7 +93,7 @@ internal fun MorningCheckFlowView(
                 .clickable { onCancel() },
             contentAlignment = Alignment.Center
         ) {
-            Text("✕", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text("✕", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.SemiBold)
         }
         Text(
             text = when (step) {
@@ -102,8 +102,8 @@ internal fun MorningCheckFlowView(
                 else -> "Check Complete"
             },
             color = HealthColors.TextPrimary,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold
+            fontSize = HealthType.Body,
+            fontWeight = FontWeight.Medium
         )
         Spacer(Modifier.size(48.dp))
     }
@@ -118,8 +118,8 @@ internal fun MorningCheckFlowView(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text("Lie still, 60 seconds", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                    Text("Rest your arm flat and breathe normally.", color = HealthColors.TextSecondary, fontSize = 13.sp)
+                    Text("Lie still, 60 seconds", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+                    Text("Rest your arm flat and breathe normally.", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
                     AmberActionButton(
                         text = "Begin 60-sec check",
                         onClick = onBeginMeasuring,
@@ -143,7 +143,7 @@ internal fun MorningCheckFlowView(
                         Canvas(modifier = Modifier.fillMaxSize()) {
                             val stroke = 9.dp.toPx()
                             drawArc(
-                                color = Color(0x18FFFFFF),
+                                color = HealthColors.TrackStrong,
                                 startAngle = 0f,
                                 sweepAngle = 360f,
                                 useCenter = false,
@@ -158,16 +158,16 @@ internal fun MorningCheckFlowView(
                             )
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("$secondsRemaining", color = HealthColors.TextPrimary, fontSize = 48.sp, fontWeight = FontWeight.Bold)
-                            Text("Remaining (s)", color = HealthColors.TextSecondary, fontSize = 13.sp)
+                            Text("$secondsRemaining", color = HealthColors.TextPrimary, fontSize = HealthType.Display, fontWeight = FontWeight.SemiBold)
+                            Text("Remaining (s)", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
                         }
                     }
 
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color(0x0DFFFFFF))
+                            .clip(HealthShapes.Panel)
+                            .background(HealthColors.FillFaint)
                             .padding(12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
@@ -175,8 +175,8 @@ internal fun MorningCheckFlowView(
                         Text(
                             text = "Live HR · ${liveHrBpm ?: "—"} bpm",
                             color = HealthColors.TextPrimary,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold
+                            fontSize = HealthType.Body,
+                            fontWeight = FontWeight.Medium
                         )
                     }
 
@@ -187,10 +187,10 @@ internal fun MorningCheckFlowView(
         else -> {
             if (result is MorningCheckResult.SaveFailed) {
                 HealthCard {
-                    Text("Couldn't save the check", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Couldn't save the check", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
                     Text(
                         "HRV ${result.check.rmssdMs.roundToInt()} ms was measured but not stored. No need to measure again.",
-                        color = HealthColors.TextSecondary, fontSize = 13.sp
+                        color = HealthColors.TextSecondary, fontSize = HealthType.Small
                     )
                 }
                 AmberActionButton(text = "Retry save", onClick = { onRetrySave(result) }, modifier = Modifier.fillMaxWidth())
@@ -199,8 +199,8 @@ internal fun MorningCheckFlowView(
             }
             if (resultHrv == null) {
                 HealthCard {
-                    Text("Check failed, try again", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                    Text("Keep the band snug and connected, and lie still.", color = HealthColors.TextSecondary, fontSize = 13.sp)
+                    Text("Check failed, try again", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+                    Text("Keep the band snug and connected, and lie still.", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
                 }
                 AmberActionButton(text = "Done", onClick = onDone, modifier = Modifier.fillMaxWidth())
                 return
@@ -213,9 +213,9 @@ internal fun MorningCheckFlowView(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    ScoreRingGauge(score = today.recovery, size = 104.dp, showRadialGlow = false)
-                    Text("Updated Recovery Score", color = HealthColors.TextSecondary, fontSize = 13.sp)
-                    if (today.recovery != null) InsightChip(Metrics.recovery, days, today)
+                    ScoreGauge(score = today.recovery, size = 104.dp)
+                    Text("Updated Recovery Score", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
+                    if (today.recovery != null) InsightChip(Metrics.recovery, days, today, neutral = true)
                 }
             }
             Row(
@@ -225,10 +225,10 @@ internal fun MorningCheckFlowView(
                 listOf(Triple(Metrics.hrv, resultHrv, "ms"), Triple(Metrics.rhr, today.rhrBpm?.roundToInt(), "bpm")).forEach { (def, v, unit) ->
                     HealthCard(modifier = Modifier.weight(1f)) {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(def.label, color = HealthColors.TextSecondary, fontSize = 13.sp)
+                            Text(def.label, color = HealthColors.TextSecondary, fontSize = HealthType.Small)
                             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text(v?.toString() ?: "—", color = HealthColors.TextPrimary, fontSize = 48.sp, fontWeight = FontWeight.Bold)
-                                Text(unit, color = HealthColors.TextSecondary, fontSize = 13.sp, modifier = Modifier.padding(bottom = 6.dp))
+                                Text(v?.toString() ?: "—", color = HealthColors.TextPrimary, fontSize = HealthType.Display, fontWeight = FontWeight.SemiBold)
+                                Text(unit, color = HealthColors.TextSecondary, fontSize = HealthType.Small, modifier = Modifier.padding(bottom = 6.dp))
                             }
                             if (v != null) InsightChip(def, days, today)
                         }

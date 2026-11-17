@@ -1,18 +1,22 @@
 package com.jcwear.coach.ui
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
+import com.jcwear.coach.domain.UnitSystem
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /**
  * R2: the one dark scheme behind every Material component (text fields, dialogs, pickers, switches).
  * Every role is set from [HealthColors] so no Material default (light scheme or baseline purple) shows through.
- * Colours only: shape, spacing and type tokens come with the redesign (R6).
  */
 val HealthColorScheme: ColorScheme = darkColorScheme(
     primary = HealthColors.AccentAmber,
@@ -48,11 +52,29 @@ val HealthColorScheme: ColorScheme = darkColorScheme(
     surfaceBright = HealthColors.BgCardElevated,
     surfaceDim = HealthColors.BgDeep,
     surfaceContainerLowest = HealthColors.BgDeep,
-    surfaceContainerLow = HealthColors.BgNavy,
+    surfaceContainerLow = HealthColors.BgDeep,
     surfaceContainer = HealthColors.BgCard,
     surfaceContainerHigh = HealthColors.BgCardElevated,
     surfaceContainerHighest = HealthColors.BgCardElevated
 )
+
+/** R6: one radius scale (DESIGN.md). */
+object HealthShapes {
+    val Panel = RoundedCornerShape(8.dp) // cards, buttons, fields, rows
+    val Small = RoundedCornerShape(4.dp) // bars, tags, focus rows
+    val Sheet = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)
+}
+
+/** R6: the four text sizes (DESIGN.md). */
+object HealthType {
+    val Caption = 11.sp
+    val Small = 13.sp
+    val Body = 16.sp
+    val Display = 40.sp
+}
+
+/** U: the unit system from Profile, provided once by MainDashboardScreen. */
+val LocalUnitSystem = compositionLocalOf { UnitSystem.SI }
 
 @Composable
 fun HealthTheme(content: @Composable () -> Unit) {

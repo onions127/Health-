@@ -42,7 +42,7 @@ class MetricInsightsTest {
     @Test
     fun flatSeriesStaysNormalThanksToTheFloor() {
         val days = hrvDays(listOf(60.0), 62.0) // SD is 0; the 3 ms floor keeps 62 normal
-        assertEquals("Within normal" to Status.NORMAL, MetricInsights.chip(Metrics.hrv, days, today))
+        assertEquals("Within normal" to Status.NORMAL, MetricInsights.chip(Metrics.hrv, days, today, UnitSystem.SI))
         assertNull(MetricInsights.extremeLabel(Metrics.hrv, days, today))
     }
 
@@ -65,7 +65,7 @@ class MetricInsightsTest {
     @Test
     fun fewerThanSevenDaysShowsBaselineProgress() {
         val days = (4 downTo 1).map { DayMetrics(today.minusDays(it.toLong()), hrvMs = 60.0) } + DayMetrics(today, hrvMs = 70.0)
-        assertEquals("Building your baseline: 4 of 7 days", MetricInsights.chip(Metrics.hrv, days, today).first)
+        assertEquals("Building your baseline: 4 of 7 days", MetricInsights.chip(Metrics.hrv, days, today, UnitSystem.SI).first)
     }
 
     @Test

@@ -64,18 +64,17 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /**
- * Health++ Design Tokens (Deep Navy, Soft Glow, 8pt Grid, Strictly 3 Font Sizes)
+ * Health++ colour tokens (DESIGN.md: graphite, flat, no borders on panels).
  */
 object HealthColors {
-    val BgDeep = Color(0xFF0B1020)
-    val BgNavy = Color(0xFF111833)
-    val BgCard = Color(0xFF151E3F)
-    val BgCardElevated = Color(0xFF1B2650)
+    val BgDeep = Color(0xFF0D0F13)
+    val BgCard = Color(0xFF181B21)
+    val BgCardElevated = Color(0xFF20242C)
     val BorderHairline = Color(0x10FFFFFF) // white at 6% opacity
 
     val TextPrimary = Color(0xFFF8FAFC)
-    val TextSecondary = Color(0xFFA8B8D0)
-    val TextInverse = Color(0xFF0B1020)
+    val TextSecondary = Color(0xFFA6ADBA)
+    val TextInverse = Color(0xFF0D0F13)
 
     val AccentAmber = Color(0xFFFFB86B)
     val ScoreGreen = Color(0xFF34D399)
@@ -84,7 +83,21 @@ object HealthColors {
     val AlertRed = Color(0xFFEF4444)
     val AlertBg = Color(0xFF2A121B)
 
-    val StageDeep = Color(0xFF6366F1)
+    // R6.1: the former inline literals, values unchanged. White overlays are named by job.
+    val FillFaint = Color(0x0DFFFFFF)
+    val FillSubtle = Color(0x12FFFFFF)
+    val Track = Color(0x14FFFFFF)
+    val TrackStrong = Color(0x18FFFFFF)
+    val NormalBand = Color(0x29FFFFFF)
+    val NavBar = Color(0xF50D0F13)
+    val Scrim = Color(0xB8060709)
+    val GoodText = Color(0xFF6EE7B7)
+    val WarnBg = Color(0x26FBBF24)
+    val BadText = Color(0xFFFDA4AF)
+    val AlertTextStrong = Color(0xFFFECACA)
+    val AlertText = Color(0xFFFCA5A5)
+
+    val StageDeep = Color(0xFF3D63DD) // deep blue, not indigo: no violet in the palette
     val StageRem = Color(0xFF38BDF8)
     val StageLight = Color(0xFF34D399)
     val StageAwake = Color(0xFFFB7185)
@@ -118,8 +131,10 @@ fun statusColor(st: Status): Color = when (st) {
 /** Real days, oldest first, ending today. Pure apart from the DB read, so it can be golden-tested. */
 fun buildDashboardState(
     database: LocalHealthDatabase,
-    today: LocalDate
-): List<DayMetrics> = DailySeriesRepository(database).load(today)
+    today: LocalDate,
+    heightCm: Double? = null,
+    profileWeightKg: Double? = null
+): List<DayMetrics> = DailySeriesRepository(database).load(today, heightCm, profileWeightKg)
 
 /** "just now", "12 min ago", "3 h ago", "2 days ago". */
 fun agoText(thenMs: Long, nowMs: Long): String {

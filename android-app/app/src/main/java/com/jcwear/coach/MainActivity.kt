@@ -141,7 +141,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             HealthTheme {
                 MainDashboardScreen(
-                    viewModel = viewModel { DashboardViewModel(container.database, container.bleManager) },
+                    viewModel = viewModel { DashboardViewModel(container.database, container.bleManager, container.settings) },
                     settings = container.settings,
                     bleManager = container.bleManager,
                     syncCoordinator = container.syncCoordinator,

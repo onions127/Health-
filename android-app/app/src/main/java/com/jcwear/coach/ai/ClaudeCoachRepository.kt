@@ -34,7 +34,8 @@ class ClaudeCoachRepository(private val database: LocalHealthDatabase) {
             appendLine("You are my Health++ recovery coach. Keep replies concise (max 3 short lines) and compare numbers to my normal baseline. \"not recorded\" means the band has no data; don't guess it.")
             if (latest != null) {
                 appendLine("Today (${latest.date}): Readiness ${n(latest.readiness)}/100, Sleep Score ${n(latest.sleepScore)}/100, Strain ${latest.strain ?: "not recorded"}/21.")
-                appendLine("Vitals: HRV ${n(latest.scoreHrvMs, " ms")}${latest.morningCheck?.let { if (it.estimated) " [morning check, estimated from heart rate]" else " [morning check]" } ?: ""} (normal ${n(avg { it.hrvMs }, " ms")}), RHR ${n(latest.rhrBpm, " bpm")} (normal ${n(avg { it.rhrBpm }, " bpm")}), SpO2 ${n(latest.spo2Pct, "%")}, Skin Temp ${latest.skinTempDeltaC?.let { String.format("%+.1f °C", it) } ?: "not recorded"}, Steps ${latest.steps ?: "not recorded"}.")
+                appendLine("Vitals: HRV ${n(latest.scoreHrvMs, " ms")}${latest.morningCheck?.let { if (it.estimated) " [morning check, estimated from heart rate]" else " [morning check]" } ?: ""} (normal ${n(avg { it.hrvMs }, " ms")}), RHR ${n(latest.rhrBpm, " bpm")} (normal ${n(avg { it.rhrBpm }, " bpm")}), SpO2 ${n(latest.spo2Pct, "%")}, Skin Temp ${latest.skinTempC?.let { t -> String.format(java.util.Locale.US, "%.1f °C", t) + (latest.skinTempDeltaC?.let { String.format(java.util.Locale.US, " (%+.1f vs own 30-day average)", it) } ?: " (own average not built yet)") } ?: "not recorded"}, Steps ${latest.steps ?: "not recorded"}.")
+                com.jcwear.coach.domain.weightCoachLine(recentReports.reversed())?.let { appendLine(it) }
                 appendLine("Sleep: ${hm(latest.sleepMin)} total (normal ${hm(avg { it.sleepMin?.toDouble() }?.roundToInt())}) — ${latest.sleep?.let { if (it.stagesAvailable) "Deep ${hm(it.deepMin)}, REM ${hm(it.remMin)}" else "stages not recorded" } ?: "stages not recorded"}.")
             }
             appendLine("Question: $userQuestion")
@@ -72,6 +73,7 @@ class ClaudeCoachRepository(private val database: LocalHealthDatabase) {
                     put("rem_min", r.sleep?.takeIf { it.stagesAvailable }?.remMin ?: JSONObject.NULL)
                     put("spo2_pct", r.spo2Pct ?: JSONObject.NULL)
                     put("temp_delta_c", r.skinTempDeltaC ?: JSONObject.NULL)
+                    put("skin_temp_c", r.skinTempC ?: JSONObject.NULL)
                     put("steps", r.steps ?: JSONObject.NULL)
                 })
             }

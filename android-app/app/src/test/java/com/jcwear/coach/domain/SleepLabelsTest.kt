@@ -98,6 +98,61 @@ class SleepLabelsTest {
         assertTrue(SleepAndReadinessEngine.sleepScore(late, emptyList()) <= 70)
     }
 
+    private fun block(start: String, min: Int, stage: Int = J2208Protocol.STAGE_LIGHT) =
+        SleepBlockRecord(start, 1, min, 0, 0, 0, 0, List(min) { stage }, "t")
+
+    @Test
+    fun blocksUpTo90MinApartAreOneNightWithTheGapAwake() {
+        // 00:00-02:00 asleep, 50 min no data, 02:50-06:00 asleep.
+        val s = SleepAndReadinessEngine.stitchSleepSessions(listOf(block("2026-11-13T00:00:00", 120), block("2026-11-13T02:50:00", 190))).single()
+        assertEquals(310, s.totalSleepMin)
+        assertEquals(50, s.awakeMin)
+        assertEquals(java.time.Duration.between(s.startTime, s.endTime).toMinutes() + 1, (s.totalSleepMin + s.awakeMin).toLong())
+    }
+
+    @Test
+    fun blocksOver90MinApartAreTwoSessions() {
+        val ss = SleepAndReadinessEngine.stitchSleepSessions(listOf(block("2026-11-12T21:00:00", 60), block("2026-11-12T23:40:00", 300)))
+        assertEquals(2, ss.size)
+    }
+
+    @Test
+    fun realNightOf17NovWithAwakePeriod() {
+        // The band's blocks that night: 02:19-05:54 and 06:22-10:46, nothing in between.
+        val s = SleepAndReadinessEngine.stitchSleepSessions(listOf(block("2026-11-17T02:19:01", 215), block("2026-11-17T06:22:01", 264))).single()
+        val (on, off) = anchorEdit(s.bandStartTime, LocalTime.of(2, 0), LocalTime.of(10, 45))
+        val awake = mergeAwake(listOf(anchorAwake(on, LocalTime.of(5, 20), LocalTime.of(6, 10))))
+        assertEquals(EditCheck.Ok, checkEdit(on, off, awake))
+        val l = labelFor(s, LabelKind.EDITED, on, off, utc, 0, awake)
+        val edited = applyLabels(listOf(s), listOf(l), utc).single()
+        assertEquals(475, edited.totalSleepMin) // 7h 55m
+        assertEquals(50, edited.awakeMin)
+        assertEquals(awake, edited.userAwake)
+    }
+
+    @Test
+    fun editedNoDataMinutesOutsideAwakePeriodsCountAsAsleep() {
+        val s = SleepAndReadinessEngine.stitchSleepSessions(listOf(block("2026-11-13T00:00:00", 60), block("2026-11-13T01:30:00", 60))).single()
+        val edited = applyLabels(listOf(s), listOf(label(s, LabelKind.EDITED, "2026-11-13T00:00", "2026-11-13T02:30")), utc).single()
+        assertEquals(150, edited.totalSleepMin)
+        assertEquals(30, edited.unstagedMin)
+        assertEquals(0, edited.awakeMin)
+    }
+
+    @Test
+    fun awakeChecksAnchorAndMerge() {
+        val on = t("2026-11-12T23:30")
+        val off = t("2026-11-13T07:00")
+        assertEquals(t("2026-11-13T01:00") to t("2026-11-13T01:30"), anchorAwake(on, LocalTime.of(1, 0), LocalTime.of(1, 30)))
+        assertEquals(t("2026-11-12T23:50") to t("2026-11-13T00:20"), anchorAwake(on, LocalTime.of(23, 50), LocalTime.of(0, 20)))
+        assertEquals(
+            listOf(t("2026-11-13T01:00") to t("2026-11-13T02:00")),
+            mergeAwake(listOf(t("2026-11-13T01:30") to t("2026-11-13T02:00"), t("2026-11-13T01:00") to t("2026-11-13T01:40")))
+        )
+        assertTrue(checkEdit(on, off, listOf(t("2026-11-13T06:30") to t("2026-11-13T07:30"))) is EditCheck.Invalid)
+        assertEquals(EditCheck.Invalid("No sleep left in this night."), checkEdit(on, off, listOf(on to off)))
+    }
+
     @Test
     fun fiveMinuteRecordsAreNotSleep() {
         // Real 12 Nov: a 5-min record at 00:59 padded the night that really starts 02:24.

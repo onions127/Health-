@@ -12,6 +12,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimeInput
 import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,7 +38,9 @@ import com.jcwear.coach.domain.LabelKind
 import com.jcwear.coach.domain.Provenance
 import com.jcwear.coach.domain.SleepAndReadinessEngine
 import com.jcwear.coach.domain.SleepLabel
+import com.jcwear.coach.domain.anchorAwake
 import com.jcwear.coach.domain.anchorEdit
+import com.jcwear.coach.domain.mergeAwake
 import com.jcwear.coach.domain.checkEdit
 import com.jcwear.coach.domain.labelFor
 import java.time.Duration
@@ -69,16 +74,16 @@ internal fun SleepDetailView(
                 .clickable { onBack() },
             contentAlignment = Alignment.Center
         ) {
-            Text("←", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text("←", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.SemiBold)
         }
-        Text("Sleep Detail", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        Text("Sleep Detail", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
         Spacer(Modifier.size(48.dp))
     }
 
     val session = day.sleep
     if (session == null) {
         HealthCard {
-            Text("No sleep recorded for this night.", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text("No sleep recorded for this night.", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
         }
         return
     }
@@ -91,33 +96,40 @@ internal fun SleepDetailView(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("You slept", color = HealthColors.TextSecondary, fontSize = 13.sp)
+                Text("You slept", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
                 Text(
                     text = formatSleepHm(session.totalSleepMin),
                     color = HealthColors.TextPrimary,
-                    fontSize = 48.sp,
-                    fontWeight = FontWeight.Bold
+                    fontSize = HealthType.Display,
+                    fontWeight = FontWeight.SemiBold
                 )
                 InsightChip(Metrics.sleep, days, day)
             }
-            ScoreRingGauge(score = day.sleepScore, size = 76.dp, showRadialGlow = false, label = "Score")
+            ScoreGauge(score = day.sleepScore, size = 76.dp, label = "Score")
         }
         Spacer(Modifier.height(8.dp))
         Text(
             "Fell asleep ${session.startTime.format(hm)} · Woke ${session.endTime.format(hm)}",
             color = HealthColors.TextPrimary,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold
+            fontSize = HealthType.Body,
+            fontWeight = FontWeight.Medium
         )
+        // W3: why the big number is less than the window. In bed = asleep + awake (no-data minutes count as awake).
+        if (session.awakeMin > 0) {
+            Text(
+                "In bed ${formatSleepHm(session.totalSleepMin + session.awakeMin)} · awake ${formatSleepHm(session.awakeMin)}",
+                color = HealthColors.TextSecondary, fontSize = HealthType.Small
+            )
+        }
         if (session.startTime.hour in 3..11) {
-            Text("Asleep after 03:00, so the score is capped at 70.", color = HealthColors.TextSecondary, fontSize = 13.sp)
+            Text("Asleep after 03:00, so the score is capped at 70.", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
         }
         val bandDiffers = Duration.between(session.bandStartTime, session.startTime).abs().toMinutes() > 10 ||
             Duration.between(session.bandEndTime, session.endTime).abs().toMinutes() > 10
         if (bandDiffers) {
             Text(
                 "Band reported ${formatSleepHm(session.bandTotalSleepMin)} (${session.bandStartTime.format(hm)}–${session.bandEndTime.format(hm)})",
-                color = HealthColors.TextSecondary, fontSize = 13.sp
+                color = HealthColors.TextSecondary, fontSize = HealthType.Small
             )
         }
         ScoreSource("Sleep Score", day.sleepParts, lastSyncAt, sleepNotes(session))
@@ -126,7 +138,7 @@ internal fun SleepDetailView(
 
     if (!session.stagesAvailable) {
         HealthCard {
-            Text("Your band didn't record sleep stages this night.", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text("Your band didn't record sleep stages this night.", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
         }
         return
     }
@@ -135,8 +147,8 @@ internal fun SleepDetailView(
     HealthCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Sleep Stages", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                Text("${session.startTime.format(hm)} – ${session.endTime.format(hm)}", color = HealthColors.TextSecondary, fontSize = 13.sp)
+                Text("Sleep Stages", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+                Text("${session.startTime.format(hm)} – ${session.endTime.format(hm)}", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -144,10 +156,10 @@ internal fun SleepDetailView(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Column(modifier = Modifier.height(120.dp), verticalArrangement = Arrangement.SpaceBetween) {
-                    Text("Awake", color = HealthColors.TextSecondary, fontSize = 13.sp)
-                    Text("REM", color = HealthColors.TextSecondary, fontSize = 13.sp)
-                    Text("Light", color = HealthColors.TextSecondary, fontSize = 13.sp)
-                    Text("Deep", color = HealthColors.TextSecondary, fontSize = 13.sp)
+                    Text("Awake", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
+                    Text("REM", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
+                    Text("Light", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
+                    Text("Deep", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
                 }
                 val runs = remember(session) { stageRuns(session.epochs, session.startTime) }
                 val total = Duration.between(session.startTime, session.endTime).toMinutes().toFloat() + 1f
@@ -179,7 +191,7 @@ internal fun SleepDetailView(
     // Stage minutes
     HealthCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Time in each stage", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text("Time in each stage", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
             val inBed = (session.totalSleepMin + session.awakeMin).coerceAtLeast(1)
             listOf(
                 Triple("Deep", session.deepMin, HealthColors.StageDeep),
@@ -193,7 +205,7 @@ internal fun SleepDetailView(
                 Text(
                     "${formatSleepHm(session.unstagedMin)} of your edited night has no band stages.",
                     color = HealthColors.TextSecondary,
-                    fontSize = 13.sp
+                    fontSize = HealthType.Small
                 )
             }
         }
@@ -219,7 +231,7 @@ private fun SleepLabelRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(status ?: "Is this right?", color = HealthColors.TextSecondary, fontSize = 13.sp, modifier = Modifier.weight(1f))
+        Text(status ?: "Is this right?", color = HealthColors.TextSecondary, fontSize = HealthType.Small, modifier = Modifier.weight(1f))
         if (status == null) {
             TextButton(onClick = { onSaveLabel(labelFor(session, LabelKind.CONFIRMED, session.startTime, session.endTime)) }) {
                 Text("Looks right")
@@ -233,47 +245,81 @@ private fun SleepLabelRow(
     val wakeState = rememberTimePickerState(session.endTime.hour, session.endTime.minute, is24Hour = true)
     var error by remember { mutableStateOf<String?>(null) }
     var confirm by remember { mutableStateOf<String?>(null) }
+    // W2: awake periods as picked clock times; placed in the night only when saving.
+    val awakeTimes = remember { mutableStateListOf(*session.userAwake.map { (a, b) -> a.toLocalTime() to b.toLocalTime() }.toTypedArray()) }
+    var adding by remember { mutableStateOf(false) }
+    val fromState = rememberTimePickerState(session.startTime.plusHours(3).hour, 0, is24Hour = true)
+    val toState = rememberTimePickerState(session.startTime.plusHours(3).hour, 30, is24Hour = true)
     val (onset, wake) = anchorEdit(
         session.bandStartTime,
         LocalTime.of(onsetState.hour, onsetState.minute),
         LocalTime.of(wakeState.hour, wakeState.minute)
     )
+    val awake = mergeAwake(awakeTimes.map { (a, b) -> anchorAwake(onset, a, b) })
     fun save() {
-        onSaveLabel(labelFor(session, LabelKind.EDITED, onset, wake))
+        onSaveLabel(labelFor(session, LabelKind.EDITED, onset, wake, awake = awake))
         editing = false
     }
     AlertDialog(
         onDismissRequest = { editing = false },
-        title = { Text(confirm ?: "Edit sleep times") },
+        shape = HealthShapes.Panel,
+        title = { Text(if (adding) "Awake time" else confirm ?: "Edit sleep times") },
         text = {
-            if (confirm == null) {
+            if (adding) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("From")
+                    TimeInput(fromState)
+                    Text("To")
+                    TimeInput(toState)
+                }
+            } else if (confirm == null) {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Fell asleep")
                     TimeInput(onsetState)
                     Text("Woke")
                     TimeInput(wakeState)
-                    error?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp) }
+                    Text("Awake in the night")
+                    awakeTimes.forEachIndexed { i, (a, b) ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("${a.format(hmFormat)} – ${b.format(hmFormat)}", modifier = Modifier.weight(1f))
+                            TextButton(onClick = { awakeTimes.removeAt(i); error = null }) { Text("Remove") }
+                        }
+                    }
+                    TextButton(onClick = { adding = true }) { Text("Add awake time") }
+                    error?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = HealthType.Small) }
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = {
-                if (confirm != null) {
-                    save()
-                } else {
-                    when (val check = checkEdit(onset, wake)) {
+                when {
+                    adding -> {
+                        awakeTimes += LocalTime.of(fromState.hour, fromState.minute) to LocalTime.of(toState.hour, toState.minute)
+                        adding = false
+                        error = null
+                    }
+                    confirm != null -> save()
+                    else -> when (val check = checkEdit(onset, wake, awake)) {
                         EditCheck.Ok -> save()
                         is EditCheck.Confirm -> confirm = check.message
                         is EditCheck.Invalid -> error = check.message
                     }
                 }
-            }) { Text("Save") }
+            }) { Text(if (adding) "Add" else "Save") }
         },
         dismissButton = {
-            TextButton(onClick = { if (confirm != null) confirm = null else editing = false }) { Text("Cancel") }
+            TextButton(onClick = {
+                when {
+                    adding -> adding = false
+                    confirm != null -> confirm = null
+                    else -> editing = false
+                }
+            }) { Text(if (adding) "Back" else "Cancel") }
         }
     )
 }
+
+private val hmFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
 /** Consecutive same-stage minutes as (start minute, length, level 0=awake 1=REM 2=light 3=deep); unknown codes are skipped. */
 internal fun stageRuns(
@@ -281,7 +327,7 @@ internal fun stageRuns(
     start: LocalDateTime
 ): List<Triple<Float, Float, Int>> {
     fun level(code: Int): Int? = when (code) {
-        J2208Protocol.STAGE_AWAKE -> 0
+        J2208Protocol.STAGE_AWAKE, SleepAndReadinessEngine.STAGE_NO_DATA -> 0
         J2208Protocol.STAGE_REM -> 1
         J2208Protocol.STAGE_LIGHT -> 2
         J2208Protocol.STAGE_DEEP -> 3
@@ -330,9 +376,9 @@ internal fun StageDurationRow(
                     .clip(CircleShape)
                     .background(color)
             )
-            Text(stage, color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-            Text(duration, color = HealthColors.TextSecondary, fontSize = 13.sp)
+            Text(stage, color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+            Text(duration, color = HealthColors.TextSecondary, fontSize = HealthType.Small)
         }
-        Text(contextText, color = HealthColors.TextSecondary, fontSize = 13.sp)
+        Text(contextText, color = HealthColors.TextSecondary, fontSize = HealthType.Small)
     }
 }

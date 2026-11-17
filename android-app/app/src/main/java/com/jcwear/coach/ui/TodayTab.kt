@@ -51,6 +51,8 @@ import com.jcwear.coach.domain.SleepAndReadinessEngine
 import com.jcwear.coach.domain.DayMetrics
 import com.jcwear.coach.domain.MetricDef
 import com.jcwear.coach.domain.MetricInsights
+import com.jcwear.coach.domain.readinessMissingLine
+import com.jcwear.coach.domain.unitSystemOf
 import com.jcwear.coach.domain.Metrics
 import com.jcwear.coach.domain.MorningCheck
 import com.jcwear.coach.domain.morningCheckDoneLine
@@ -110,13 +112,13 @@ internal fun TodayTabView(
             Text(
                 text = if (isHistoricalView) day.label else greetingFor(LocalTime.now(), userName),
                 color = HealthColors.TextPrimary,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold
+                fontSize = HealthType.Body,
+                fontWeight = FontWeight.Medium
             )
             Text(
                 text = if (isHistoricalView) "Historical snapshot" else day.label,
                 color = HealthColors.TextSecondary,
-                fontSize = 13.sp,
+                fontSize = HealthType.Small,
                 fontWeight = FontWeight.Medium
             )
         }
@@ -146,7 +148,7 @@ internal fun TodayTabView(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Morning check", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Text("Morning check", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
                 AmberActionButton(text = "Start 60-sec check", onClick = onStartMorningCheck)
             }
         }
@@ -158,7 +160,7 @@ internal fun TodayTabView(
         ) {
             Text(
                 morningCheckDoneLine(morningCheck, ZoneId.systemDefault()),
-                color = HealthColors.TextSecondary, fontSize = 13.sp, fontWeight = FontWeight.Medium,
+                color = HealthColors.TextSecondary, fontSize = HealthType.Small, fontWeight = FontWeight.Medium,
                 modifier = Modifier.weight(1f)
             )
             Box(
@@ -167,7 +169,7 @@ internal fun TodayTabView(
                     .clickable(onClickLabel = "Redo morning check") { onStartMorningCheck() },
                 contentAlignment = Alignment.Center
             ) {
-                Text("Redo", color = HealthColors.AccentAmber, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text("Redo", color = HealthColors.AccentAmber, fontSize = HealthType.Small, fontWeight = FontWeight.Medium)
             }
         }
     }
@@ -178,8 +180,8 @@ internal fun TodayTabView(
             Text(
                 "Wear your band tonight. Your first scores appear tomorrow morning.",
                 color = HealthColors.TextPrimary,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold
+                fontSize = HealthType.Body,
+                fontWeight = FontWeight.Medium
             )
         }
         return
@@ -190,10 +192,10 @@ internal fun TodayTabView(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
+                .clip(HealthShapes.Panel)
                 .clickable { onOpenMetricDetail("spo2") },
             color = HealthColors.AlertBg,
-            shape = RoundedCornerShape(20.dp),
+            shape = HealthShapes.Panel,
             border = BorderStroke(1.dp, HealthColors.AlertRed.copy(alpha = 0.5f))
         ) {
             Row(
@@ -205,19 +207,19 @@ internal fun TodayTabView(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Blood oxygen low overnight: ${Metrics.spo2.format(day.spo2Pct!!)}",
-                        color = Color(0xFFFECACA),
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold
+                        text = "Blood oxygen low overnight: ${Metrics.spo2.format(day.spo2Pct!!, unitSystemOf(useMetricUnits))}",
+                        color = HealthColors.AlertTextStrong,
+                        fontSize = HealthType.Body,
+                        fontWeight = FontWeight.Medium
                     )
                     Text(
-                        text = "${MetricInsights.chip(Metrics.spo2, days, day.date).first} · Tap for details",
-                        color = Color(0xFFFCA5A5),
-                        fontSize = 13.sp,
+                        text = "${MetricInsights.chip(Metrics.spo2, days, day.date, unitSystemOf(useMetricUnits)).first} · Tap for details",
+                        color = HealthColors.AlertText,
+                        fontSize = HealthType.Small,
                         fontWeight = FontWeight.Medium
                     )
                 }
-                Text("›", color = Color(0xFFFCA5A5), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text("›", color = HealthColors.AlertText, fontSize = HealthType.Body, fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -247,13 +249,17 @@ internal fun TodayTabView(
                         val base = MetricInsights.baseline(def, days, day.date)
                         SubMetricBarRow(
                             title = title,
-                            contextText = MetricInsights.chip(def, days, day.date).first,
+                            contextText = MetricInsights.chip(def, days, day.date, unitSystemOf(useMetricUnits)).first,
                             score = def.extract(day)?.roundToInt(),
                             normalMin = base?.low?.roundToInt(),
                             normalMax = base?.high?.roundToInt(),
                             barColor = if (def == Metrics.strain) HealthColors.AccentAmber else HealthColors.ScoreGreen,
                             onClick = { onOpenMetricDetail(target) }
                         )
+                        if (def == Metrics.readiness) {
+                            ScoreSource("Readiness", day.readinessParts, lastSyncAt, sheetTitle = "Readiness · ${day.label}")
+                            readinessMissingLine(day, days)?.let { Text(it, color = HealthColors.TextSecondary, fontSize = HealthType.Small) }
+                        }
                     }
                 }
             }
@@ -287,7 +293,7 @@ internal fun TodayTabView(
                             contextText = if (def == Metrics.hrv && day.morningRmssdMs != null) {
                                 "Morning check" + (day.hrvMs?.let { " · overnight ${it.roundToInt()}" } ?: "")
                             } else {
-                                MetricInsights.extremeLabel(def, days, day.date) ?: MetricInsights.chip(def, days, day.date).first
+                                MetricInsights.extremeLabel(def, days, day.date) ?: MetricInsights.chip(def, days, day.date, unitSystemOf(useMetricUnits)).first
                             },
                             values = upTo.takeLast(7).mapNotNull(def.extract).map { it.toFloat() },
                             normalMin = base?.low?.toFloat(),
@@ -314,18 +320,19 @@ internal fun TodayTabView(
                     if (useMetricUnits) String.format(Locale.US, " · %.1f km", it)
                     else String.format(Locale.US, " · %.1f mi", it * 0.621371)
                 } ?: ""
-                val kcal = day.caloriesKcal?.let { String.format(Locale.US, " · %.0f kcal", it) + if (day.caloriesEstimated) " est." else "" } ?: ""
+                val kcal = day.caloriesKcal?.let { String.format(Locale.US, " · %.0f kcal", it) + if (day.caloriesEstimated) " est." else "" }
+                    ?: " · Log weight to estimate calories"
                 Text(
                     text = day.steps?.let { "${String.format(Locale.US, "%,d", it)} steps$distance$kcal" } ?: "No steps yet today",
                     color = HealthColors.TextPrimary,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontSize = HealthType.Body,
+                    fontWeight = FontWeight.Medium
                 )
                 if (day.steps != null) InsightChip(Metrics.steps, days, day)
             }
             if (day.steps != null && stepsBase != null) {
                 val pct = (day.steps * 100.0 / stepsBase.mean).roundToInt()
-                ScoreRingGauge(score = pct.coerceAtMost(100), size = 56.dp, showRadialGlow = false, text = "$pct%")
+                ScoreGauge(score = pct.coerceAtMost(100), size = 56.dp, text = "$pct%")
             }
         }
     }
@@ -340,12 +347,12 @@ internal fun TodayTabView(
             Text(
                 text = verdictFor(day.recovery),
                 color = HealthColors.TextPrimary,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
+                fontSize = HealthType.Body,
+                fontWeight = FontWeight.Medium,
                 modifier = Modifier.weight(1f)
             )
             Spacer(Modifier.width(8.dp))
-            Text("›", color = HealthColors.TextSecondary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text("›", color = HealthColors.TextSecondary, fontSize = HealthType.Body, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -369,9 +376,9 @@ private fun ScoreHeaderRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(title, color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-            if (score != null) InsightChip(def, days, day)
+            Text(title, color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+            if (score != null) InsightChip(def, days, day, neutral = true)
         }
-        ScoreRingGauge(score = score, size = 72.dp, showRadialGlow = false)
+        ScoreGauge(score = score, size = 72.dp)
     }
 }

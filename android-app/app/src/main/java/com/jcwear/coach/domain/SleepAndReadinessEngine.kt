@@ -26,6 +26,12 @@ object SleepAndReadinessEngine {
     /** Asleep, but the band has no stage for this minute (inside a user-edited window). Not a band code. */
     const val STAGE_UNSTAGED = 0
 
+    /** W1: a minute inside a night with no band data. Counts as awake; an edit treats it as asleep. Not a band code. */
+    const val STAGE_NO_DATA = -1
+
+    /** W1: blocks up to this far apart are one night; 90 joins every real wake-up in history but no evening doze. */
+    const val MAX_NIGHT_GAP_MIN = 90L
+
     data class SleepEpochMinute(
         val timestamp: LocalDateTime,
         val stageCode: Int // 0=Unstaged (ours), 1=Deep, 2=Light, 3=REM, 5=Awake
@@ -50,7 +56,9 @@ object SleepAndReadinessEngine {
         val bandTotalSleepMin: Int = totalSleepMin,
         val provenance: Provenance = Provenance.BAND,
         /** A CONFIRMED label exists for this night. */
-        val confirmed: Boolean = false
+        val confirmed: Boolean = false,
+        /** W2: the awake periods of the user's edit, so a re-edit starts from them. */
+        val userAwake: List<Pair<LocalDateTime, LocalDateTime>> = emptyList()
     ) {
         /** Band's first epoch, minute precision: the stable key for sleep_labels. */
         val sessionKey: String get() = sessionKeyOf(bandStartTime)
@@ -73,7 +81,7 @@ object SleepAndReadinessEngine {
         val light = epochs.count { it.stageCode == J2208Protocol.STAGE_LIGHT }
         val rem = epochs.count { it.stageCode == J2208Protocol.STAGE_REM }
         val unstaged = epochs.count { it.stageCode == STAGE_UNSTAGED }
-        val awake = epochs.count { it.stageCode == J2208Protocol.STAGE_AWAKE }
+        val awake = epochs.count { it.stageCode == J2208Protocol.STAGE_AWAKE || it.stageCode == STAGE_NO_DATA }
         val asleep = deep + light + rem + unstaged
         val efficiency = ((asleep * 100.0) / (asleep + awake).coerceAtLeast(1)).roundToInt().coerceIn(0, 100)
         val end = epochs.last().timestamp
@@ -91,7 +99,10 @@ object SleepAndReadinessEngine {
         )
     }
 
-    /** Expands raw 0x53 blocks into 1-minute epochs and merges blocks separated by <= 45 min. */
+    /**
+     * Expands raw 0x53 blocks into 1-minute epochs and joins blocks up to [MAX_NIGHT_GAP_MIN] apart.
+     * The minutes between joined blocks become [STAGE_NO_DATA], so asleep + awake = time in bed.
+     */
     fun stitchSleepSessions(sleepBlocks: List<SleepBlockRecord>): List<StitchedSleepSession> {
         val rawMinutes = mutableListOf<SleepEpochMinute>()
         for (block in sleepBlocks.sortedBy { it.deviceTime }) {
@@ -114,7 +125,12 @@ object SleepAndReadinessEngine {
         val sessions = mutableListOf<MutableList<SleepEpochMinute>>()
         for (epoch in rawMinutes.distinctBy { it.timestamp }.sortedBy { it.timestamp }) {
             val current = sessions.lastOrNull()
-            if (current != null && Duration.between(current.last().timestamp, epoch.timestamp).toMinutes() <= 45) {
+            if (current != null && Duration.between(current.last().timestamp, epoch.timestamp).toMinutes() <= MAX_NIGHT_GAP_MIN) {
+                var gap = current.last().timestamp.plusMinutes(1)
+                while (gap.isBefore(epoch.timestamp)) {
+                    current.add(SleepEpochMinute(gap, STAGE_NO_DATA))
+                    gap = gap.plusMinutes(1)
+                }
                 current.add(epoch)
             } else {
                 sessions.add(mutableListOf(epoch))
@@ -125,20 +141,29 @@ object SleepAndReadinessEngine {
 
     /**
      * The night set to exactly [onset, wake] (user edit): band epochs outside are dropped, band stages
-     * inside kept, minutes with no band epoch count as asleep but unstaged (no stage is invented).
+     * inside kept, minutes with no band data count as asleep but unstaged (no stage is invented), and
+     * minutes inside the user's [awake] periods are awake.
      * Keeps the band's stagesAvailable so an edit never turns a light-only night into a staged one.
      */
-    fun applyEditedWindow(s: StitchedSleepSession, onset: LocalDateTime, wake: LocalDateTime): StitchedSleepSession {
+    fun applyEditedWindow(
+        s: StitchedSleepSession,
+        onset: LocalDateTime,
+        wake: LocalDateTime,
+        awake: List<Pair<LocalDateTime, LocalDateTime>> = emptyList()
+    ): StitchedSleepSession {
         val from = onset.truncatedTo(ChronoUnit.MINUTES)
         val to = wake.truncatedTo(ChronoUnit.MINUTES)
-        val byTs = s.epochs.associateBy { it.timestamp }
+        val byTs = s.epochs.filter { it.stageCode != STAGE_NO_DATA }.associateBy { it.timestamp }
+        fun isAwake(t: LocalDateTime) = awake.any { (a, b) -> !t.isBefore(a.truncatedTo(ChronoUnit.MINUTES)) && t.isBefore(b.truncatedTo(ChronoUnit.MINUTES)) }
         val epochs = generateSequence(from) { it.plusMinutes(1) }.takeWhile { it.isBefore(to) }
-            .map { byTs[it] ?: SleepEpochMinute(it, STAGE_UNSTAGED) }.toList()
+            .map { if (isAwake(it)) SleepEpochMinute(it, J2208Protocol.STAGE_AWAKE) else byTs[it] ?: SleepEpochMinute(it, STAGE_UNSTAGED) }
+            .toList()
         if (epochs.isEmpty()) return s
         return sessionOf(epochs).copy(
             stagesAvailable = s.stagesAvailable,
             bandStartTime = s.bandStartTime, bandEndTime = s.bandEndTime, bandTotalSleepMin = s.bandTotalSleepMin,
-            provenance = Provenance.EDITED
+            provenance = Provenance.EDITED,
+            userAwake = awake
         )
     }
 

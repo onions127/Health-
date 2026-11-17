@@ -51,6 +51,34 @@ class SleepLabelDbTest {
     }
 
     @Test
+    fun awakePeriodsSurviveSaveAndReload() {
+        val awake = listOf(OffsetDateTime.parse("2026-11-13T03:00+02:00") to OffsetDateTime.parse("2026-11-13T03:40+02:00"))
+        db.putLabel(label(LabelKind.EDITED, "2026-11-13T05:50+02:00").copy(awake = awake))
+        assertEquals(awake, db.getAllSleepLabels().single().awake)
+    }
+
+    @Test
+    fun v5UpgradeKeepsLabelsWithNoAwakePeriods() {
+        db.writableDatabase.execSQL("DROP TABLE sleep_labels")
+        db.writableDatabase.execSQL(
+            "CREATE TABLE sleep_labels (session_key TEXT PRIMARY KEY, onset TEXT NOT NULL, wake TEXT NOT NULL, kind TEXT NOT NULL, " +
+                "band_onset TEXT NOT NULL, band_wake TEXT NOT NULL, shown_source TEXT NOT NULL, created_at INTEGER NOT NULL)"
+        )
+        db.writableDatabase.execSQL(
+            "INSERT INTO sleep_labels VALUES ('2026-11-13T00:05', '2026-11-13T01:30+02:00', '2026-11-13T05:50+02:00', 'EDITED', " +
+                "'2026-11-13T00:05+02:00', '2026-11-13T09:44+02:00', 'BAND', 1)"
+        )
+        db.writableDatabase.version = 5
+        db.close()
+        val reopened = LocalHealthDatabase(context)
+        val l = reopened.getAllSleepLabels().single()
+        assertEquals(LabelKind.EDITED, l.kind)
+        assertEquals(emptyList<Pair<OffsetDateTime, OffsetDateTime>>(), l.awake)
+        assertEquals(LocalHealthDatabase.DB_VERSION, reopened.readableDatabase.version)
+        reopened.close()
+    }
+
+    @Test
     fun v3UpgradeKeepsRowsAndAddsLabels() {
         db.upsertHrRecords(listOf(HrRecord("2026-11-12T04:00:00", 50, "a")))
         db.writableDatabase.execSQL("DROP TABLE sleep_labels")

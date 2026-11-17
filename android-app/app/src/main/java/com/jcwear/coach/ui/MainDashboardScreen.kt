@@ -1,5 +1,7 @@
 package com.jcwear.coach.ui
 
+import com.jcwear.coach.domain.Status
+import com.jcwear.coach.domain.unitSystemOf
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -177,7 +179,7 @@ fun MainDashboardScreen(
                 .background(HealthColors.BgDeep)
                 .padding(16.dp)
         ) {
-            Text("Loading your data…", color = HealthColors.TextSecondary, fontSize = 13.sp)
+            Text("Loading your data…", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
         }
         return
     }
@@ -197,10 +199,12 @@ fun MainDashboardScreen(
     // Coach and backup get real days only, newest first.
     val recentReal = days.filter { it.hasData }.reversed().take(30)
 
+    CompositionLocalProvider(LocalUnitSystem provides unitSystemOf(useMetricUnits)) {
+    WeightLogScope(viewModel, days, settings.weightKg) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(colors = listOf(HealthColors.BgDeep, HealthColors.BgNavy)))
+            .background(HealthColors.BgDeep)
             .nestedScroll(pullState.nestedScrollConnection)
     ) {
         Column(
@@ -212,7 +216,7 @@ fun MainDashboardScreen(
         ) {
             if (loadFailed) {
                 HealthCard(onClick = { viewModel.refresh() }) {
-                    Text("Couldn't load data · Retry", color = HealthColors.ScoreCoral, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Couldn't load data · Retry", color = HealthColors.ScoreCoral, fontSize = HealthType.Small, fontWeight = FontWeight.Medium)
                 }
             }
             when {
@@ -310,7 +314,7 @@ fun MainDashboardScreen(
                     CoachTabView(
                         messages = chatMessages,
                         recoveryChip = today.recovery?.let { r ->
-                            MetricInsights.chip(Metrics.recovery, days, today.date).let { (t, st) -> "Recovery $r · $t" to st }
+                            MetricInsights.chip(Metrics.recovery, days, today.date, unitSystemOf(useMetricUnits)).let { (t, _) -> "Recovery $r · $t" to Status.NORMAL }
                         },
                         inputText = customCoachInput,
                         onInputChange = { customCoachInput = it },
@@ -460,6 +464,8 @@ fun MainDashboardScreen(
                 onDismiss = { activeSheet = ActiveSheet.NONE }
             )
         }
+    }
+    }
     }
 }
 

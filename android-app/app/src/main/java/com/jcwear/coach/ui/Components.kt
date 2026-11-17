@@ -82,8 +82,7 @@ internal fun HealthCard(
             .fillMaxWidth()
             .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
         color = HealthColors.BgCard,
-        shape = RoundedCornerShape(20.dp),
-        border = BorderStroke(1.dp, HealthColors.BorderHairline)
+        shape = HealthShapes.Panel
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -101,7 +100,7 @@ internal fun AmberActionButton(
     Box(
         modifier = modifier
             .heightIn(min = 48.dp)
-            .clip(RoundedCornerShape(14.dp))
+            .clip(HealthShapes.Panel)
             .background(HealthColors.AccentAmber)
             .clickable { onClick() }
             .padding(horizontal = 14.dp),
@@ -110,8 +109,8 @@ internal fun AmberActionButton(
         Text(
             text = text,
             color = HealthColors.TextInverse,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
+            fontSize = HealthType.Small,
+            fontWeight = FontWeight.SemiBold,
             maxLines = 1
         )
     }
@@ -126,9 +125,8 @@ internal fun SecondaryActionButton(
     Box(
         modifier = modifier
             .heightIn(min = 48.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color(0x12FFFFFF))
-            .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(14.dp))
+            .clip(HealthShapes.Panel)
+            .background(HealthColors.FillSubtle)
             .clickable { onClick() }
             .padding(horizontal = 14.dp),
         contentAlignment = Alignment.Center
@@ -136,61 +134,32 @@ internal fun SecondaryActionButton(
         Text(
             text = text,
             color = HealthColors.TextPrimary,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1
-        )
-    }
-}
-
-@Composable
-internal fun ContextChip(
-    text: String,
-    score: Int
-) {
-    val (bg, fg) = when {
-        score >= 70 -> Color(0x2434D399) to Color(0xFF6EE7B7)
-        score >= 40 -> Color(0x26FBBF24) to Color(0xFFFDE68A)
-        else -> Color(0x29FB7185) to Color(0xFFFDA4AF)
-    }
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(bg)
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-    ) {
-        Text(
-            text = text,
-            color = fg,
-            fontSize = 13.sp,
+            fontSize = HealthType.Small,
             fontWeight = FontWeight.Medium,
             maxLines = 1
         )
     }
 }
 
-/** Chip colored by status: green good, coral bad, grey normal/neutral (D2: color has one meaning). */
+/** Status as a dot and text, no fill: green good, coral bad, grey normal/neutral (D2: color has one meaning). */
 @Composable
 internal fun StatusChip(text: String, status: Status) {
-    val (bg, fg) = when (status) {
-        Status.GOOD -> Color(0x2434D399) to Color(0xFF6EE7B7)
-        Status.BAD -> Color(0x29FB7185) to Color(0xFFFDA4AF)
-        else -> Color(0x14FFFFFF) to HealthColors.TextSecondary
+    val (dot, fg) = when (status) {
+        Status.GOOD -> HealthColors.ScoreGreen to HealthColors.GoodText
+        Status.BAD -> HealthColors.ScoreCoral to HealthColors.BadText
+        else -> HealthColors.TextSecondary to HealthColors.TextSecondary
     }
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(bg)
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-    ) {
-        Text(text = text, color = fg, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Box(Modifier.size(6.dp).clip(CircleShape).background(dot))
+        Text(text = text, color = fg, fontSize = HealthType.Small, fontWeight = FontWeight.Medium, maxLines = 1)
     }
 }
 
 @Composable
-internal fun InsightChip(def: MetricDef, days: List<DayMetrics>, day: DayMetrics) {
-    val (text, status) = MetricInsights.chip(def, days, day.date)
-    StatusChip(text, status)
+/** [neutral]: next to a score bar, which already carries the colour, so the two never disagree. */
+internal fun InsightChip(def: MetricDef, days: List<DayMetrics>, day: DayMetrics, neutral: Boolean = false) {
+    val (text, status) = MetricInsights.chip(def, days, day.date, LocalUnitSystem.current)
+    StatusChip(text, if (neutral) Status.NORMAL else status)
 }
 
 /** Today's sync status; the only spinner in the app (DS3). Announced politely to TalkBack. */
@@ -200,16 +169,16 @@ internal fun SyncPill(text: String, attention: Boolean, syncing: Boolean, onClic
     Row(
         modifier = Modifier
             .heightIn(min = 48.dp)
-            .clip(RoundedCornerShape(24.dp))
-            .background(if (attention) Color(0x26FBBF24) else Color(0x12FFFFFF))
+            .clip(HealthShapes.Panel)
+            .background(if (attention) HealthColors.WarnBg else Color.Transparent)
             .clickable(enabled = !syncing) { onClick() }
             .semantics { liveRegion = LiveRegionMode.Polite }
-            .padding(horizontal = 14.dp),
+            .padding(horizontal = if (attention) 14.dp else 0.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         if (syncing) CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = fg)
-        Text(text, color = fg, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        Text(text, color = fg, fontSize = HealthType.Small, fontWeight = FontWeight.Medium, maxLines = 1)
     }
 }
 
@@ -238,60 +207,26 @@ internal fun BatteryBadge(pct: Int?) {
         }
         Text(
             text = pct?.let { if (low) "$it% · Charge your band" else "$it%" } ?: "—",
-            color = color, fontSize = 13.sp, fontWeight = FontWeight.SemiBold
+            color = color, fontSize = HealthType.Small, fontWeight = FontWeight.Medium
         )
     }
 }
 
-/** A null score draws only the empty track (no data). */
+/** The score as a large number over a thin level bar; a null score shows "—" over the empty track. */
 @Composable
-internal fun ScoreRingGauge(
+internal fun ScoreGauge(
     score: Int?,
     size: Dp,
-    showRadialGlow: Boolean,
     text: String? = score?.toString(),
     label: String? = null
 ) {
-    val ringColor = score?.let { HealthColors.forScore(it) } ?: HealthColors.TextSecondary
-    Box(
-        modifier = Modifier.requiredSize(if (showRadialGlow) size + 16.dp else size),
-        contentAlignment = Alignment.Center
-    ) {
-        Canvas(modifier = Modifier.size(size)) {
-            if (showRadialGlow) {
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(ringColor.copy(alpha = 0.25f), Color.Transparent)
-                    ),
-                    radius = this.size.minDimension * 0.72f
-                )
-            }
-            val stroke = if (size >= 70.dp) 7.dp.toPx() else 6.dp.toPx()
-            val pad = stroke / 2f + 2.dp.toPx()
-            val arcSize = Size(this.size.width - pad * 2, this.size.height - pad * 2)
-            drawArc(
-                color = Color(0x14FFFFFF),
-                startAngle = 0f,
-                sweepAngle = 360f,
-                useCenter = false,
-                topLeft = Offset(pad, pad),
-                size = arcSize,
-                style = Stroke(width = stroke)
-            )
-            drawArc(
-                color = ringColor,
-                startAngle = -90f,
-                sweepAngle = ((score ?: 0).coerceIn(0, 100) / 100f) * 360f,
-                useCenter = false,
-                topLeft = Offset(pad, pad),
-                size = arcSize,
-                style = Stroke(width = stroke, cap = StrokeCap.Round)
-            )
-        }
-        // Plan 3.1: the number lives inside the ring, white for contrast
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text ?: "—", color = HealthColors.TextPrimary, fontSize = (size.value * 0.3f).sp, fontWeight = FontWeight.Bold)
-            label?.let { Text(it, color = HealthColors.TextSecondary, fontSize = 11.sp) }
+    val barColor = score?.let { HealthColors.forScore(it) } ?: HealthColors.TextSecondary
+    Column(modifier = Modifier.width(size), horizontalAlignment = Alignment.End) {
+        label?.let { Text(it, color = HealthColors.TextSecondary, fontSize = HealthType.Caption) }
+        Text(text ?: "—", color = HealthColors.TextPrimary, fontSize = (size.value * 0.4f).sp, fontWeight = FontWeight.Medium, maxLines = 1)
+        Canvas(modifier = Modifier.fillMaxWidth().height(3.dp)) {
+            drawRect(HealthColors.Track)
+            drawRect(barColor, size = Size(this.size.width * (score ?: 0).coerceIn(0, 100) / 100f, this.size.height))
         }
     }
 }
@@ -310,15 +245,15 @@ internal fun SubMetricBarRow(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(HealthShapes.Panel)
             .clickable { onClick() }
             .padding(horizontal = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-            Text(contextText, color = HealthColors.TextSecondary, fontSize = 13.sp)
+            Text(title, color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+            Text(contextText, color = HealthColors.TextSecondary, fontSize = HealthType.Small)
         }
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -328,30 +263,27 @@ internal fun SubMetricBarRow(
                 val w = size.width
                 val h = size.height
                 drawRoundRect(
-                    color = Color(0x14FFFFFF),
+                    color = HealthColors.Track,
                     topLeft = Offset(0f, h * 0.2f),
                     size = Size(w, h * 0.6f),
-                    cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
                 )
                 if (normalMin != null && normalMax != null) {
                     val nLeft = (normalMin.coerceIn(0, 100) / 100f) * w
                     val nWidth = ((normalMax.coerceIn(0, 100) - normalMin.coerceIn(0, 100)) / 100f) * w
                     drawRoundRect(
-                        color = Color(0x29FFFFFF),
+                        color = HealthColors.NormalBand,
                         topLeft = Offset(nLeft, 0f),
                         size = Size(nWidth, h),
-                        cornerRadius = CornerRadius(3.dp.toPx(), 3.dp.toPx())
                     )
                 }
                 if (score != null) drawRoundRect(
                     color = barColor,
                     topLeft = Offset(0f, h * 0.2f),
                     size = Size((score / 100f).coerceIn(0.08f, 1f) * w, h * 0.6f),
-                    cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
                 )
             }
-            Text(score?.toString() ?: "—", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-            Text("›", color = HealthColors.TextSecondary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(score?.toString() ?: "—", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+            Text("›", color = HealthColors.TextSecondary, fontSize = HealthType.Body, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -371,7 +303,7 @@ internal fun SparklineVitalRow(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 52.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(HealthShapes.Panel)
             .clickable { onClick() }
             .padding(horizontal = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -379,14 +311,14 @@ internal fun SparklineVitalRow(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(title, color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                Text(unit, color = HealthColors.TextSecondary, fontSize = 13.sp)
+                Text(title, color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+                Text(unit, color = HealthColors.TextSecondary, fontSize = HealthType.Small)
             }
-            Text(contextText, color = HealthColors.TextSecondary, fontSize = 13.sp)
+            Text(contextText, color = HealthColors.TextSecondary, fontSize = HealthType.Small)
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             MiniSparklineCanvas(values = values, normalMin = normalMin, normalMax = normalMax, color = lineColor)
-            Text("›", color = HealthColors.TextSecondary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text("›", color = HealthColors.TextSecondary, fontSize = HealthType.Body, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -414,10 +346,9 @@ internal fun MiniSparklineCanvas(
             val topY = yFor(normalMax)
             val botY = yFor(normalMin)
             drawRoundRect(
-                color = Color(0x12FFFFFF),
+                color = HealthColors.FillSubtle,
                 topLeft = Offset(0f, topY),
                 size = Size(w, (botY - topY).coerceAtLeast(4.dp.toPx())),
-                cornerRadius = CornerRadius(3.dp.toPx(), 3.dp.toPx())
             )
         }
         val path = Path()
@@ -449,7 +380,7 @@ internal fun BottomNavBar(
         modifier = modifier
             .fillMaxWidth()
             .height(64.dp),
-        color = Color(0xF50B1020),
+        color = HealthColors.NavBar,
         border = BorderStroke(1.dp, HealthColors.BorderHairline)
     ) {
         Row(
@@ -476,15 +407,15 @@ internal fun BottomNavBar(
                     Box(
                         modifier = Modifier
                             .size(width = 24.dp, height = 4.dp)
-                            .clip(RoundedCornerShape(2.dp))
+                            .clip(HealthShapes.Small)
                             .background(if (active) HealthColors.AccentAmber else Color.Transparent)
                     )
                     Spacer(Modifier.height(6.dp))
                     Text(
                         text = label,
                         color = if (active) HealthColors.AccentAmber else HealthColors.TextSecondary,
-                        fontSize = 13.sp,
-                        fontWeight = if (active) FontWeight.Bold else FontWeight.Medium
+                        fontSize = HealthType.Small,
+                        fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium
                     )
                 }
             }
@@ -511,7 +442,7 @@ internal fun BottomSheetOverlay(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xB8060914))
+            .background(HealthColors.Scrim)
             .clickable { onDismiss() },
         contentAlignment = Alignment.BottomCenter
     ) {
@@ -520,9 +451,8 @@ internal fun BottomSheetOverlay(
                 .fillMaxWidth()
                 .clickable(enabled = false) {},
             color = HealthColors.BgCard,
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-            border = BorderStroke(1.dp, Color(0x1FFFFFFF))
-        ) {
+            shape = HealthShapes.Sheet,
+            ) {
             Column(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -534,11 +464,11 @@ internal fun BottomSheetOverlay(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Band Connection", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Band Connection", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
                             Text(
                                 text = "✕",
                                 color = HealthColors.TextSecondary,
-                                fontSize = 16.sp,
+                                fontSize = HealthType.Body,
                                 modifier = Modifier
                                     .size(48.dp)
                                     .clickable { onDismiss() }
@@ -548,14 +478,14 @@ internal fun BottomSheetOverlay(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(16.dp))
+                                .clip(HealthShapes.Panel)
                                 .background(HealthColors.BgDeep)
                                 .padding(14.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Text(syncStatusText, color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                            Text(connectionState, color = HealthColors.TextSecondary, fontSize = 13.sp)
-                            Text("Battery ${batteryPct?.let { "$it%" } ?: "—"}", color = HealthColors.TextSecondary, fontSize = 13.sp)
+                            Text(syncStatusText, color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+                            Text(connectionState, color = HealthColors.TextSecondary, fontSize = HealthType.Small)
+                            Text("Battery ${batteryPct?.let { "$it%" } ?: "—"}", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
                         }
                         AmberActionButton(
                             text = "Sync band",
@@ -570,33 +500,34 @@ internal fun BottomSheetOverlay(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Why this verdict", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Why this verdict", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
                             Text(
                                 text = "✕",
                                 color = HealthColors.TextSecondary,
-                                fontSize = 16.sp,
+                                fontSize = HealthType.Body,
                                 modifier = Modifier
                                     .size(48.dp)
                                     .clickable { onDismiss() }
                                     .wrapContentSize(Alignment.Center)
                             )
                         }
+                        val units = LocalUnitSystem.current
                         val reasons = listOf(Metrics.hrv, Metrics.rhr, Metrics.sleep).map { def ->
                             val v = def.extract(day)
-                            "${def.label} ${v?.let { def.format(it) } ?: "not recorded"}" to
-                                (if (v == null) "No data" to Status.NORMAL else MetricInsights.chip(def, days, day.date))
+                            "${def.label} ${v?.let { def.format(it, units) } ?: "not recorded"}" to
+                                (if (v == null) "No data" to Status.NORMAL else MetricInsights.chip(def, days, day.date, units))
                         }
                         reasons.forEach { (left, chip) ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(14.dp))
+                                    .clip(HealthShapes.Panel)
                                     .background(HealthColors.BgDeep)
                                     .padding(12.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(left, color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                                Text(left, color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
                                 StatusChip(chip.first, chip.second)
                             }
                         }
@@ -614,13 +545,13 @@ internal fun BottomSheetOverlay(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column {
-                                Text("Recent 14 Days", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                                Text("Tap any day to open its Today view", color = HealthColors.TextSecondary, fontSize = 13.sp)
+                                Text("Recent 14 Days", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+                                Text("Tap any day to open its Today view", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
                             }
                             Text(
                                 text = "✕",
                                 color = HealthColors.TextSecondary,
-                                fontSize = 16.sp,
+                                fontSize = HealthType.Body,
                                 modifier = Modifier
                                     .size(48.dp)
                                     .clickable { onDismiss() }
@@ -641,13 +572,13 @@ internal fun BottomSheetOverlay(
                                             modifier = Modifier
                                                 .weight(1f)
                                                 .height(48.dp)
-                                                .clip(RoundedCornerShape(12.dp))
-                                                .background(Color(0x0DFFFFFF))
+                                                .clip(HealthShapes.Panel)
+                                                .background(HealthColors.FillFaint)
                                                 .clickable { onSelectHistoryDay(firstIdx + row * 7 + col) },
                                             horizontalAlignment = Alignment.CenterHorizontally,
                                             verticalArrangement = Arrangement.Center
                                         ) {
-                                            Text("${pt.date.dayOfMonth}", color = HealthColors.TextPrimary, fontSize = 13.sp)
+                                            Text("${pt.date.dayOfMonth}", color = HealthColors.TextPrimary, fontSize = HealthType.Small)
                                             Spacer(Modifier.height(4.dp))
                                             Box(
                                                 modifier = Modifier
@@ -666,7 +597,7 @@ internal fun BottomSheetOverlay(
                         var draftUrl by remember { mutableStateOf(homelabUrl) }
                         var draftToken by remember { mutableStateOf(homelabToken) }
                         var draftKey by remember { mutableStateOf(anthropicKey) }
-                        Text("Home server", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Home server", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
                         OutlinedTextField(
                             value = draftUrl,
                             onValueChange = { draftUrl = it },
@@ -681,6 +612,10 @@ internal fun BottomSheetOverlay(
                             singleLine = true,
                             visualTransformation = PasswordVisualTransformation(),
                             modifier = Modifier.fillMaxWidth()
+                        )
+                        Text(
+                            "Sends weight and skin temperature to Anthropic with your other metrics.",
+                            color = HealthColors.TextSecondary, fontSize = HealthType.Small
                         )
                         OutlinedTextField(
                             value = draftKey,

@@ -1,7 +1,9 @@
 package com.jcwear.coach.ui
 
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -111,21 +113,20 @@ internal fun SettingsTabView(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column {
-            Text("Settings", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-            Text("Band & local server", color = HealthColors.TextSecondary, fontSize = 13.sp)
+            Text("Settings", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+            Text("Band & local server", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
         }
     }
 
     // Profile (plan 3.3): greeting, distance and calorie estimates. Saved as you type, once valid.
     HealthCard {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Profile", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text("Profile", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
             ProfileField("Name", profileName, KeyboardType.Text, { true }, onSaveName)
             key(useMetricUnits) { // re-seed the fields in the new unit
                 ProfileField(if (useMetricUnits) "Height (cm)" else "Height (in)", heightText, KeyboardType.Number,
                     { parseHeightCm(it, useMetricUnits) != null }, onSaveHeight)
-                ProfileField(if (useMetricUnits) "Weight (kg)" else "Weight (lb)", weightText, KeyboardType.Number,
-                    { parseWeightKg(it, useMetricUnits) != null }, onSaveWeight)
+                WeightProfileRow() // R5: weight is logged with a date; the old profile value is only the calorie fallback
             }
         }
     }
@@ -139,22 +140,36 @@ internal fun SettingsTabView(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Band", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                    Text(syncStatusText, color = HealthColors.TextSecondary, fontSize = 13.sp)
-                    Text(connectionState, color = HealthColors.TextSecondary, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text("Band", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+                    Text(syncStatusText, color = HealthColors.TextSecondary, fontSize = HealthType.Small)
+                    Text(connectionState, color = HealthColors.TextSecondary, fontSize = HealthType.Small, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 BatteryBadge(batteryPct)
             }
-            bandNote?.let { Text(it, color = HealthColors.ScoreAmber, fontSize = 13.sp) }
+            bandNote?.let { Text(it, color = HealthColors.ScoreAmber, fontSize = HealthType.Small) }
             if (companionPaired) {
-                Text("Background sync every 30 min", color = HealthColors.TextSecondary, fontSize = 13.sp)
+                Text("Background sync every 30 min", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
             } else {
-                Text("Pair as companion so the band also syncs in the background.", color = HealthColors.TextSecondary, fontSize = 13.sp)
+                Text("Pair as companion so the band also syncs in the background.", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
                 AmberActionButton(text = "Pair as companion", onClick = onPairCompanion)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SecondaryActionButton(text = "Sync now", onClick = onOpenSyncSheet)
-                SecondaryActionButton(text = "Forget band", onClick = onForgetBand)
+                var confirmForget by remember { mutableStateOf(false) }
+                Box(
+                    modifier = Modifier.heightIn(min = 48.dp).clickable { confirmForget = true }.padding(horizontal = 14.dp),
+                    contentAlignment = Alignment.Center
+                ) { Text("Forget band", color = HealthColors.ScoreCoral, fontSize = HealthType.Small, fontWeight = FontWeight.Medium) }
+                if (confirmForget) AlertDialog(
+                    onDismissRequest = { confirmForget = false },
+                    shape = HealthShapes.Panel,
+                    title = { Text("Forget this band?") },
+                    text = { Text("It disconnects now. The next sync pairs with the first J2208 band it finds.") },
+                    confirmButton = {
+                        TextButton(onClick = { confirmForget = false; onForgetBand() }) { Text("Forget band", color = HealthColors.ScoreCoral) }
+                    },
+                    dismissButton = { TextButton(onClick = { confirmForget = false }) { Text("Cancel") } }
+                )
             }
         }
     }
@@ -168,9 +183,9 @@ internal fun SettingsTabView(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Backup to home server", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                    Text(lastBackupText, color = HealthColors.TextSecondary, fontSize = 13.sp)
-                    if (cleanupPending) Text("Finishing data cleanup…", color = HealthColors.TextSecondary, fontSize = 13.sp)
+                    Text("Backup to home server", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+                    Text(lastBackupText, color = HealthColors.TextSecondary, fontSize = HealthType.Small)
+                    if (cleanupPending) Text("Finishing data cleanup…", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
                 }
                 SecondaryActionButton(text = "Back up now", onClick = onBackupNow)
             }
@@ -183,12 +198,12 @@ internal fun SettingsTabView(
                 Text(
                     "Server · ${homelabUrl.ifBlank { "not set" }}",
                     color = HealthColors.TextSecondary,
-                    fontSize = 13.sp,
+                    fontSize = HealthType.Small,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
-                Text("Edit", color = HealthColors.AccentAmber, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text("Edit", color = HealthColors.AccentAmber, fontSize = HealthType.Small, fontWeight = FontWeight.Medium)
             }
         }
     }
@@ -196,11 +211,11 @@ internal fun SettingsTabView(
     // Recent syncs (D13)
     HealthCard {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("Recent syncs", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text("Recent syncs", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
             if (recentSyncs.isEmpty()) {
-                Text("No syncs yet. Open the app near your band.", color = HealthColors.TextSecondary, fontSize = 13.sp)
+                Text("No syncs yet. Open the app near your band.", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
             }
-            recentSyncs.forEach { Text(it, color = HealthColors.TextSecondary, fontSize = 13.sp) }
+            recentSyncs.forEach { Text(it, color = HealthColors.TextSecondary, fontSize = HealthType.Small) }
         }
     }
 
@@ -212,11 +227,11 @@ internal fun SettingsTabView(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text("Units", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                Text("Distance and temperature", color = HealthColors.TextSecondary, fontSize = 13.sp)
+                Text("Units", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+                Text("Distance, weight, temperature", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
             }
             SecondaryActionButton(
-                text = if (useMetricUnits) "Metric · km, °C" else "Imperial · mi, °F",
+                text = if (useMetricUnits) "Metric · km, kg and °C" else "Imperial · mi, lb and °F",
                 onClick = onToggleUnits
             )
         }
@@ -230,10 +245,10 @@ internal fun SettingsTabView(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Data", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Text("Data", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
                 Text(
                     exportStatus ?: "CSV zip of all band data. Saved in app cache until shared; share it to keep it.",
-                    color = HealthColors.TextSecondary, fontSize = 13.sp
+                    color = HealthColors.TextSecondary, fontSize = HealthType.Small
                 )
             }
             SecondaryActionButton(text = "Export all data", onClick = onExportAll)
@@ -248,8 +263,8 @@ internal fun SettingsTabView(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Morning summary", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                Text("One notification when your scores are ready", color = HealthColors.TextSecondary, fontSize = 13.sp)
+                Text("Morning summary", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+                Text("One notification when your scores are ready", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
             }
             SecondaryActionButton(text = if (morningNotifyOn) "On" else "Off", onClick = onToggleMorningNotify)
         }
@@ -264,8 +279,8 @@ internal fun SettingsTabView(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Bedtime reminder", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                    Text(bedtime.status.ifBlank { "30 min before your usual bedtime" }, color = HealthColors.TextSecondary, fontSize = 13.sp)
+                    Text("Bedtime reminder", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+                    Text(bedtime.status.ifBlank { "30 min before your usual bedtime" }, color = HealthColors.TextSecondary, fontSize = HealthType.Small)
                 }
                 SecondaryActionButton(text = if (bedtime.on) "On" else "Off", onClick = bedtime.onToggle)
             }
@@ -274,7 +289,7 @@ internal fun SettingsTabView(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Latest bedtime ${bedtime.latest}", color = HealthColors.TextSecondary, fontSize = 13.sp, modifier = Modifier.weight(1f))
+                Text("Latest bedtime ${bedtime.latest}", color = HealthColors.TextSecondary, fontSize = HealthType.Small, modifier = Modifier.weight(1f))
                 SecondaryActionButton(text = "−15 min", onClick = { bedtime.onShiftLatest(-15) })
                 SecondaryActionButton(text = "+15 min", onClick = { bedtime.onShiftLatest(15) })
             }
@@ -288,7 +303,7 @@ internal fun SettingsTabView(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("About Health++", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text("About Health++", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
             StatusChip("$historyDays days of band data", com.jcwear.coach.domain.Status.NORMAL)
         }
     }

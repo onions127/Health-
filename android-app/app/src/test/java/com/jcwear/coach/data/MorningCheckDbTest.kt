@@ -78,7 +78,7 @@ class MorningCheckDbTest {
     fun freshInstallHasBothV5Tables() {
         val d = open()
         assertTrue(tables(d).containsAll(listOf("morning_checks", "weight_logs", "sleep_labels")))
-        assertEquals(5, d.readableDatabase.version)
+        assertEquals(LocalHealthDatabase.DB_VERSION, d.readableDatabase.version)
     }
 
     @Test
@@ -107,7 +107,7 @@ class MorningCheckDbTest {
         // What the v4 build does to a v5 file: its no-op onDowngrade leaves the tables and stamps version 4.
         SQLiteDatabase.openDatabase(context.getDatabasePath(DB_NAME).path, null, SQLiteDatabase.OPEN_READWRITE).use { it.version = 4 }
         assertEquals(mapOf(day to check), open().getAllMorningChecks())
-        assertEquals(5, db!!.readableDatabase.version)
+        assertEquals(LocalHealthDatabase.DB_VERSION, db!!.readableDatabase.version)
     }
 
     /** A database file as the v3 / v4 builds wrote it, with one heart-rate row (and one sleep label on v4). */

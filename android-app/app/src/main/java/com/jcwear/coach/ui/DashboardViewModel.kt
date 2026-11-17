@@ -24,7 +24,8 @@ import java.time.LocalDate
 /** Loads dashboard data off the main thread; null until the first load finishes. */
 class DashboardViewModel(
     private val database: LocalHealthDatabase,
-    private val bleManager: J2208BleManager
+    private val bleManager: J2208BleManager,
+    private val settings: com.jcwear.coach.data.AppSettings
 ) : ViewModel() {
 
     private val refreshTick = MutableStateFlow(0)
@@ -38,7 +39,11 @@ class DashboardViewModel(
             // mapLatest drops a stale load when a newer refresh arrives
             .mapLatest {
                 try {
-                    withContext(Dispatchers.IO) { buildDashboardState(database, LocalDate.now()) }
+                    withContext(Dispatchers.IO) {
+                        val t0 = System.nanoTime()
+                        buildDashboardState(database, LocalDate.now(), settings.heightCm, settings.weightKg)
+                            .also { Log.i("DashboardViewModel", "series_load_ms=${(System.nanoTime() - t0) / 1_000_000} days=${it.size}") }
+                    }
                         .also { last = it; _loadFailed.value = false }
                 } catch (e: SQLiteException) {
                     Log.e("DashboardViewModel", "Load failed; keeping last good state", e)
@@ -64,6 +69,13 @@ class DashboardViewModel(
     suspend fun exportAll(cacheDir: java.io.File, days: List<DayMetrics>): java.io.File = withContext(Dispatchers.IO) {
         CsvExporter(database, java.io.File(cacheDir, "exports")).export(days, LocalDate.now())
     }
+
+    /** R5: true when the row was written; the dashboard reloads on success. */
+    suspend fun putWeight(date: LocalDate, log: com.jcwear.coach.domain.WeightLog): Boolean =
+        withContext(Dispatchers.IO) { database.putWeight(date, log) }.also { if (it) refresh() }
+
+    suspend fun deleteWeight(date: LocalDate): Boolean =
+        withContext(Dispatchers.IO) { database.deleteWeight(date) }.also { if (it) refresh() }
 
     fun saveLabel(label: SleepLabel) {
         viewModelScope.launch(Dispatchers.IO) {

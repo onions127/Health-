@@ -21,7 +21,9 @@ data class SleepLabel(
     val bandOnset: OffsetDateTime,
     val bandWake: OffsetDateTime,
     val shownSource: Provenance,
-    val createdAt: Long
+    val createdAt: Long,
+    /** W2: periods the user was awake inside an EDITED night (sorted, merged, inside onset..wake). */
+    val awake: List<Pair<OffsetDateTime, OffsetDateTime>> = emptyList()
 )
 
 /** A label for the night as the user saw it; [onset]/[wake] are the user's times (the shown ones for CONFIRMED). */
@@ -31,7 +33,8 @@ fun labelFor(
     onset: LocalDateTime,
     wake: LocalDateTime,
     zone: ZoneId = ZoneId.systemDefault(),
-    now: Long = System.currentTimeMillis()
+    now: Long = System.currentTimeMillis(),
+    awake: List<Pair<LocalDateTime, LocalDateTime>> = emptyList()
 ): SleepLabel = SleepLabel(
     sessionKey = s.sessionKey,
     onset = onset.atZone(zone).toOffsetDateTime(),
@@ -40,7 +43,8 @@ fun labelFor(
     bandOnset = s.bandStartTime.atZone(zone).toOffsetDateTime(),
     bandWake = s.bandEndTime.atZone(zone).toOffsetDateTime(),
     shownSource = if (s.provenance == Provenance.ADJUSTED) Provenance.ADJUSTED else Provenance.BAND,
-    createdAt = now
+    createdAt = now,
+    awake = awake.map { (a, b) -> a.atZone(zone).toOffsetDateTime() to b.atZone(zone).toOffsetDateTime() }
 )
 
 /** Exact key match first; else the session the label overlaps most (a stitch-rule change can move a start). */
@@ -66,7 +70,10 @@ fun applyLabels(sessions: List<StitchedSleepSession>, labels: List<SleepLabel>, 
         val target = matchSession(out, label.sessionKey, onset, wake) ?: continue
         val i = out.indexOf(target)
         out[i] = when (label.kind) {
-            LabelKind.EDITED -> SleepAndReadinessEngine.applyEditedWindow(target, onset, wake)
+            LabelKind.EDITED -> SleepAndReadinessEngine.applyEditedWindow(
+                target, onset, wake,
+                label.awake.map { (a, b) -> a.atZoneSameInstant(zone).toLocalDateTime() to b.atZoneSameInstant(zone).toLocalDateTime() }
+            )
             LabelKind.CONFIRMED -> target.copy(confirmed = true)
         }
     }
@@ -86,6 +93,26 @@ fun anchorEdit(bandOnset: LocalDateTime, onset: LocalTime, wake: LocalTime): Pai
     return onsetAt to wakeAt
 }
 
+/** W2: an awake period's picked times, placed in the night: from = first instant at or after [onset], to = first after from. */
+fun anchorAwake(onset: LocalDateTime, from: LocalTime, to: LocalTime): Pair<LocalDateTime, LocalDateTime> {
+    var a = onset.toLocalDate().atTime(from)
+    if (a.isBefore(onset)) a = a.plusDays(1)
+    var b = a.toLocalDate().atTime(to)
+    if (!b.isAfter(a)) b = b.plusDays(1)
+    return a to b
+}
+
+/** Sorted, with overlapping or touching periods joined. */
+fun mergeAwake(periods: List<Pair<LocalDateTime, LocalDateTime>>): List<Pair<LocalDateTime, LocalDateTime>> {
+    val out = mutableListOf<Pair<LocalDateTime, LocalDateTime>>()
+    for (p in periods.sortedBy { it.first }) {
+        val last = out.lastOrNull()
+        if (last != null && !p.first.isAfter(last.second)) out[out.lastIndex] = last.first to maxOf(last.second, p.second)
+        else out += p
+    }
+    return out
+}
+
 sealed interface EditCheck {
     data object Ok : EditCheck
     /** Saveable after the user confirms. */
@@ -95,10 +122,13 @@ sealed interface EditCheck {
 
 const val MAX_NIGHT_MIN = 16 * 60
 
-fun checkEdit(onset: LocalDateTime, wake: LocalDateTime): EditCheck {
+/** [awake] must already be anchored ([anchorAwake]) and merged ([mergeAwake]). */
+fun checkEdit(onset: LocalDateTime, wake: LocalDateTime, awake: List<Pair<LocalDateTime, LocalDateTime>> = emptyList()): EditCheck {
     if (!wake.isAfter(onset)) return EditCheck.Invalid("Woke must be after Fell asleep.")
     val min = Duration.between(onset, wake).toMinutes()
     if (min > MAX_NIGHT_MIN) return EditCheck.Invalid("Night is ${min / 60}h ${min % 60}m; maximum is 16h.")
+    if (awake.any { it.second.isAfter(wake) }) return EditCheck.Invalid("Awake times must be between Fell asleep and Woke.")
+    if (awake.sumOf { Duration.between(it.first, it.second).toMinutes() } >= min) return EditCheck.Invalid("No sleep left in this night.")
     if (!SleepAndReadinessEngine.isMainSleepCandidate(onset.toLocalTime())) {
         return EditCheck.Confirm("Outside usual night hours. Save anyway?")
     }

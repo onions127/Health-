@@ -78,8 +78,8 @@ internal fun CoachTabView(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column {
-            Text("Coach", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-            Text("Grounded in your own normal", color = HealthColors.TextSecondary, fontSize = 13.sp)
+            Text("Coach", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+            Text("Grounded in your own normal", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
         }
         recoveryChip?.let { StatusChip(it.first, it.second) }
     }
@@ -97,15 +97,14 @@ internal fun CoachTabView(
             ) {
                 Surface(
                     color = if (isUser) HealthColors.AccentAmber else HealthColors.BgCard,
-                    shape = RoundedCornerShape(18.dp),
-                    border = BorderStroke(1.dp, HealthColors.BorderHairline),
+                    shape = HealthShapes.Panel,
                     modifier = Modifier.widthIn(max = 296.dp)
                 ) {
                     Text(
                         text = msg.content,
                         color = if (isUser) HealthColors.TextInverse else HealthColors.TextPrimary,
-                        fontSize = if (isUser) 16.sp else 13.sp,
-                        fontWeight = if (isUser) FontWeight.SemiBold else FontWeight.Medium,
+                        fontSize = if (isUser) HealthType.Body else HealthType.Small,
+                        fontWeight = if (isUser) FontWeight.Medium else FontWeight.Medium,
                         modifier = Modifier.padding(14.dp)
                     )
                 }
@@ -120,7 +119,7 @@ internal fun CoachTabView(
         "How was my deep sleep?"
     )
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Suggested questions", color = HealthColors.TextSecondary, fontSize = 13.sp)
+        Text("Suggested questions", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
         suggestions.forEach { q ->
             SecondaryActionButton(
                 text = q,
@@ -138,10 +137,10 @@ internal fun CoachTabView(
         OutlinedTextField(
             value = inputText,
             onValueChange = onInputChange,
-            placeholder = { Text("Ask about your recovery...", color = HealthColors.TextSecondary, fontSize = 13.sp) },
+            placeholder = { Text("Ask about your recovery…", color = HealthColors.TextSecondary, fontSize = HealthType.Small) },
             singleLine = true,
             modifier = Modifier.weight(1f),
-            shape = RoundedCornerShape(14.dp)
+            shape = HealthShapes.Panel
         )
         AmberActionButton(
             text = "Ask",
@@ -159,10 +158,10 @@ internal fun CoachTabView(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Ask in Claude Pro App ($0 API)", color = HealthColors.AccentAmber, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                Text("Copies your 14-day metrics & opens Claude", color = HealthColors.TextSecondary, fontSize = 13.sp)
+                Text("Ask in Claude Pro App ($0 API)", color = HealthColors.AccentAmber, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+                Text("Copies your 14-day metrics & opens Claude", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
             }
-            Text("↗", color = HealthColors.AccentAmber, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text("↗", color = HealthColors.AccentAmber, fontSize = HealthType.Body, fontWeight = FontWeight.SemiBold)
         }
     }
 }

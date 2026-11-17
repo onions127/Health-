@@ -15,6 +15,7 @@ import com.jcwear.coach.ble.J2208Protocol.StepEpochRecord
 import com.jcwear.coach.ble.J2208Protocol.TempRecord
 import com.jcwear.coach.domain.LabelKind
 import com.jcwear.coach.domain.MorningCheck
+import com.jcwear.coach.domain.WeightLog
 import com.jcwear.coach.domain.Provenance
 import com.jcwear.coach.domain.SleepLabel
 import org.json.JSONArray
@@ -106,6 +107,15 @@ class LocalHealthDatabase(private val appContext: Context) :
         if (oldVersion < 3) addUploadedColumns(db)
         if (oldVersion < 4) createSleepLabels(db)
         if (oldVersion < 5) createV5Tables(db)
+        if (oldVersion < 6) addAwakeColumn(db)
+    }
+
+    /** v6 (W2): awake periods inside an edited night, "onset/wake;onset/wake" in ISO offset time. Checked first: v4 creates it, and a v6 -> v5 -> v6 round trip keeps it. */
+    private fun addAwakeColumn(db: SQLiteDatabase) {
+        val has = db.rawQuery("PRAGMA table_info(sleep_labels)", null).use { c ->
+            generateSequence { if (c.moveToNext()) c.getString(1) else null }.any { it == "awake" }
+        }
+        if (!has) db.execSQL("ALTER TABLE sleep_labels ADD COLUMN awake TEXT NOT NULL DEFAULT ''")
     }
 
     /** No-op so a rollback (v5 -> v4) keeps working. Rolling back below v4 can't be helped: see the S1 checklist. */
@@ -123,7 +133,8 @@ class LocalHealthDatabase(private val appContext: Context) :
                 band_onset TEXT NOT NULL,
                 band_wake TEXT NOT NULL,
                 shown_source TEXT NOT NULL,
-                created_at INTEGER NOT NULL
+                created_at INTEGER NOT NULL,
+                awake TEXT NOT NULL DEFAULT ''
             )
             """.trimIndent()
         )
@@ -169,6 +180,43 @@ class LocalHealthDatabase(private val appContext: Context) :
         false
     }
 
+    /** One weight per day; a second log the same day replaces it. False (and a log line) if the write failed. */
+    fun putWeight(date: LocalDate, log: WeightLog): Boolean = try {
+        val cv = ContentValues().apply {
+            put("date", date.toString())
+            put("weight_kg", log.weightKg)
+            put("logged_at", log.loggedAtMs)
+        }
+        writableDatabase.insertWithOnConflict("weight_logs", null, cv, SQLiteDatabase.CONFLICT_REPLACE) != -1L
+    } catch (e: SQLiteException) {
+        Log.e(TAG, "weight_save_failed date=$date db_version=$DB_VERSION", e)
+        false
+    }
+
+    /** True when a row was removed. */
+    fun deleteWeight(date: LocalDate): Boolean = try {
+        writableDatabase.delete("weight_logs", "date = ?", arrayOf(date.toString())) > 0
+    } catch (e: SQLiteException) {
+        Log.e(TAG, "weight_delete_failed date=$date db_version=$DB_VERSION", e)
+        false
+    }
+
+    /** Throws SQLiteException on a failed read, like [getAllMorningChecks]. */
+    fun getAllWeightLogs(): Map<LocalDate, WeightLog> = try {
+        val out = linkedMapOf<LocalDate, WeightLog>()
+        readableDatabase.rawQuery("SELECT date, weight_kg, logged_at FROM weight_logs", null).use { c ->
+            while (c.moveToNext()) {
+                runCatching { LocalDate.parse(c.getString(0)) to WeightLog(c.getDouble(1), c.getLong(2)) }
+                    .onSuccess { out[it.first] = it.second }
+                    .onFailure { Log.w(TAG, "Skipping bad weight log: ${it.message}") }
+            }
+        }
+        out
+    } catch (e: SQLiteException) {
+        Log.e(TAG, "new_tables_read_failed table=weight_logs db_version=$DB_VERSION", e)
+        throw e
+    }
+
     /** Throws SQLiteException on a failed read, so the dashboard takes its "Couldn't load data" path. */
     fun getAllMorningChecks(): Map<LocalDate, MorningCheck> = try {
         val out = linkedMapOf<LocalDate, MorningCheck>()
@@ -196,6 +244,7 @@ class LocalHealthDatabase(private val appContext: Context) :
             put("band_wake", label.bandWake.toString())
             put("shown_source", label.shownSource.name)
             put("created_at", label.createdAt)
+            put("awake", label.awake.joinToString(";") { (a, b) -> "$a/$b" })
         }
         val conflict = if (label.kind == LabelKind.EDITED) SQLiteDatabase.CONFLICT_REPLACE else SQLiteDatabase.CONFLICT_IGNORE
         writableDatabase.insertWithOnConflict("sleep_labels", null, cv, conflict)
@@ -204,7 +253,7 @@ class LocalHealthDatabase(private val appContext: Context) :
     fun getAllSleepLabels(): List<SleepLabel> {
         val out = mutableListOf<SleepLabel>()
         readableDatabase.rawQuery(
-            "SELECT session_key, onset, wake, kind, band_onset, band_wake, shown_source, created_at FROM sleep_labels", null
+            "SELECT session_key, onset, wake, kind, band_onset, band_wake, shown_source, created_at, awake FROM sleep_labels", null
         ).use { c ->
             while (c.moveToNext()) {
                 runCatching {
@@ -216,7 +265,11 @@ class LocalHealthDatabase(private val appContext: Context) :
                         bandOnset = OffsetDateTime.parse(c.getString(4)),
                         bandWake = OffsetDateTime.parse(c.getString(5)),
                         shownSource = Provenance.valueOf(c.getString(6)),
-                        createdAt = c.getLong(7)
+                        createdAt = c.getLong(7),
+                        awake = c.getString(8).split(";").filter { it.isNotBlank() }.map {
+                            val (a, b) = it.split("/")
+                            OffsetDateTime.parse(a) to OffsetDateTime.parse(b)
+                        }
                     )
                 }.onSuccess(out::add).onFailure { Log.w(TAG, "Skipping bad sleep label: ${it.message}") }
             }
@@ -632,7 +685,7 @@ class LocalHealthDatabase(private val appContext: Context) :
 
     companion object {
         private const val TAG = "LocalHealthDatabase"
-        const val DB_VERSION = 5
+        const val DB_VERSION = 6
         const val BUNDLED_HISTORY_ASSET = "jcwear_local_health.db"
 
         /** Local column -> server field name, where they differ. */

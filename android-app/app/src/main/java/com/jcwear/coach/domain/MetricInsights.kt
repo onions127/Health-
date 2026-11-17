@@ -9,6 +9,52 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
+/** U: one setting drives °F and lb. Storage, CSV and coach context stay in °C and kg. */
+enum class UnitSystem { SI, IMPERIAL }
+
+fun unitSystemOf(useMetricUnits: Boolean) = if (useMetricUnits) UnitSystem.SI else UnitSystem.IMPERIAL
+
+object Units {
+    private const val LB_PER_KG = 2.2046226218
+    private fun r1(x: Double) = Math.round(x * 10.0) / 10.0 // also turns -0.04 into 0.0, never "-0.0"
+
+    fun tempUnit(u: UnitSystem) = if (u == UnitSystem.SI) "°C" else "°F"
+    fun weightUnit(u: UnitSystem) = if (u == UnitSystem.SI) "kg" else "lb"
+
+    /** An absolute temperature without its unit: "34.6" / "94.3". */
+    fun tempNumber(c: Double, u: UnitSystem): String =
+        String.format(Locale.US, "%.1f", r1(if (u == UnitSystem.SI) c else c * 1.8 + 32.0))
+
+    /** "34.6 °C" / "94.3 °F". */
+    fun temp(c: Double, u: UnitSystem): String = "${tempNumber(c, u)} ${tempUnit(u)}"
+
+    /** A temperature difference, signed, without its unit: "+0.2" / "+0.4". */
+    fun tempDiff(c: Double, u: UnitSystem): String =
+        String.format(Locale.US, "%+.1f", r1(if (u == UnitSystem.SI) c else c * 1.8))
+
+    /** A weight without its unit: "81.5" / "179.7" (also the log sheet's prefill). */
+    fun weightNumber(kg: Double, u: UnitSystem): String =
+        String.format(Locale.US, "%.1f", r1(if (u == UnitSystem.SI) kg else kg * LB_PER_KG))
+
+    /** "81.5 kg" / "179.7 lb". */
+    fun weight(kg: Double, u: UnitSystem): String = "${weightNumber(kg, u)} ${weightUnit(u)}"
+
+    /** A weight change, signed: "-0.6 kg" / "-1.3 lb". */
+    fun weightDiff(kg: Double, u: UnitSystem): String =
+        String.format(Locale.US, "%+.1f %s", r1(if (u == UnitSystem.SI) kg else kg * LB_PER_KG), weightUnit(u))
+}
+
+/** R3: the line under a skin temperature: the difference, the baseline progress, or "No reading". */
+fun skinTempLine(day: DayMetrics, units: UnitSystem): String {
+    if (day.skinTempC == null) return "No reading"
+    val base = day.skinTempBaseC
+    val diff = day.skinTempDeltaC
+    if (base == null || diff == null) return "Building your average · ${day.skinTempBaseDays} of $MIN_SKIN_TEMP_BASE_DAYS nights"
+    // Subtract the two numbers as shown, so 36.4 against 36.3 never reads "+0.0".
+    val shown = Units.tempNumber(day.skinTempC, units).toDouble() - Units.tempNumber(base, units).toDouble()
+    return "${String.format(Locale.US, "%+.1f", Math.round(shown * 10.0) / 10.0)} vs your average ${Units.tempNumber(base, units)}"
+}
+
 enum class Direction { HIGHER_IS_BETTER, LOWER_IS_BETTER, CLOSER_TO_ZERO_IS_BETTER, NEUTRAL }
 enum class Status { GOOD, BAD, NORMAL, ABOVE, BELOW }
 
@@ -21,16 +67,25 @@ data class MetricDef(
     val decimals: Int,
     /** D14: the normal range is never narrower than this (given the baseline mean). */
     val minNormalHalfWidth: (mean: Double) -> Double,
+    /** R5: logged now and then, not daily: the line is the trailing 7-day mean and bridges gaps. */
+    val sparse: Boolean = false,
+    /** False = no normal band, outlier dots, "vs your normal" chip or average card. */
+    val showBaseline: Boolean = true,
     val extract: (DayMetrics) -> Double?
 ) {
-    fun format(v: Double): String = when {
+    fun format(v: Double, units: UnitSystem): String = when {
         id == "sleep" -> "${v.roundToInt() / 60}h ${(v.roundToInt() % 60).toString().padStart(2, '0')}m"
-        id == "skinTemp" -> String.format(Locale.US, "%+.1f °C", v)
+        id == "skinTemp" -> "${Units.tempDiff(v, units)} ${Units.tempUnit(units)}" // the metric's value is the difference
+        id == "weight" -> Units.weight(v, units)
         id == "steps" -> String.format(Locale.US, "%,d", v.roundToInt())
         unit == "%" -> String.format(Locale.US, "%.${decimals}f%%", v)
         unit.isEmpty() -> String.format(Locale.US, "%.${decimals}f", v)
         else -> String.format(Locale.US, "%.${decimals}f %s", v, unit)
     }
+
+    /** What a day shows for this metric. Skin temp leads with the real temperature (R3, T5a). */
+    fun valueText(day: DayMetrics, units: UnitSystem): String? =
+        if (id == "skinTemp") day.skinTempC?.let { Units.temp(it, units) } else extract(day)?.let { format(it, units) }
 }
 
 object Metrics {
@@ -47,7 +102,9 @@ object Metrics {
     val skinTemp = MetricDef("skinTemp", "Skin temp", "°C", Direction.CLOSER_TO_ZERO_IS_BETTER, 1, { 0.2 }) { it.skinTempDeltaC }
     val strain = MetricDef("strain", "Strain", "", Direction.NEUTRAL, 0, score3) { it.strain100?.toDouble() }
 
-    val all = listOf(daily, recovery, readiness, sleepScore, sleep, hrv, rhr, steps, spo2, skinTemp, strain)
+    val weight = MetricDef("weight", "Weight", "kg", Direction.NEUTRAL, 1, { 0.5 }, sparse = true, showBaseline = false) { it.weightKg }
+
+    val all = listOf(daily, recovery, readiness, sleepScore, sleep, hrv, rhr, steps, spo2, skinTemp, strain, weight)
     fun byId(id: String): MetricDef = all.firstOrNull { it.id == id } ?: hrv
 }
 
@@ -72,6 +129,7 @@ object MetricInsights {
 
     /** Mean and normal half-width of the 30 days before [day] (today excluded); needs >= 7 values. */
     fun baseline(def: MetricDef, days: List<DayMetrics>, day: LocalDate): Baseline? {
+        if (!def.showBaseline) return null
         val raw = priorValues(def, days, day)
         if (raw.size < MIN_BASELINE_DAYS) return null
         val v = if (def.direction == Direction.CLOSER_TO_ZERO_IS_BETTER) raw.map { abs(it) } else raw
@@ -110,19 +168,20 @@ object MetricInsights {
     }
 
     /** Chip under a value: "↑ 12% vs your normal", "Within normal", or the baseline progress. */
-    fun chip(def: MetricDef, days: List<DayMetrics>, day: LocalDate): Pair<String, Status> {
+    fun chip(def: MetricDef, days: List<DayMetrics>, day: LocalDate, units: UnitSystem): Pair<String, Status> {
+        if (def.id == "skinTemp") {
+            val d = days.firstOrNull { it.date == day } ?: return "No reading" to Status.NORMAL
+            val st = d.skinTempDeltaC?.let { v -> baseline(def, days, day)?.let { status(def, v, it) } } ?: Status.NORMAL
+            return skinTempLine(d, units) to st
+        }
+        if (!def.showBaseline) return "" to Status.NORMAL
         val v = days.firstOrNull { it.date == day }?.let(def.extract) ?: return "No data" to Status.NORMAL
         val base = baseline(def, days, day)
             ?: return "Building your baseline: ${baselineDays(def, days, day)} of $MIN_BASELINE_DAYS days" to Status.NORMAL
         val st = status(def, v, base)
         if (st == Status.NORMAL) return "Within normal" to st
-        val text = if (def.direction == Direction.CLOSER_TO_ZERO_IS_BETTER) {
-            String.format(Locale.US, "%+.1f °C vs your normal", v)
-        } else {
-            val pct = ((v - base.mean) / base.mean.coerceAtLeast(1e-6) * 100).roundToInt()
-            "${if (pct >= 0) "↑" else "↓"} ${abs(pct)}% vs your normal"
-        }
-        return text to st
+        val pct = ((v - base.mean) / base.mean.coerceAtLeast(1e-6) * 100).roundToInt()
+        return "${if (pct >= 0) "↑" else "↓"} ${abs(pct)}% vs your normal" to st
     }
 }
 

@@ -33,6 +33,13 @@ import com.jcwear.coach.domain.MetricInsights
 import com.jcwear.coach.domain.Smoothing
 import com.jcwear.coach.domain.Metrics
 import com.jcwear.coach.domain.hrvCheckHeader
+import com.jcwear.coach.domain.dayMonth
+import com.jcwear.coach.domain.weightChangeText
+import com.jcwear.coach.domain.weightLine
+import com.jcwear.coach.domain.partsFor
+import com.jcwear.coach.domain.readinessMissingLine
+import com.jcwear.coach.domain.skinTempLine
+import com.jcwear.coach.domain.Units
 import com.jcwear.coach.domain.Status
 import kotlin.math.roundToInt
 
@@ -51,6 +58,11 @@ internal fun MetricDetailView(
 ) {
     val def = Metrics.byId(metricId)
     val today = days.last()
+    val units = LocalUnitSystem.current
+    val isTemp = def == Metrics.skinTemp // R3: the temperature leads, the difference is the second line
+    val weightLogger = LocalWeightLogger.current
+    // A sparse metric (weight) leads with its latest entry, not today's.
+    val heroDay = if (def.sparse) days.lastOrNull { def.extract(it) != null } ?: today else today
     val rangeCount = when (selectedRange) {
         "Week" -> 7
         "Month" -> 30
@@ -73,7 +85,10 @@ internal fun MetricDetailView(
             MetricInsights.status(def, v, b) != Status.NORMAL
         }
     }
-    val segments = remember(rawVals, selectedRange) { Smoothing.forRange(rawVals, selectedRange) }
+    val segments = remember(rawVals, selectedRange) {
+        if (def.sparse) listOf(weightLine(days).filter { it.first >= firstIdx }.map { (i, v) -> i - firstIdx to v })
+        else Smoothing.forRange(rawVals, selectedRange)
+    }
 
     // Back header
     Row(
@@ -90,10 +105,10 @@ internal fun MetricDetailView(
                 .clickable { onBack() },
             contentAlignment = Alignment.Center
         ) {
-            Text("←", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text("←", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.SemiBold)
         }
-        Text(def.label, color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.size(48.dp))
+        Text(def.label, color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+        if (def.sparse) LogWeightButton { weightLogger?.open() } else Spacer(Modifier.size(48.dp))
     }
 
     // Hero value
@@ -104,9 +119,15 @@ internal fun MetricDetailView(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Today", color = HealthColors.TextSecondary, fontSize = 13.sp)
-                todayBase?.band(def)?.let { (lo, hi) ->
-                    StatusChip("Normal ${def.format(lo)} – ${def.format(hi)}", Status.NORMAL)
+                Text(
+                    when {
+                        isTemp -> "Wrist skin temperature · today"
+                        def.sparse -> if (def.extract(heroDay) != null) "Latest · ${dayMonth(heroDay.date)}" else "No entry yet"
+                        else -> "Today"
+                    },
+                    color = HealthColors.TextSecondary, fontSize = HealthType.Small)
+                if (!isTemp) todayBase?.band(def)?.let { (lo, hi) ->
+                    StatusChip("Normal ${def.format(lo, units)} – ${def.format(hi, units)}", Status.NORMAL)
                 }
             }
             Row(
@@ -115,12 +136,17 @@ internal fun MetricDetailView(
                 verticalAlignment = Alignment.Bottom
             ) {
                 Text(
-                    text = def.extract(today)?.let { def.format(it) } ?: "—",
+                    text = def.valueText(heroDay, units) ?: "—",
                     color = HealthColors.TextPrimary,
-                    fontSize = 40.sp,
-                    fontWeight = FontWeight.Bold
+                    fontSize = HealthType.Display,
+                    fontWeight = FontWeight.SemiBold
                 )
-                if (def.extract(today) != null) InsightChip(def, days, today)
+                if (!isTemp && def.showBaseline && def.extract(today) != null) InsightChip(def, days, today)
+            }
+            if (def.sparse) weightChangeText(days, units)?.let { Text(it, color = HealthColors.TextSecondary, fontSize = HealthType.Small) }
+            if (isTemp) {
+                Text(skinTempLine(today, units), color = HealthColors.TextSecondary, fontSize = HealthType.Small)
+                Text("Not core body temperature", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
             }
         }
     }
@@ -129,8 +155,7 @@ internal fun MetricDetailView(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = HealthColors.BgCard,
-        shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, HealthColors.BorderHairline)
+        shape = HealthShapes.Panel
     ) {
         Row(
             modifier = Modifier
@@ -144,7 +169,7 @@ internal fun MetricDetailView(
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(min = 48.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(HealthShapes.Panel)
                         .background(if (active) HealthColors.AccentAmber else Color.Transparent)
                         .clickable { onSelectRange(r) },
                     contentAlignment = Alignment.Center
@@ -152,8 +177,8 @@ internal fun MetricDetailView(
                     Text(
                         text = r,
                         color = if (active) HealthColors.TextInverse else HealthColors.TextSecondary,
-                        fontSize = 13.sp,
-                        fontWeight = if (active) FontWeight.Bold else FontWeight.Medium
+                        fontSize = HealthType.Small,
+                        fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium
                     )
                 }
             }
@@ -169,29 +194,38 @@ internal fun MetricDetailView(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(selDay.label, color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                    Text(selDay.label, color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
                     Text(
-                        text = selVal?.let { def.format(it) } ?: "No data",
+                        text = def.valueText(selDay, units) ?: if (isTemp) "No reading" else "No data",
                         color = HealthColors.AccentAmber,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold
+                        fontSize = HealthType.Body,
+                        fontWeight = FontWeight.Medium
                     )
                 }
-                if (selVal != null) {
-                    val (chipText, st) = MetricInsights.chip(def, days, selDay.date)
+                if (def.sparse) WeightDayActions(selDay)
+                if (selVal != null && !isTemp && def.showBaseline) {
+                    val (chipText, st) = MetricInsights.chip(def, days, selDay.date, units)
                     StatusChip(MetricInsights.extremeLabel(def, days, selDay.date) ?: chipText, st)
                 }
             }
+            if (isTemp) {
+                if (selDay.skinTempC != null) Text(skinTempLine(selDay, units), color = HealthColors.TextSecondary, fontSize = HealthType.Small)
+                Text("Difference from your average", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
+            }
             if (def.id == Metrics.hrv.id) {
-                hrvCheckHeader(selDay)?.let { Text(it, color = HealthColors.TextSecondary, fontSize = 13.sp) }
+                hrvCheckHeader(selDay)?.let { Text(it, color = HealthColors.TextSecondary, fontSize = HealthType.Small) }
             }
 
             val present = rawVals.filterNotNull()
             if (present.isEmpty()) {
-                Text("No data in this range.", color = HealthColors.TextSecondary, fontSize = 13.sp)
+                Text("No data in this range.", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
             } else {
                 val band = todayBase?.band(def)
-                val pad = if (def == Metrics.steps) 800.0 else (present.max() - present.min()).coerceAtLeast(1.0) * 0.1
+                val pad = when {
+                    def == Metrics.steps -> 800.0
+                    def.sparse -> 2.0 // weight: never from zero, at least 2 kg either side of the data
+                    else -> (present.max() - present.min()).coerceAtLeast(1.0) * 0.1
+                }
                 val minV = (present + listOfNotNull(band?.first)).min() - pad
                 val maxV = (present + listOfNotNull(band?.second)).max() + pad
                 val span = (maxV - minV).coerceAtLeast(0.5)
@@ -220,10 +254,9 @@ internal fun MetricDetailView(
                             val top = yFor(hi)
                             val bandH = (yFor(lo) - top).coerceAtLeast(8.dp.toPx())
                             drawRoundRect(
-                                color = Color(0x14FFFFFF),
+                                color = HealthColors.Track,
                                 topLeft = Offset(0f, top),
                                 size = Size(w, bandH),
-                                cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
                             )
                         }
 
@@ -275,29 +308,52 @@ internal fun MetricDetailView(
             }
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(Smoothing.label(selectedRange)?.let { "━ $it" } ?: "● Daily values", color = HealthColors.TextSecondary, fontSize = 13.sp)
-                Text("● Outside your normal", color = HealthColors.TextSecondary, fontSize = 13.sp)
+                Text(
+                    if (def.sparse) "━ 7-day average · ● Entries" else Smoothing.label(selectedRange)?.let { "━ $it" } ?: "● Daily values",
+                    color = HealthColors.TextSecondary, fontSize = HealthType.Small
+                )
+                if (def.showBaseline) Text("● Outside your normal", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
+            }
+        }
+    }
+
+    // R4: how the selected day's score is calculated
+    val selParts = partsFor(metricId, selDay)
+    val missing = if (def == Metrics.readiness) readinessMissingLine(selDay, days) else null
+    if (selParts != null || missing != null) {
+        HealthCard {
+            Column {
+                ScoreSource(def.label, selParts, 0L, sheetTitle = "${def.label} · ${selDay.label}")
+                missing?.let { Text(it, color = HealthColors.TextSecondary, fontSize = HealthType.Small) }
             }
         }
     }
 
     // 30-day average
     val last30 = days.takeLast(30).mapNotNull(def.extract)
-    HealthCard {
+    val (avgTitle, avgSub, avgValue) = if (isTemp) Triple(
+        "Your average",
+        if (selDay.skinTempBaseC != null) "from ${selDay.skinTempBaseDays} days before ${selDay.label}" else skinTempLine(selDay.copy(skinTempC = selDay.skinTempC ?: 0.0, skinTempBaseC = null), units),
+        selDay.skinTempBaseC?.let { Units.temp(it, units) } ?: "—"
+    ) else Triple(
+        "30-day average", "${last30.size} days with data",
+        last30.takeIf { it.isNotEmpty() }?.let { def.format(it.average(), units) } ?: "—"
+    )
+    if (def.showBaseline) HealthCard {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text("30-day average", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                Text("${last30.size} days with data", color = HealthColors.TextSecondary, fontSize = 13.sp)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(avgTitle, color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+                Text(avgSub, color = HealthColors.TextSecondary, fontSize = HealthType.Small)
             }
             Text(
-                last30.takeIf { it.isNotEmpty() }?.let { def.format(it.average()) } ?: "—",
+                avgValue,
                 color = HealthColors.TextPrimary,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold
+                fontSize = HealthType.Body,
+                fontWeight = FontWeight.Medium
             )
         }
     }

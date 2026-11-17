@@ -62,15 +62,15 @@ internal fun SleepTrendsView(
                 .clickable { onBack() },
             contentAlignment = Alignment.Center
         ) {
-            Text("←", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text("←", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.SemiBold)
         }
-        Text("Sleep Trends", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        Text("Sleep Trends", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
         Spacer(Modifier.size(48.dp))
     }
 
     if (slice.none { it.sleep != null }) {
         HealthCard {
-            Text("No nights recorded in the last 30 days.", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text("No nights recorded in the last 30 days.", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
         }
         return
     }
@@ -78,8 +78,8 @@ internal fun SleepTrendsView(
     val durations = slice.map { it.sleepMin?.toDouble() }
     val durBand = MetricInsights.baseline(Metrics.sleep, days, days.last().date)?.band(Metrics.sleep)
     val avgDur = durations.filterNotNull().average()
-    ChartCard("Duration", "avg ${Metrics.sleep.format(avgDur)} · tap a night") {
-        NightBarsChart(durations, durBand, HealthColors.StageRem, openNight)
+    ChartCard("Duration", "avg ${Metrics.sleep.format(avgDur, LocalUnitSystem.current)} · tap a night") {
+        NightBarsChart(durations, durBand, HealthColors.TextSecondary, openNight)
     }
 
     ChartCard("Bedtime → wake", "late nights in red") {
@@ -88,13 +88,13 @@ internal fun SleepTrendsView(
 
     val scores = slice.map { it.sleepScore?.toDouble() }
     val scoreBand = MetricInsights.baseline(Metrics.sleepScore, days, days.last().date)?.band(Metrics.sleepScore)
-    ChartCard("Sleep score", "avg ${Metrics.sleepScore.format(scores.filterNotNull().average())}") {
+    ChartCard("Sleep score", "avg ${Metrics.sleepScore.format(scores.filterNotNull().average(), LocalUnitSystem.current)}") {
         NightBarsChart(scores, scoreBand, HealthColors.ScoreGreen, openNight)
     }
 
     HealthCard {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Stage mix by week", color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text("Stage mix by week", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
             val fmt = DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH)
             (3 downTo 0).forEach { w ->
                 val end = days.lastIndex - w * 7
@@ -110,7 +110,7 @@ internal fun SleepTrendsView(
                     Text(
                         "Week to ${days[end].date.format(fmt)} · Deep ${deep * 100 / total}% · REM ${rem * 100 / total}% · Light ${light * 100 / total}%",
                         color = HealthColors.TextSecondary,
-                        fontSize = 13.sp
+                        fontSize = HealthType.Small
                     )
                     Canvas(modifier = Modifier.fillMaxWidth().height(10.dp)) {
                         var x = 0f
@@ -135,8 +135,8 @@ private fun ChartCard(title: String, subtitle: String, content: @Composable () -
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(title, color = HealthColors.TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                Text(subtitle, color = HealthColors.TextSecondary, fontSize = 13.sp)
+                Text(title, color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+                Text(subtitle, color = HealthColors.TextSecondary, fontSize = HealthType.Small)
             }
             content()
         }
@@ -148,7 +148,7 @@ private fun ChartCard(title: String, subtitle: String, content: @Composable () -
 private fun NightBarsChart(values: List<Double?>, band: Pair<Double, Double>?, color: Color, onTap: (Int) -> Unit) {
     val present = values.filterNotNull()
     if (present.isEmpty()) {
-        Text("No data in this range.", color = HealthColors.TextSecondary, fontSize = 13.sp)
+        Text("No data in this range.", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
         return
     }
     val segments = remember(values) { Smoothing.rolling(values, 3) }
@@ -163,7 +163,7 @@ private fun NightBarsChart(values: List<Double?>, band: Pair<Double, Double>?, c
     ) {
         val slot = size.width / values.size
         fun y(v: Double) = (size.height - v / maxV * size.height).toFloat()
-        band?.let { (lo, hi) -> drawRect(Color(0x14FFFFFF), Offset(0f, y(hi)), Size(size.width, y(lo) - y(hi))) }
+        band?.let { (lo, hi) -> drawRect(HealthColors.Track, Offset(0f, y(hi)), Size(size.width, y(lo) - y(hi))) }
         values.forEachIndexed { i, v ->
             if (v == null) return@forEachIndexed
             drawRoundRect(
@@ -216,7 +216,7 @@ private fun BedtimeRangeChart(slice: List<DayMetrics>, onTap: (Int) -> Unit) {
         val paint = android.graphics.Paint().apply { color = labelColor; textSize = 11.sp.toPx(); isAntiAlias = true }
         var m = lo
         while (m <= hi) {
-            drawLine(Color(0x14FFFFFF), Offset(left, y(m)), Offset(size.width, y(m)), 1.dp.toPx())
+            drawLine(HealthColors.Track, Offset(left, y(m)), Offset(size.width, y(m)), 1.dp.toPx())
             val label = LocalTime.NOON.plusMinutes(m.toLong()).format(DateTimeFormatter.ofPattern("HH:mm"))
             drawContext.canvas.nativeCanvas.drawText(label, 0f, y(m) + 4.dp.toPx(), paint)
             m += 120
@@ -224,7 +224,7 @@ private fun BedtimeRangeChart(slice: List<DayMetrics>, onTap: (Int) -> Unit) {
         ranges.forEachIndexed { i, r ->
             if (r == null) return@forEachIndexed
             drawRoundRect(
-                color = if (r.first > medianStart + 60) HealthColors.ScoreCoral else HealthColors.StageRem,
+                color = if (r.first > medianStart + 60) HealthColors.ScoreCoral else HealthColors.TextSecondary,
                 topLeft = Offset(left + i * slot + slot * 0.2f, y(r.first)),
                 size = Size(slot * 0.6f, y(r.second) - y(r.first)),
                 cornerRadius = CornerRadius(2.dp.toPx(), 2.dp.toPx())

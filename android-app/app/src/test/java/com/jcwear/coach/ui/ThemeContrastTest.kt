@@ -85,4 +85,12 @@ class ThemeContrastTest {
         "surfaceContainer" to c.surfaceContainer, "surfaceContainerHigh" to c.surfaceContainerHigh,
         "surfaceContainerHighest" to c.surfaceContainerHighest
     )
+
+    /** R6.1: colour literals live in HealthColors only (Gradle runs unit tests from the module dir). */
+    @Test
+    fun noRawColourOutsideTokens() {
+        val raw = java.io.File("src/main/java/com/jcwear/coach/ui").listFiles()!!
+            .filter { it.name != "DashboardModels.kt" && "Color(0x" in it.readText() }.map { it.name }
+        assertEquals(emptyList<String>(), raw)
+    }
 }

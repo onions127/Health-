@@ -22,12 +22,20 @@ data class DayMetrics(
     val sleepParts: ScoreBreakdown? = null,
     val recoveryParts: ScoreBreakdown? = null,
     val dailyParts: ScoreBreakdown? = null,
+    val readinessParts: ScoreBreakdown? = null,
     /** Overnight average only: the HRV trend and every baseline use this, never the morning check. */
     val hrvMs: Double? = null,
     /** That day's stored 60-second check (R1), if one was done. */
     val morningCheck: MorningCheck? = null,
     val rhrBpm: Double? = null,
     val spo2Pct: Double? = null,
+    /** R3: the day's average wrist skin temperature. */
+    val skinTempC: Double? = null,
+    /** Mean of the day averages in the prior 30 days; null until [MIN_SKIN_TEMP_BASE_DAYS] of them have a reading. */
+    val skinTempBaseC: Double? = null,
+    /** Days with a reading in the prior 30 days (drives "2 of 3 nights" and "from N days"). */
+    val skinTempBaseDays: Int = 0,
+    /** skinTempC - skinTempBaseC; null without a baseline. Readiness uses this same number. */
     val skinTempDeltaC: Double? = null,
     val steps: Int? = null,
     val distanceKm: Double? = null,
@@ -38,22 +46,28 @@ data class DayMetrics(
     val strain: Double? = null,
     val readiness: Int? = null,
     val recovery: Int? = null,
-    val daily: Int? = null
+    val daily: Int? = null,
+    /** R5: that day's logged weight; null without a log (never carried forward). */
+    val weightLog: WeightLog? = null
 ) {
+    val weightKg: Double? get() = weightLog?.weightKg
     val sleepMin: Int? get() = sleep?.totalSleepMin
     val morningRmssdMs: Double? get() = morningCheck?.rmssdMs
     /** HRV that feeds this day's Recovery and Readiness: the morning check when there is one, else overnight. */
     val scoreHrvMs: Double? get() = morningRmssdMs ?: hrvMs
     val strain100: Int? get() = strain?.let { (it / 21.0 * 100.0).roundToInt() }
     val hasData: Boolean
-        get() = listOf(sleep, hrvMs, morningCheck, rhrBpm, spo2Pct, skinTempDeltaC, steps).any { it != null }
+        get() = listOf(sleep, hrvMs, morningCheck, rhrBpm, spo2Pct, skinTempC, steps, weightKg).any { it != null }
 }
 
+const val MIN_SKIN_TEMP_BASE_DAYS = 3
+
 class DailySeriesRepository(private val db: LocalHealthDatabase) {
-    fun load(today: LocalDate, heightCm: Double? = null, weightKg: Double? = null): List<DayMetrics> = buildDaySeries(
+    /** [profileWeightKg] is only the calorie fallback for when there is no weight log. */
+    fun load(today: LocalDate, heightCm: Double? = null, profileWeightKg: Double? = null): List<DayMetrics> = buildDaySeries(
         db.getAllSleepBlocks(), db.getAllHrvRecords(), db.getAllHrRecords(),
         db.getAllSpo2Records(), db.getAllTempRecords(), db.getAllStepRecords(),
-        today, db.getAllMorningChecks(), heightCm, weightKg, db.getAllSleepLabels()
+        today, db.getAllMorningChecks(), heightCm, profileWeightKg, db.getAllSleepLabels(), db.getAllWeightLogs()
     )
 }
 
@@ -72,8 +86,10 @@ fun buildDaySeries(
     morningChecks: Map<LocalDate, MorningCheck> = emptyMap(),
     heightCm: Double? = null,
     weightKg: Double? = null,
-    sleepLabels: List<SleepLabel> = emptyList()
+    sleepLabels: List<SleepLabel> = emptyList(),
+    weightLogs: Map<LocalDate, WeightLog> = emptyMap()
 ): List<DayMetrics> {
+    val logsByDate = java.util.TreeMap(weightLogs)
     fun <T> byDate(items: List<T>, time: (T) -> String, ok: (T) -> Boolean) = items
         .filter(ok)
         .mapNotNull { r -> SleepAndReadinessEngine.parseDateTime(time(r))?.let { it.toLocalDate() to r } }
@@ -84,6 +100,7 @@ fun buildDaySeries(
     val spo2ByDay = byDate(spo2Records, { it.deviceTime }, { it.spo2Pct in 85..100 })
     val tempByDay = byDate(tempRecords, { it.deviceTime }, { it.tempC in 31.0..41.0 })
     val stepsByDay = byDate(stepRecords, { it.deviceTime }, { true })
+    val tempDayAvg = tempByDay.mapValues { (_, r) -> r.map { it.tempC }.average() }
 
     // Order: stitch -> labels -> (S2 refiner) -> main pick.
     val sessions = applyLabels(SleepAndReadinessEngine.stitchSleepSessions(sleepBlocks), sleepLabels)
@@ -101,7 +118,7 @@ fun buildDaySeries(
     val raw = dates.map { d ->
         val dayHr = hrByDay[d].orEmpty().map { it.bpm.toDouble() }
         val steps = stepsByDay[d]?.sumOf { it.steps }
-        val kcal = caloriesKcal(steps, stepsByDay[d]?.sumOf { it.caloriesKcal }, weightKg)
+        val kcal = caloriesKcal(steps, stepsByDay[d]?.sumOf { it.caloriesKcal }, calorieWeightKg(d, logsByDate, weightKg))
         val strain = if (steps == null && dayHr.isEmpty()) null else {
             val rawLoad = (steps ?: 0) / 650.0 + dayHr.count { it >= 105.0 } * 1.8
             Math.round((ln(1.0 + rawLoad) * 5.2).coerceIn(0.0, 21.0) * 10.0) / 10.0
@@ -118,7 +135,8 @@ fun buildDaySeries(
             distanceKm = distanceKm(steps, stepsByDay[d]?.sumOf { it.distanceKm }, heightCm),
             caloriesKcal = kcal?.first,
             caloriesEstimated = kcal?.second == true,
-            strain = strain
+            strain = strain,
+            weightLog = weightLogs[d]
         )
     }
 
@@ -132,45 +150,32 @@ fun buildDaySeries(
             )
         }
         val sleepScore = sleepParts?.score
-        val todayTemp = tempByDay[day.date]?.map { it.tempC }?.average()
-        val tempBase = prior30.flatMap { p -> tempByDay[p.date].orEmpty().map { it.tempC } }.takeIf { it.isNotEmpty() }?.average()
+        val todayTemp = tempDayAvg[day.date]
+        val baseTemps = prior30.mapNotNull { tempDayAvg[it.date] }
+        val tempBase = baseTemps.takeIf { it.size >= MIN_SKIN_TEMP_BASE_DAYS }?.average()
         val tempDelta = if (todayTemp != null && tempBase != null) Math.round((todayTemp - tempBase) * 100.0) / 100.0 else null
 
-        val readiness = readinessScore(
+        val readinessParts = readinessParts(
             hrv = day.scoreHrvMs, rhr = day.rhrBpm,
-            hrvBase = prior30.mapNotNull { it.hrvMs }.takeIf { it.size >= 3 }?.average(),
-            rhrBase = prior30.mapNotNull { it.rhrBpm }.takeIf { it.size >= 3 }?.average(),
-            sleepScore = sleepScore, spo2 = day.spo2Pct, tempDelta = tempDelta
+            hrvBase = prior30.mapNotNull { it.hrvMs }.takeIf { it.size >= MIN_READINESS_BASE_DAYS }?.average(),
+            rhrBase = prior30.mapNotNull { it.rhrBpm }.takeIf { it.size >= MIN_READINESS_BASE_DAYS }?.average(),
+            sleepScore = sleepScore, spo2 = day.spo2Pct, tempDelta = tempDelta,
+            hrvNote = day.morningCheck?.let { if (it.estimated) "morning check, estimated" else "morning check" }
         )
+        val readiness = readinessParts?.score
         val scoreHrv = day.scoreHrvMs
         val recoveryParts = if (scoreHrv != null && day.rhrBpm != null) recoveryParts(scoreHrv, day.rhrBpm) else null
         val strain100 = day.strain100
         val dailyParts = if (readiness != null && sleepScore != null && strain100 != null) dailyParts(readiness, sleepScore, strain100) else null
         day.copy(
-            sleepScore = sleepScore, skinTempDeltaC = tempDelta, readiness = readiness,
+            sleepScore = sleepScore, readiness = readiness,
+            skinTempC = todayTemp?.round2(), skinTempBaseC = tempBase?.round2(),
+            skinTempBaseDays = baseTemps.size, skinTempDeltaC = tempDelta,
             recovery = recoveryParts?.score, daily = dailyParts?.score,
-            sleepParts = sleepParts, recoveryParts = recoveryParts, dailyParts = dailyParts
+            sleepParts = sleepParts, recoveryParts = recoveryParts, dailyParts = dailyParts, readinessParts = readinessParts
         )
     }
 }
 
-/** Needs HRV and resting HR against at least 3 prior days; sleep and vitals count when present. */
-internal fun readinessScore(
-    hrv: Double?, rhr: Double?, hrvBase: Double?, rhrBase: Double?,
-    sleepScore: Int?, spo2: Double?, tempDelta: Double?
-): Int? {
-    if (hrv == null || rhr == null || hrvBase == null || rhrBase == null) return null
-    val parts = mutableListOf(
-        0.40 to (75.0 + (hrv / hrvBase.coerceAtLeast(1.0) - 1.0) * 125.0).coerceIn(20.0, 100.0),
-        0.25 to (78.0 + (rhrBase - rhr) * 4.5).coerceIn(20.0, 100.0)
-    )
-    if (sleepScore != null) parts += 0.25 to sleepScore.toDouble()
-    if (spo2 != null || tempDelta != null) {
-        val penalty = (if (tempDelta != null && abs(tempDelta) > 0.5) 25.0 else 0.0) +
-            (if (spo2 != null && spo2 < 95.0) (95.0 - spo2) * 8.0 else 0.0)
-        parts += 0.10 to (95.0 - penalty).coerceIn(20.0, 100.0)
-    }
-    return (parts.sumOf { it.first * it.second } / parts.sumOf { it.first }).roundToInt().coerceIn(1, 100)
-}
-
 private fun Double.round1() = Math.round(this * 10.0) / 10.0
+private fun Double.round2() = Math.round(this * 100.0) / 100.0
