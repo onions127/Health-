@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Health++ scene</title>
+<style>html,body{margin:0;background:#000}canvas{display:block;width:412px;height:915px}</style></head>
+<body>
+<canvas id="c" aria-label="Meadow scene preview"></canvas>
+<script>document.write('<script src="' + (new URLSearchParams(location.search).get('src') || 'scene-gl.js') + '?' + Date.now() + '"><\/script>')</script>
+<script src="glass-check.js"></script>
+<script>
+  const q = new URLSearchParams(location.search);
+  window.S = SceneGL.mount(document.getElementById('c'), { time: q.get('time') || 'day', readiness: q.has('r') ? (q.get('r') === 'null' ? null : +q.get('r')) : 86, animate: q.get('anim') !== '0', sky: SceneGL.PRESETS[q.get('sky')], seed: q.has('seed') ? +q.get('seed') : undefined, stepK: q.has('k') ? +q.get('k') : undefined, hour: q.has('h') ? +q.get('h') : undefined, post: q.get('post') !== '0' });
+</script>
+</body>
+</html>

@@ -26,3 +26,12 @@ ENV/
 # OS / Misc
 .DS_Store
 Thumbs.db
+
+# Third-party Samsung Weather screenshots: local reference only, never commit
+reference/
+
+# Round 3 sky exploration: baked keyframes are regenerated (bake.html), the Samsung screenshot in refs/ is third-party, .agents/ duplicates .claude/skills
+design-prototype/baked/
+design-prototype/refs/
+.agents/
+docs/design-exploration/screens/ref-*

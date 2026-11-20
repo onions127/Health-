@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Health++ · Round 1 · Diverge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500&family=Manrope:wght@300;400;500;600&family=Newsreader:opsz,wght@6..72,300;6..72,400&family=Nunito+Sans:opsz,wght@6..12,300;6..12,400;6..12,700&family=Outfit:wght@400;500&family=Raleway:wght@400;500&family=Roboto:wght@300;400;500&family=Work+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --board-bg:#E9EBEE; --board-ink:#14171A; --board-ink2:#4A515A; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  ::selection { background:#0E2A43; color:#F3F8F4; }
+  body { background:var(--board-bg); color:var(--board-ink); font:400 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding:40px 40px 80px; }
+  header.board { max-width:1100px; margin-bottom:40px; }
+  header.board h1 { font-size:28px; font-weight:600; letter-spacing:-0.01em; margin-bottom:8px; }
+  header.board p { color:var(--board-ink2); max-width:72ch; }
+  .grid { display:flex; flex-wrap:wrap; gap:56px 48px; align-items:flex-start; }
+  .col { width:412px; display:flex; flex-direction:column; gap:20px; }
+  .phone { position:relative; width:412px; height:915px; overflow:hidden; border-radius:32px;
+           box-shadow:0 1px 2px rgba(20,23,26,.08), 0 16px 40px rgba(20,23,26,.14); isolation:isolate; }
+  .phone svg.scene { position:absolute; inset:0; z-index:0; }
+  .phone .abs { position:absolute; z-index:1; }
+  .ico { width:1em; height:1em; vertical-align:-0.12em; display:inline-block; }
+  .nav { position:absolute; left:0; right:0; bottom:0; height:64px; z-index:2; display:grid; grid-template-columns:repeat(4,1fr); align-items:center; text-align:center; font-size:12px; }
+  .nav span { position:relative; padding-top:10px; }
+  .nav span.on::before { content:""; position:absolute; top:-2px; left:50%; width:24px; height:3px; margin-left:-12px; border-radius:2px; background:var(--ind); }
+  .btn { display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 18px; white-space:nowrap; }
+
+  /* token sheet */
+  .sheet { background:#fff; border-radius:12px; padding:20px; font-size:12px; line-height:1.5; color:#30363D; }
+  .sheet h2 { font-size:20px; font-weight:600; color:#111; margin-bottom:4px; }
+  .sheet .thesis { font-size:14px; font-weight:500; color:#1D2125; margin-bottom:12px; }
+  .sheet dl { display:grid; grid-template-columns:76px 1fr; gap:4px 12px; margin-bottom:12px; }
+  .sheet dt { color:#6A727C; }
+  .sheet .sw { display:grid; grid-template-columns:20px 64px 1fr; gap:6px 8px; align-items:center; margin-bottom:12px; }
+  .sheet .sw i { width:20px; height:20px; border-radius:5px; box-shadow:inset 0 0 0 1px rgba(0,0,0,.14); }
+  .sheet code { font:500 11px/1 ui-monospace, "Cascadia Mono", Consolas, monospace; }
+  .sheet table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; margin-bottom:12px; }
+  .sheet td { padding:3px 0; border-top:1px solid #EEF0F2; }
+  .sheet td:nth-child(2) { text-align:right; padding-right:8px; }
+  .sheet .fail { color:#B42318; font-weight:600; }
+  .sheet .scale { border-top:1px solid #EEF0F2; padding-top:10px; color:#111; }
+  .sheet .scale div { line-height:1.15; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .A-cloud { animation: drift 60s linear infinite alternate; }
+    @keyframes drift { to { transform: translateX(28px); } }
+  }
+</style>
+</head>
+<body>
+<header class="board">
+  <h1>Health++ · Round 1 · Diverge</h1>
+  <p>Six directions plus Instrument as the control. Every phone shows the same moment (Thu 12 Nov, 15:10) from <code>design-prototype/data.js</code>, day 89, and the same layout plan: Today, then Sleep, Trends and Coach in the nav. Only the design system differs. Contrast ratios under each phone are computed live from the token pairs.</p>
+</header>
+<main class="grid" id="grid"></main>
+
+<script src="data.js"></script>
+<script>
+const HD = window.HEALTH_DATA, days = HD.days, t = HD.today, M = HD.METRICS;
+const prev = days.slice(-31, -1);
+const mean = k => prev.reduce((a, d) => a + d[k], 0) / prev.length;
+const fmtMin = m => `${Math.floor(m / 60)}h ${String(Math.round(m % 60)).padStart(2, '0')}m`;
+const n = v => v.toLocaleString('en-US');
+const D = {
+  time: '15:10', date: t.label, check: '07:12',
+  ready: t.readiness, readyNorm: M.readiness.avg30, readyDiff: t.readiness - M.readiness.avg30,
+  daily: t.dailyScore, sleep: fmtMin(t.sleepMin), sleepScore: t.sleepScore,
+  sleepUsual: fmtMin(mean('sleepMin')), sleepDiff: Math.round(t.sleepMin - mean('sleepMin')),
+  steps: n(t.steps), stepsUsual: n(M.steps.avg30), strain: t.strain, strainNorm: M.strain.avg30,
+  hrv: t.hrv, hrvLo: M.hrv.normalMin, hrvHi: M.hrv.normalMax, rhr: t.rhr, rhrLo: M.rhr.normalMin, rhrHi: M.rhr.normalMax,
+  week: days.slice(-7).map((d, i) => ({ day: i === 6 ? 'Today' : d.dowName, v: d.readiness })),
+  s30: k => days.slice(-30).map(d => d[k]),
+  s7: k => days.slice(-7).map(d => d[k]),
+};
+const word = r => r >= 80 ? 'Ready' : r >= 65 ? 'Steady' : 'Take it easy';
+const diffTxt = `${Math.abs(D.readyDiff)} ${D.readyDiff >= 0 ? 'above' : 'below'} your normal`;
+const sleepDiffTxt = `${Math.abs(D.sleepDiff)} min ${D.sleepDiff >= 0 ? 'more' : 'less'} than usual`;
+
+/* authored icons, one stroke family */
+const I = {
+  check: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  up: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3.5M4 7.2 8 3.2l4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  moon: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M12.8 10.6A5.6 5.6 0 0 1 5.4 3.2a5.6 5.6 0 1 0 7.4 7.4z" fill="currentColor"/></svg>',
+  scale: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.2" y="2.2" width="11.6" height="11.6" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.6 6.2a3.4 3.4 0 0 1 4.8 0M8 6.6l1-1.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+};
+const glyph = v => { // weather glyph: sun ≥80, sun+cloud 75–79, cloud <75
+  const sun = '<circle cx="11" cy="9" r="5" fill="#FFC56B"/>';
+  const cloud = (x, s) => `<path transform="translate(${x} 8) scale(${s})" d="M4 12h10a3.5 3.5 0 0 0 0-7 5 5 0 0 0-9.6 1.3A2.9 2.9 0 0 0 4 12z" fill="#FFFFFF"/>`;
+  return `<svg width="26" height="20" viewBox="0 0 26 20" aria-hidden="true">${v >= 75 ? sun : ''}${v < 80 ? cloud(v < 75 ? 2 : 7, v < 75 ? 1.15 : 0.9) : ''}</svg>`;
+};
+
+/* geometry helpers */
+const pts = (vals, x0, x1, yTop, yBot, min, max) => vals.map((v, i) => [x0 + (x1 - x0) * i / (vals.length - 1), yBot - (v - min) / (max - min) * (yBot - yTop)]);
+const smooth = p => { let d = `M ${p[0][0].toFixed(1)} ${p[0][1].toFixed(1)}`; for (let i = 1; i < p.length - 1; i++) { const mx = (p[i][0] + p[i + 1][0]) / 2, my = (p[i][1] + p[i + 1][1]) / 2; d += ` Q ${p[i][0].toFixed(1)} ${p[i][1].toFixed(1)} ${mx.toFixed(1)} ${my.toFixed(1)}`; } const l = p[p.length - 1]; return d + ` L ${l[0].toFixed(1)} ${l[1].toFixed(1)}`; };
+const poly = p => p.map((q, i) => (i ? 'L ' : 'M ') + q[0].toFixed(1) + ' ' + q[1].toFixed(1)).join(' ');
+const arc = (cx, cy, r, f0, f1) => { const a0 = Math.PI * (1 + f0), a1 = Math.PI * (1 + f1); const p = a => [cx + r * Math.cos(a), cy + r * Math.sin(a)]; const [x0, y0] = p(a0), [x1, y1] = p(a1); return `M ${x0.toFixed(1)} ${y0.toFixed(1)} A ${r} ${r} 0 ${f1 - f0 > 1 ? 1 : 0} 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`; };
+const onArc = (cx, cy, r, f) => { const a = Math.PI * (1 + f); return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; };
+const spark = (vals, w, h, color) => { const p = pts(vals, 2, w - 4, 3, h - 3, Math.min(...vals), Math.max(...vals)); const l = p[p.length - 1]; return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true" style="vertical-align:-3px"><path d="${poly(p)}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${l[0]}" cy="${l[1]}" r="2.5" fill="${color}"/></svg>`; };
+const nav = (labels, cls) => `<nav class="nav" style="${cls}">${labels.map((l, i) => `<span class="${i ? '' : 'on'}">${l}</span>`).join('')}</nav>`;
+const NAV4 = ['Today', 'Sleep', 'Trends', 'Coach'];
+
+/* ---------------- A · Open Sky ---------------- */
+function A() {
+  const [sx, sy] = onArc(206, 360, 150, D.ready / 100), [tx0, ty0] = onArc(206, 360, 138, D.readyNorm / 100), [tx1, ty1] = onArc(206, 360, 164, D.readyNorm / 100);
+  const rows = [['Activity', `${D.steps} steps`, `Usual full day ${D.stepsUsual}<br>Strain ${D.strain}, normal ${D.strainNorm}`], ['Sleep', D.sleep, `Score ${D.sleepScore}<br>${sleepDiffTxt}`], ['Heart', `HRV ${D.hrv} ms`, `Above normal ${D.hrvLo}–${D.hrvHi}<br>Resting ${D.rhr} bpm`], ['Daily score', D.daily, 'Firms up as your<br>day is logged']];
+  return `<div class="phone" style="font-family:Roboto;color:#0E2A43;--ind:#0E2A43">
+  <svg class="scene" viewBox="0 0 412 915" aria-hidden="true"><defs><linearGradient id="skyA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7FB8E6"/><stop offset=".55" stop-color="#E4F1FA"/></linearGradient><filter id="softA"><feGaussianBlur stdDeviation="5"/></filter></defs>
+    <rect width="412" height="915" fill="url(#skyA)"/>
+    <g filter="url(#softA)" fill="#fff" opacity=".7" class="A-cloud"><ellipse cx="104" cy="182" rx="78" ry="11"/><ellipse cx="140" cy="174" rx="40" ry="10"/><ellipse cx="300" cy="134" rx="56" ry="8"/></g>
+    <path d="${smooth([[0, 470], [90, 436], [180, 456], [290, 484], [412, 440]])} L 412 640 L 0 640 Z" fill="#CFE5D6"/>
+    <path d="${smooth([[0, 522], [120, 486], [240, 506], [330, 520], [412, 498]])} L 412 640 L 0 640 Z" fill="#A9CDB8"/>
+    <path d="M0 552 Q206 534 412 552 V915 H0Z" fill="#F3F8F4"/>
+    <path d="${arc(206, 360, 150, 0, 1)}" fill="none" stroke="#fff" stroke-opacity=".9" stroke-width="3"/>
+    <path d="${arc(206, 360, 150, 0, D.ready / 100)}" fill="none" stroke="#0E2A43" stroke-width="4" stroke-linecap="round"/>
+    <path d="M ${tx0} ${ty0} L ${tx1} ${ty1}" stroke="#0E2A43" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="${sx}" cy="${sy}" r="13" fill="#FFE8A3" stroke="#0E2A43" stroke-width="2"/>
+  </svg>
+  <div class="abs" style="top:12px;left:20px;font-size:12px;font-weight:500">${D.time}</div>
+  <div class="abs" style="top:44px;left:24px"><div style="font-size:19px;font-weight:500">${D.date}</div><div style="font-size:12px;color:#23425C;margin-top:4px">${I.check} Morning check ${D.check} · synced 15:02</div></div>
+  <div class="abs btn" style="top:44px;right:24px;background:#0B5FA5;color:#fff;border-radius:12px;font-size:15px;font-weight:500">Log weight</div>
+  <div class="abs" style="top:${ty1 - 20}px;left:${tx1 + 4}px;font-size:12px;color:#23425C">normal ${D.readyNorm}</div>
+  <div class="abs" style="top:256px;left:0;right:0;text-align:center"><div style="font-size:57px;font-weight:300;line-height:1.1">${D.ready}</div><div style="font-size:23px;font-weight:500;margin-top:2px">${word(D.ready)}</div><div style="font-size:15px;color:#3D5A73;margin-top:4px">Readiness · ${diffTxt}</div></div>
+  <div class="abs" style="top:576px;left:24px;right:24px;display:grid;grid-template-columns:1fr 1fr;column-gap:24px">${rows.map((r, i) => `<div style="padding:${i > 1 ? 14 : 0}px 0 14px;${i > 1 ? 'border-top:1px solid rgba(14,42,67,.12)' : ''}"><div style="font-size:12px;color:#3D5A73">${r[0]}</div><div style="font-size:23px;font-weight:500;line-height:1.25">${r[1]}</div><div style="font-size:12px;color:#3D5A73;line-height:1.35">${r[2]}</div></div>`).join('')}</div>
+  ${nav(NAV4, 'background:#F3F8F4;border-top:1px solid rgba(14,42,67,.12);color:#3D5A73')}
+</div>`;
+}
+
+/* ---------------- B · Altitude ---------------- */
+function B() {
+  const [ex, ey] = onArc(206, 250, 140, D.ready / 100);
+  return `<div class="phone" style="font-family:Roboto;color:#F4F7F9;--ind:#F2C48D">
+  <svg class="scene" viewBox="0 0 412 915" aria-hidden="true"><defs>
+    <linearGradient id="skyB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0F3B5F"/><stop offset=".4" stop-color="#2D6E96"/><stop offset=".62" stop-color="#8FB4C9"/></linearGradient>
+    <linearGradient id="hazeB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8FB4C9" stop-opacity="0"/><stop offset="1" stop-color="#8FB4C9" stop-opacity=".92"/></linearGradient>
+    <linearGradient id="snowB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F4F7F9"/><stop offset="1" stop-color="#C9D6DF"/></linearGradient></defs>
+    <rect width="412" height="915" fill="url(#skyB)"/>
+    <path d="M-10 600 L30 566 L70 552 L110 528 L150 538 L190 512 L240 532 L300 506 L350 528 L422 498 V720 H-10Z" fill="#6F98B5" opacity=".85"/>
+    <path d="M-20 640 L30 592 L70 568 L104 530 L134 500 L162 462 L184 420 L200 388 L215 340 L224 352 L236 346 L250 372 L266 396 L292 424 L322 458 L360 494 L400 522 L432 540 V720 H-20Z" fill="url(#snowB)"/>
+    <path d="M215 340 L224 352 L236 346 L250 372 L266 396 L292 424 L322 458 L360 494 L400 522 L432 540 V720 H252 L246 600 L236 486 L226 410Z" fill="#9FB3C2"/>
+    <path d="M226 410 L236 486 L246 600 L230 600 L224 520 L218 452Z" fill="#8299AA" opacity=".7"/>
+    <path d="M134 500 L162 462 L172 470 L150 516 L120 556 L94 590 L76 596Z" fill="#B7C7D2"/>
+    <path d="M262 452 L280 470 L272 500 Z M300 486 L318 500 L306 528 Z M196 470 L206 492 L192 520 Z" fill="#7F97A8" opacity=".55"/>
+    <rect y="470" width="412" height="110" fill="url(#hazeB)"/>
+    <path d="M-10 602 Q100 556 200 588 Q300 614 422 574 V720 H-10Z" fill="#16303F"/>
+    <path d="${arc(206, 250, 140, 0, 1)}" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="2"/>
+    <path d="${arc(206, 250, 140, 0, D.ready / 100)}" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="${ex}" cy="${ey}" r="6" fill="#fff"/>
+  </svg>
+  <div class="abs" style="top:12px;left:20px;font-size:12px;font-weight:500">${D.time}</div>
+  <div class="abs" style="top:44px;left:24px;font-size:12px;color:#E6EEF3">${D.date} · ${I.check} check ${D.check}</div>
+  <div class="abs" style="top:256px;left:56px;font-size:12px;color:#E6EEF3">0</div><div class="abs" style="top:256px;right:56px;font-size:12px;color:#E6EEF3">100</div>
+  <div class="abs" style="top:158px;left:0;right:0;text-align:center"><div style="font-family:Newsreader;font-weight:300;font-size:67px;line-height:1.1">${D.ready}</div><div style="font-size:12px;font-weight:500;letter-spacing:.12em;color:#E6EEF3;margin-top:6px">READINESS</div></div>
+  <div class="abs" style="top:540px;left:0;right:0;bottom:0;background:#10202B;border-radius:28px 28px 0 0;padding:12px 24px 0">
+    <div style="width:32px;height:4px;border-radius:2px;background:rgba(185,201,212,.6);margin:0 auto 14px"></div>
+    <div style="font-family:Newsreader;font-size:38px;line-height:1.15">Well recovered.</div>
+    <div style="font-size:16px;line-height:22px;color:#B9C9D4;margin-top:8px">Readiness is ${diffTxt}. A good day for hard training.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px">
+      <div><div style="font-size:12px;color:#B9C9D4">Sleep</div><div style="font-family:Newsreader;font-size:28px;line-height:1.2">${D.sleep}</div><div style="font-size:12px;color:#B9C9D4">Score ${D.sleepScore} · ${D.sleepDiff >= 0 ? '+' : '−'}${Math.abs(D.sleepDiff)} min</div></div>
+      <div><div style="font-size:12px;color:#B9C9D4">Activity</div><div style="font-family:Newsreader;font-size:28px;line-height:1.2">${D.steps}</div><div style="font-size:12px;color:#B9C9D4">steps · usual day ${D.stepsUsual}</div></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(255,255,255,.12);margin-top:16px;padding-top:12px">
+      <div><div style="font-size:16px">Daily score ${D.daily}</div><div style="font-size:12px;color:#B9C9D4">Firms up as your day is logged</div></div>
+      <div class="btn" style="background:#F2C48D;color:#10202B;border-radius:24px;font-size:16px;font-weight:500">Log weight</div>
+    </div>
+  </div>
+  ${nav(NAV4, 'background:#10202B;color:#B9C9D4')}
+</div>`;
+}
+
+/* ---------------- C · Horizon Line ---------------- */
+function C() {
+  const r30 = D.s30('readiness'), p = pts(r30, 8, 404, 112, 186, Math.min(...r30), Math.max(...r30));
+  const ny = 186 - (D.readyNorm - Math.min(...r30)) / (Math.max(...r30) - Math.min(...r30)) * 74, l = p[p.length - 1];
+  const rows = [['Activity', `${D.steps} steps`, t.steps, 0, 14000, M.steps.normalMin, M.steps.normalMax],
+    ['Strain', D.strain, D.strain, 0, 100, M.strain.normalMin, M.strain.normalMax],
+    ['Sleep', D.sleep, t.sleepMin, 300, 540, M.sleep.normalMin, M.sleep.normalMax],
+    ['HRV', `${D.hrv} ms`, D.hrv, 40, 75, D.hrvLo, D.hrvHi],
+    ['Resting HR', `${D.rhr} bpm`, D.rhr, 45, 65, D.rhrLo, D.rhrHi],
+    ['Readiness', D.ready, D.ready, 0, 100, M.readiness.normalMin, M.readiness.normalMax],
+    ['Daily score', `${D.daily} · provisional`, D.daily, 0, 100, 66, 78]];
+  const bullet = (v, mn, mx, lo, hi) => { const s = q => 172 * (q - mn) / (mx - mn); return `<svg width="172" height="24" viewBox="0 0 172 24" aria-hidden="true"><rect y="11.5" width="172" height="1" fill="#101418" fill-opacity=".25"/><rect x="${s(lo)}" y="3" width="${s(hi) - s(lo)}" height="18" fill="#A9C4DA"/><rect x="${s(lo)}" y="1" width="1.5" height="22" fill="#101418"/><rect x="${s(hi) - 1.5}" y="1" width="1.5" height="22" fill="#101418"/><rect y="9" width="${Math.max(2, s(v))}" height="6" fill="#101418"/></svg>`; };
+  return `<div class="phone" style="font-family:'Work Sans';color:#101418;background:#F6F8FA;--ind:#0B6BCB">
+  <svg class="scene" viewBox="0 0 412 915" aria-hidden="true"><defs><linearGradient id="skyC" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#BFDDF2"/><stop offset="1" stop-color="#EAF4FB"/></linearGradient></defs>
+    <rect width="412" height="208" fill="url(#skyC)"/><path d="${poly(p)} L 404 208 L 8 208 Z" fill="#D3E4EF"/><path d="${poly(p)}" fill="none" stroke="#101418" stroke-width="1.5" stroke-linejoin="round"/>
+    <rect y="${ny.toFixed(1)}" width="412" height="1" fill="#101418" fill-opacity=".35"/><circle cx="314" cy="66" r="14" fill="none" stroke="#101418" stroke-width="1.5"/><circle cx="${l[0]}" cy="${l[1]}" r="4" fill="#101418"/>
+  </svg>
+  <div class="abs" style="top:12px;left:20px;font-size:11px;font-weight:500">${D.time}</div>
+  <div class="abs" style="top:40px;left:16px;font-size:11px;color:#4B5560">Readiness · 30 days</div>
+  <div class="abs" style="top:${(ny - 17).toFixed(0)}px;left:16px;font-size:11px;color:#4B5560">normal ${D.readyNorm}</div>
+  <div class="abs" style="top:222px;left:20px;font-size:13px;color:#4B5560">${D.date} · ${D.time} · ${I.check} morning check ${D.check}</div>
+  <div class="abs" style="top:244px;left:20px;display:flex;gap:14px;align-items:center"><div style="font-family:Outfit;font-weight:500;font-size:40px;line-height:1">${D.ready}</div><div><div style="font-family:Outfit;font-weight:500;font-size:19px">${word(D.ready)}</div><div style="font-size:13px;color:#4B5560">Readiness · ${diffTxt} (${D.readyNorm})</div></div></div>
+  <div class="abs" style="top:304px;left:20px;right:20px">${rows.map(r => `<div style="display:flex;align-items:center;justify-content:space-between;height:52px;border-top:1px solid rgba(16,20,24,.08)"><div><div style="font-size:13px;color:#4B5560">${r[0]}</div><div style="font-family:Outfit;font-weight:500;font-size:19px;line-height:1.2">${r[1]}</div></div>${bullet(r[2], r[3], r[4], r[5], r[6])}</div>`).join('')}
+    <div style="font-size:11px;color:#4B5560;padding-top:8px;border-top:1px solid rgba(16,20,24,.08)">Bar = today · shaded band between ticks = your normal (last 30 days)</div></div>
+  <div class="abs" style="top:770px;left:20px;right:20px;display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:16px;font-weight:500">
+    <div class="btn" style="border:1px solid #101418;border-radius:6px">${I.check}&nbsp;Morning check</div><div class="btn" style="background:#0B6BCB;color:#fff;border-radius:6px">Log weight</div></div>
+  ${nav(NAV4, 'background:#F6F8FA;border-top:1px solid rgba(16,20,24,.12);color:#4B5560')}
+</div>`;
+}
+
+/* ---------------- D · Forecast ---------------- */
+function Dd() {
+  const tile = '#1D4A48', t2 = '#C5DDD8';
+  const hyp = [0, 2, 3, 3, 2, 1, 2, 3, 2, 1, 2, 1, 2, 1, 0, 2];
+  return `<div class="phone" style="font-family:'Nunito Sans';color:#fff;--ind:#FFC56B">
+  <svg class="scene" viewBox="0 0 412 915" aria-hidden="true"><defs>
+    <linearGradient id="skyD" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#235C96"/><stop offset=".45" stop-color="#5A9AD0"/></linearGradient>
+    <linearGradient id="meadowD" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4F8C6E"/><stop offset=".35" stop-color="#2F6B55"/></linearGradient>
+    <radialGradient id="glowD"><stop offset="0" stop-color="#FFE7A8" stop-opacity=".55"/><stop offset="1" stop-color="#FFE7A8" stop-opacity="0"/></radialGradient>
+    <filter id="softD"><feGaussianBlur stdDeviation="1.5"/></filter></defs>
+    <rect width="412" height="915" fill="url(#skyD)"/>
+    <circle cx="332" cy="112" r="72" fill="url(#glowD)"/><circle cx="332" cy="112" r="32" fill="#FFE7A8"/>
+    <g fill="#fff" opacity=".92" filter="url(#softD)"><ellipse cx="292" cy="158" rx="50" ry="16"/><ellipse cx="312" cy="144" rx="28" ry="20"/><ellipse cx="344" cy="158" rx="36" ry="14"/></g>
+    <path d="${smooth([[0, 330], [80, 298], [170, 316], [280, 340], [412, 300]])} L 412 460 L 0 460 Z" fill="#6FA88A"/>
+    <path d="${smooth([[0, 374], [140, 338], [260, 362], [340, 378], [412, 352]])} L 412 460 L 0 460 Z" fill="#4F8C6E"/>
+    <rect y="430" width="412" height="485" fill="url(#meadowD)"/>
+  </svg>
+  <div class="abs" style="top:12px;left:20px;font-size:12px;font-weight:700">${D.time}</div>
+  <div class="abs" style="top:38px;left:24px"><div style="font-size:17px">${D.date}</div><div style="font-size:96px;font-weight:300;line-height:1;margin:2px 0 0 -4px">${D.ready}</div><div style="font-size:34px;font-weight:700;line-height:1.2">Clear · ${word(D.ready).toLowerCase()}</div><div style="font-size:24px;line-height:1.3">${diffTxt}</div></div>
+  <div class="abs" style="top:276px;left:16px;right:16px;height:100px;background:#1F4E7A;border-radius:20px;padding:10px 16px">
+    <div style="font-size:12px;color:#C9DCEE">Readiness this week</div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-top:4px">${D.week.map(w => `<div><div style="font-size:12px;color:#C9DCEE;${w.day === 'Today' ? 'font-weight:700;color:#fff' : ''}">${w.day}</div>${glyph(w.v)}<div style="font-size:17px;font-weight:700;line-height:1.1">${w.v}</div></div>`).join('')}</div></div>
+  <div class="abs" style="top:388px;left:16px;width:182px;height:212px;background:${tile};border-radius:20px;padding:14px 16px">
+    <div style="font-size:12px;color:${t2}"><span style="color:#FFE7A8">${I.moon}</span> Sleep</div><div style="font-size:34px;font-weight:700;line-height:1.2;margin-top:2px">${D.sleep}</div><div style="font-size:17px">Score ${D.sleepScore}</div><div style="font-size:12px;color:${t2}">${sleepDiffTxt}</div>
+    <svg width="150" height="48" viewBox="0 0 150 48" aria-hidden="true" style="margin-top:12px">${hyp.map((v, i) => `<rect x="${i * 9.4}" y="${v * 11}" width="7" height="${48 - v * 11}" rx="2" fill="#fff" fill-opacity=".75"/>`).join('')}</svg></div>
+  <div class="abs" style="top:388px;left:206px;width:190px;height:102px;background:${tile};border-radius:20px;padding:14px 16px"><div style="font-size:12px;color:${t2}">Steps</div><div style="font-size:34px;font-weight:700;line-height:1.2">${D.steps}</div><div style="font-size:12px;color:${t2}">usual full day ${D.stepsUsual}</div></div>
+  <div class="abs" style="top:498px;left:206px;width:190px;height:102px;background:${tile};border-radius:20px;padding:14px 16px"><div style="font-size:12px;color:${t2}">HRV</div><div style="font-size:34px;font-weight:700;line-height:1.2">${D.hrv} ms</div><div style="font-size:12px;color:${t2}">${I.up} above normal ${D.hrvLo}–${D.hrvHi}</div></div>
+  <div class="abs" style="top:608px;left:16px;right:16px;height:100px;background:${tile};border-radius:20px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center">
+    <div><div style="font-size:12px;color:${t2}">Daily score</div><div style="font-size:34px;font-weight:700;line-height:1.2">${D.daily}</div><div style="font-size:12px;color:${t2}">Firms up as your day is logged</div></div>
+    <div class="btn" style="background:#FFC56B;color:#0F2536;border-radius:24px;font-size:17px;font-weight:700">Log weight</div></div>
+  <div class="abs" style="top:716px;left:16px;right:16px;height:72px;background:${tile};border-radius:20px;padding:12px 16px"><div style="font-size:17px">Resting HR ${D.rhr} bpm · normal</div><div style="font-size:12px;color:${t2}">Strain ${D.strain}, normal ${D.strainNorm} · ${I.check} check ${D.check}</div></div>
+  ${nav(NAV4, `background:${tile};color:${t2}`)}
+</div>`;
+}
+
+/* ---------------- E · Daylight Letter ---------------- */
+function E() {
+  const sec = '#6B5547', acc = '#A2481F';
+  const block = (label, body, sp) => `<div style="margin-bottom:14px"><div style="font-family:Raleway;font-weight:500;font-size:13px;color:${sec}">${label} ${sp || ''}</div><div style="font-family:Lora;font-size:20px;line-height:28px">${body}</div></div>`;
+  return `<div class="phone" style="color:#2B1E16;--ind:${acc}">
+  <svg class="scene" viewBox="0 0 412 915" aria-hidden="true"><defs>
+    <linearGradient id="skyE" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#CFE3EE"/><stop offset=".36" stop-color="#F6E7D8"/><stop offset=".5" stop-color="#FFF9F3"/></linearGradient>
+    <radialGradient id="glowE"><stop offset="0" stop-color="#FFF2D9"/><stop offset=".45" stop-color="#FFF2D9" stop-opacity=".8"/><stop offset="1" stop-color="#FFF2D9" stop-opacity="0"/></radialGradient></defs>
+    <rect width="412" height="915" fill="url(#skyE)"/><circle cx="326" cy="286" r="80" fill="url(#glowE)"/><circle cx="326" cy="286" r="24" fill="#FFF6E6"/>
+    <path d="${smooth([[0, 352], [120, 320], [230, 338], [330, 324], [412, 342]])} L 412 470 L 0 470 Z" fill="#EBD8C8"/>
+    <path d="${smooth([[0, 396], [140, 370], [280, 388], [412, 374]])} L 412 470 L 0 470 Z" fill="#E3CDBA"/>
+    <path d="M0 440 Q206 426 412 440 V915 H0Z" fill="#FFF9F3"/>
+  </svg>
+  <div class="abs" style="top:12px;left:20px;font:500 12px Raleway">${D.time}</div>
+  <div class="abs" style="top:44px;left:24px;right:24px">
+    <div style="font:500 13px Raleway;color:${sec}">Thursday afternoon, 12 November</div>
+    <div style="display:flex;align-items:baseline;gap:12px;margin-top:20px"><div style="font:400 44px/1 Lora">${D.ready}</div><div style="font:500 13px Raleway;color:${sec}">readiness</div></div>
+    <div style="font:400 29px/36px Lora;margin-top:12px;max-width:330px">You’re well recovered, ${diffTxt}.</div></div>
+  <div class="abs" style="top:470px;left:24px;right:24px">
+    ${block('Sleep', `You slept ${D.sleep}, ${sleepDiffTxt}.`, spark(D.s7('sleepMin'), 64, 16, sec))}
+    ${block('Activity', `${D.steps} steps so far, already past your usual full day of ${D.stepsUsual}.`, spark(D.s7('steps'), 64, 16, sec))}
+    ${block('Heart', `HRV ${D.hrv} ms, just above your normal ${D.hrvLo}–${D.hrvHi}. Resting heart rate ${D.rhr}.`, spark(D.s7('hrv'), 64, 16, sec))}
+    <div style="font:400 13px Raleway;color:${sec}">Daily score ${D.daily} for now. It firms up as your day is logged.</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px"><div class="btn" style="padding:0;color:${acc};font:500 16px Raleway;text-decoration:underline;text-underline-offset:4px">${I.scale}&nbsp;Log weight</div><div style="font:400 13px Raleway;color:${sec}">${I.check} Morning check ${D.check}</div></div></div>
+  ${nav(NAV4, `background:#FFF9F3;border-top:1px solid rgba(43,30,22,.12);color:${sec};font-family:Raleway`)}
+</div>`;
+}
+
+/* ---------------- F · Strata ---------------- */
+function F() {
+  const band = (k, yTop, yBot) => { const v = D.s30(k); return pts(v, 0, 412, yTop, yBot, Math.min(...v), Math.max(...v)); };
+  const back = band('hrv', 150, 236), mid = band('sleepMin', 232, 312), front = band('readiness', 306, 392);
+  const area = (p, fill) => `<path d="${smooth(p)} L 412 470 L 0 470 Z" fill="${fill}"/>`;
+  const crest = (p, c) => `<path d="${smooth(p)}" fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round"/>`;
+  const end = (p, c) => { const l = p[p.length - 1]; return `<circle cx="${l[0] - 4}" cy="${l[1]}" r="4" fill="${c}"/>`; };
+  const lab = (p, txt, val, c) => `<div class="abs" style="top:${(Math.max(...p.slice(0, 8).map(q => q[1])) + 6).toFixed(0)}px;left:16px;font-size:12px;color:${c}">${txt}</div><div class="abs" style="top:${(p[p.length - 1][1] + 8).toFixed(0)}px;right:12px;font-size:12px;font-weight:600;color:${c}">${val}</div>`;
+  return `<div class="phone" style="font-family:Manrope;color:#0F2536;--ind:#3C6E92">
+  <svg class="scene" viewBox="0 0 412 915" aria-hidden="true"><defs><linearGradient id="skyF" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#BCD9EC"/><stop offset=".22" stop-color="#D9ECF7"/></linearGradient></defs>
+    <rect width="412" height="915" fill="url(#skyF)"/>
+    ${area(back, '#A7C7DC')}${crest(back, '#0F2536')}${end(back, '#0F2536')}
+    ${area(mid, '#6E9DBD')}${crest(mid, '#0F2536')}${end(mid, '#0F2536')}
+    ${area(front, '#3C6E92')}${crest(front, '#FFFFFF')}${end(front, '#FFFFFF')}
+    <path d="M0 440 Q206 428 412 440 V915 H0Z" fill="#F2F7FA"/>
+  </svg>
+  <div class="abs" style="top:12px;left:20px;font-size:12px;font-weight:600;color:#0F2536">${D.time}</div>
+  <div class="abs" style="top:40px;left:24px;color:#0F2536"><div style="font-size:16px;font-weight:600">${D.date}</div><div style="font-size:12px">${I.check} Morning check ${D.check} · 30 days, oldest left</div></div>
+  ${lab(back, 'HRV', `${D.hrv} ms`, '#0F2536')}${lab(mid, 'Sleep', D.sleep, '#0F2536')}${lab(front, 'Readiness', D.ready, '#FFFFFF')}
+  <div class="abs" style="top:462px;left:24px;right:24px">
+    <div style="display:flex;align-items:center;gap:16px"><div style="font-size:67px;font-weight:300;line-height:1">${D.ready}</div><div><div style="font-size:21px;font-weight:600">${word(D.ready)}</div><div style="font-size:16px;color:#3F5568">Readiness · ${diffTxt}</div></div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px">
+      <div><div style="font-size:12px;color:#3F5568">Sleep</div><div style="font-size:28px;font-weight:500;line-height:1.25">${D.sleep}</div><div style="font-size:12px;color:#3F5568">Score ${D.sleepScore} · ${sleepDiffTxt}</div></div>
+      <div><div style="font-size:12px;color:#3F5568">Activity</div><div style="font-size:28px;font-weight:500;line-height:1.25">${D.steps}</div><div style="font-size:12px;color:#3F5568">steps · usual day ${D.stepsUsual}</div></div></div>
+    <div style="border-top:1px solid rgba(15,37,54,.14);margin-top:20px;padding-top:14px"><div style="font-size:16px">Daily score ${D.daily}</div><div style="font-size:12px;color:#3F5568">Firms up as your day is logged · strain ${D.strain}, resting HR ${D.rhr}</div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px;font-size:16px;font-weight:600"><div class="btn" style="border:1px solid #0F2536;border-radius:12px">${I.check}&nbsp;Check done</div><div class="btn" style="background:#3C6E92;color:#fff;border-radius:12px">Log weight</div></div></div>
+  ${nav(NAV4, 'background:#F2F7FA;border-top:1px solid rgba(15,37,54,.12);color:#3F5568')}
+</div>`;
+}
+
+/* ---------------- G · Instrument (control) ---------------- */
+function G() {
+  const card = 'background:#181B21;border-radius:8px;padding:16px';
+  const gauge = (v, txt) => `<div style="width:72px;text-align:right"><div style="font-size:28.8px;font-weight:500;line-height:1.2">${txt ?? v}</div><div style="height:3px;background:rgba(255,255,255,.08)"><div style="height:3px;width:${Math.min(v, 100)}%;background:${v >= 70 ? '#34D399' : v >= 40 ? '#FBBF24' : '#FB7185'}"></div></div></div>`;
+  const dot = c => `<span style="display:inline-block;width:6px;height:6px;border-radius:3px;background:${c};margin-right:6px;vertical-align:1px"></span>`;
+  return `<div class="phone" style="font-family:Roboto;color:#F8FAFC;background:#0D0F13;--ind:#FFB86B">
+  <div class="abs" style="top:12px;left:20px;font-size:12px;font-weight:500">${D.time}</div>
+  <div class="abs" style="top:44px;left:16px;right:16px;display:flex;flex-direction:column;gap:12px">
+    <div><div style="font-size:16px;font-weight:500">Good afternoon, Stav</div><div style="font-size:13px;color:#A6ADBA">${D.date}</div></div>
+    <div style="font-size:13px;color:#A6ADBA;height:32px;display:flex;align-items:center">Synced 15:02 &nbsp;·&nbsp; 61%</div>
+    <div style="display:flex;justify-content:space-between;font-size:13px;color:#A6ADBA"><span>Morning check · ${D.check} · HRV ${D.hrv} ms</span><span style="color:#FFB86B">Redo</span></div>
+    <div style="${card};display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:16px;font-weight:500">Daily Score</div><div style="font-size:13px;color:#A6ADBA;margin-top:8px">${dot('#A6ADBA')}↑ 18% vs your normal</div><div style="font-size:13px;color:#A6ADBA;margin-top:12px">Readiness, sleep and strain · synced 15:02</div><div style="font-size:13px;color:#FFB86B;margin-top:4px">How is this calculated? ›</div></div>${gauge(D.daily)}</div>
+    <div style="${card};display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:16px;font-weight:500">Recovery</div><div style="font-size:13px;color:#A6ADBA;margin-top:8px">${dot('#A6ADBA')}↑ 9% vs your normal</div><div style="font-size:13px;color:#A6ADBA;margin-top:12px">HRV and resting HR, today · synced 15:02</div><div style="font-size:13px;color:#FFB86B;margin-top:4px">How is this calculated? ›</div></div>${gauge(t.recovery)}</div>
+    <div style="${card};display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:16px;font-weight:500">${D.steps} steps</div><div style="font-size:13px;color:#6EE7B7;margin-top:8px">${dot('#34D399')}↑ 2% vs your normal</div></div><div style="width:56px;text-align:right"><div style="font-size:22.4px;font-weight:500">100%</div><div style="height:3px;background:#34D399"></div></div></div>
+    <div style="${card};display:flex;justify-content:space-between"><div style="font-size:16px;font-weight:500">Well recovered. Good day for hard training.</div><span style="color:#A6ADBA">›</span></div>
+  </div>
+  ${nav(['Today', 'Trends', 'Coach', 'Settings'], 'background:rgba(13,15,19,.96);color:#A6ADBA')}
+</div>`;
+}
+
+/* ---------------- token sheets ---------------- */
+const L = h => { const c = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) / 255).map(x => x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+const CR = (a, b) => { const x = L(a), y = L(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+const NEED = { text: 4.5, large: 3, ui: 3, ctx: 0 };
+function sheet(s) {
+  return `<section class="sheet"><h2>${s.name}</h2><p class="thesis">${s.thesis}</p>
+  <dl>${s.rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
+  <div class="sw">${s.colors.map(([h, r]) => `<i style="background:#${h}"></i><code>#${h}</code><span>${r}</span>`).join('')}</div>
+  <table>${s.pairs.map(([lab, fg, bg, kind]) => { const r = CR(fg, bg), ok = r >= NEED[kind]; return `<tr><td>${lab} <span style="color:#8A929B">(${kind === 'ctx' ? 'context only' : kind + ' ≥ ' + NEED[kind]})</span></td><td class="${ok ? '' : 'fail'}">${r.toFixed(2)}:1</td></tr>`; }).join('')}</table>
+  <div class="scale" style="font-family:${s.font}">${s.sizes.map(z => `<div style="font-size:${z}px">${z} · ${s.word}</div>`).join('')}</div></section>`;
+}
+const SPECS = [
+ { fn: A, name: 'A · Open Sky', thesis: 'The day is a clear sky you read at a glance: dark ink on pale air, nothing boxed.', font: 'Roboto', word: 'Ready 86', sizes: [57, 29, 23, 19, 15, 12],
+   rows: [['Principles', 'Figure/ground by value (dark ink on pale sky). Grouping by proximity, no containers. One primary number.'], ['Colour', 'Light and cool. The sky shows the time of day; cloud cover and sky depth show readiness. Navy ink for all text, one deep-sky action colour.'], ['Type', 'Roboto (system font, no new dependency). Ratio 1.25 (major third) from 12.'], ['Spacing', 'Base 8: 8 / 16 / 24 / 40 / 64. Airy.'], ['Radius', '12 on buttons only. No panels.'], ['Surface', 'No cards. Data sits on the sky and meadow; 12% ink hairlines split rows.'], ['Data-viz', 'Sun-path arc: the sun’s position = readiness, tick = your normal. Number and word always shown.'], ['Motion', 'Ambient: one cloud layer drifts (60 s). Off with reduced motion.'], ['Sources', 'ui-ux-pro-max colour “Weather App” (sky family, darkened for AA); chart “Performance vs Target → Gauge” (number and target beside it).']],
+   colors: [['7FB8E6', 'sky top'], ['E4F1FA', 'horizon'], ['F3F8F4', 'meadow ground'], ['0E2A43', 'ink'], ['3D5A73', 'ink 2'], ['0B5FA5', 'action'], ['FFE8A3', 'sun, ink stroke']],
+   pairs: [['Ink on sky top', '0E2A43', '7FB8E6', 'text'], ['Ink 2 on horizon', '3D5A73', 'E4F1FA', 'text'], ['Ink 2 on ground', '3D5A73', 'F3F8F4', 'text'], ['Label 23425C on sky', '23425C', '7FB8E6', 'text'], ['White on action', 'FFFFFF', '0B5FA5', 'text'], ['Arc fill on sky', '0E2A43', '9CC8EA', 'ui'], ['Sun stroke on sky', '0E2A43', 'B9DAF1', 'ui'], ['Arc track on sky', 'FFFFFF', '7FB8E6', 'ctx']] },
+ { fn: B, name: 'B · Altitude', thesis: 'High, deep, quiet: the summit holds your number, and a serif sentence tells you what it means.', font: 'Newsreader', word: 'Well recovered', sizes: [67, 38, 28, 21, 16, 12],
+   rows: [['Principles', 'Figure/ground by a sheet: scene above, reading surface below. Serif voice for the verdict. One primary number.'], ['Colour', 'Deep high-altitude blue. White text only where the sky is darkest. Sheet tinted from the scene floor. One warm accent (sunlit snow), for actions only.'], ['Type', 'Newsreader (serif, new dependency) for the hero and headline, Roboto for the interface. Ratio 1.333 (perfect fourth) from 12.'], ['Spacing', 'Base 4: 8 / 12 / 16 / 24 / 32.'], ['Radius', 'Sheet 28 (top corners), button 24. None elsewhere.'], ['Surface', 'Scene plus one rising solid sheet, no blur, no cards inside.'], ['Data-viz', 'Dial arc over the summit, 0–100. The headline names the state.'], ['Motion', 'Parallax: the scene moves at 0.3× on scroll; the sheet drags up to full screen.'], ['Sources', 'ui-ux-pro-max typography “News Editorial” (Newsreader + Roboto); chart “Performance vs Target → Gauge/Dial”; ref screens/ref-oura-readiness.webp.']],
+   colors: [['0F3B5F', 'zenith'], ['2D6E96', 'mid sky'], ['E8EEF2', 'snow'], ['10202B', 'sheet'], ['F4F7F9', 'text'], ['B9C9D4', 'text 2'], ['F2C48D', 'accent']],
+   pairs: [['White on dial zone', 'F4F7F9', '1B5078', 'text'], ['Label E6EEF3 on mid sky', 'E6EEF3', '2D6E96', 'text'], ['White on sheet', 'F4F7F9', '10202B', 'text'], ['Text 2 on sheet', 'B9C9D4', '10202B', 'text'], ['Ink on accent', '10202B', 'F2C48D', 'text'], ['Dial arc on sky', 'FFFFFF', '2D6E96', 'ui'], ['White on snow (never used)', 'F4F7F9', '8FB4C9', 'ctx']] },
+ { fn: C, name: 'C · Horizon Line', thesis: 'A precise readout under a thin horizon: the landscape is your 30-day readiness line, and every metric is measured against its own normal.', font: 'Outfit', word: 'Ready 86', sizes: [40, 23, 19, 16, 13, 11],
+   rows: [['Principles', 'Alignment on a strict grid. High data-ink ratio (Tufte). Every value shown against its normal band. One primary number.'], ['Colour', 'Light neutral paper. Sky only in the 208 dp horizon strip (time of day + readiness tint). Ink does everything; one blue for actions.'], ['Type', 'Outfit (numbers, headings) + Work Sans (interface), both new dependencies. Ratio 1.2 (minor third) from 11.'], ['Spacing', 'Base 4: 4 / 8 / 12 / 16 / 20. Dense.'], ['Radius', '6 on buttons. Nothing else rounded.'], ['Surface', 'Flat paper and rows, no cards. The strip is the only depth.'], ['Data-viz', 'Bullet charts: bar = today, band between ink ticks = your 30-day normal. Line-art ridge = readiness over 30 days; the sun outline marks the time of day.'], ['Motion', 'Static. Only 150 ms state changes.'], ['Sources', 'ui-ux-pro-max typography “Geometric Modern” (Outfit + Work Sans); chart “Performance vs Target (Compact) → Bullet Chart”; chart “Trend Over Time → Line”.']],
+   colors: [['F6F8FA', 'paper'], ['BFDDF2', 'strip sky'], ['101418', 'ink'], ['4B5560', 'ink 2'], ['A9C4DA', 'normal band'], ['0B6BCB', 'action']],
+   pairs: [['Ink on paper', '101418', 'F6F8FA', 'text'], ['Ink 2 on paper', '4B5560', 'F6F8FA', 'text'], ['Ink 2 on strip', '4B5560', 'D3E4EF', 'text'], ['White on action', 'FFFFFF', '0B6BCB', 'text'], ['Band end-ticks on paper', '101418', 'F6F8FA', 'ui'], ['Today bar on band', '101418', 'A9C4DA', 'ui'], ['Band fill on paper', 'A9C4DA', 'F6F8FA', 'ctx']] },
+ { fn: Dd, name: 'D · Forecast', thesis: 'Your body as a weather report: today’s conditions up top, the week as a forecast strip, each metric its own small picture.', font: "'Nunito Sans'", word: 'Clear 86', sizes: [96, 48, 34, 24, 17, 12],
+   rows: [['Principles', 'A familiar mental model (the weather app). Grouping by common region in tiles of unequal weight. Glyph + number + word, never colour alone.'], ['Colour', 'Day blue to meadow green, like the reference. Tiles are solid tints sampled from what is behind them (blue on sky, teal on meadow). Warm sun yellow for actions.'], ['Type', 'Nunito Sans (new dependency). Ratio 1.414 (augmented fourth) from 12.'], ['Spacing', 'Base 8: 8 / 16 / 24 / 32.'], ['Radius', 'Tiles 20, buttons 24.'], ['Surface', 'Solid tiles on the scene, two levels at most, no blur.'], ['Data-viz', 'Forecast strip: 7-day readiness as sun/cloud glyph + number. Moon + hypnogram blocks for sleep.'], ['Motion', 'Playful but calm: tiles rise in with a 40 ms stagger. Reduced motion = fade only.'], ['Sources', 'ui-ux-pro-max typography “Soft Rounded” (Nunito family); colour “Weather App”; refs screens/ref-weather-1..3.png.']],
+   colors: [['235C96', 'sky top'], ['5A9AD0', 'sky low'], ['4F8C6E', 'meadow'], ['1F4E7A', 'sky tile'], ['1D4A48', 'meadow tile'], ['C5DDD8', 'text 2 (meadow tile)'], ['FFC56B', 'sun / action']],
+   pairs: [['White on sky top', 'FFFFFF', '235C96', 'text'], ['White 24 sp line on sky', 'FFFFFF', '3E7AB2', 'large'], ['White on meadow tile', 'FFFFFF', '1D4A48', 'text'], ['Text 2 on meadow tile', 'C5DDD8', '1D4A48', 'text'], ['Text 2 on sky tile', 'C9DCEE', '1F4E7A', 'text'], ['Ink on sun button', '0F2536', 'FFC56B', 'text'], ['Sun glyph on sky tile', 'FFC56B', '1F4E7A', 'ui']] },
+ { fn: E, name: 'E · Daylight Letter', thesis: 'Your day told in a few calm sentences, the numbers inside them, under a soft afternoon sky.', font: 'Lora', word: 'Well recovered', sizes: [44, 29, 20, 13],
+   rows: [['Principles', 'Narrative over dashboard: words carry the meaning, numbers sit in them. Word-sized graphics (Tufte). One primary number.'], ['Colour', 'Pale sky fading into warm haze, then paper. Warm ink. One terracotta accent for actions only; no status colours at all.'], ['Type', 'Lora (serif) for sentences + Raleway for labels, both new dependencies. Ratio 1.5 (perfect fifth) from 13.'], ['Spacing', 'Base 8: 8 / 16 / 24 / 40. Very low density.'], ['Radius', 'None. Text buttons with a 48 dp target.'], ['Surface', 'None: paper. Separation by space only.'], ['Data-viz', '7-day sparklines inline with each sentence, end point marked.'], ['Motion', 'Fades only (200 ms).'], ['Sources', 'ui-ux-pro-max typography “Wellness Calm” (Lora + Raleway); UX “Color Only” (text carries status).']],
+   colors: [['CFE3EE', 'sky top'], ['F6E7D8', 'warm haze'], ['FFF9F3', 'paper'], ['2B1E16', 'ink'], ['6B5547', 'ink 2'], ['A2481F', 'accent']],
+   pairs: [['Ink on sky top', '2B1E16', 'CFE3EE', 'text'], ['Ink 2 on sky top', '6B5547', 'CFE3EE', 'text'], ['Ink on paper', '2B1E16', 'FFF9F3', 'text'], ['Ink 2 on paper', '6B5547', 'FFF9F3', 'text'], ['Accent on paper', 'A2481F', 'FFF9F3', 'text'], ['Sparkline on paper', '6B5547', 'FFF9F3', 'ui']] },
+ { fn: F, name: 'F · Strata', thesis: 'The scene is the data: each ridge is 30 days of one measure, near to far, and today is where every ridge ends.', font: 'Manrope', word: 'Ready 86', sizes: [67, 51, 38, 28, 21, 16, 12],
+   rows: [['Principles', 'Data as landscape: aerial perspective orders the layers (near = readiness, far = HRV). Labels sit on the data, no legend. One primary number.'], ['Colour', 'Tonal blues only, light overall: pale sky, three ridges darkening toward you, pale mist ground. Depth is lightness. The near-ridge blue doubles as the action colour.'], ['Type', 'Manrope (new dependency; the v2 prototype face). Ratio 1.333 (perfect fourth) from 12.'], ['Spacing', 'Base 8: 8 / 16 / 24 / 32.'], ['Radius', '12 on buttons. Ridges are the only curves.'], ['Surface', 'Layers by aerial perspective; text sits on pale mist, no panels.'], ['Data-viz', 'Ridgeline area charts (HRV, sleep, readiness over 30 days) with crest lines and end points.'], ['Motion', 'On open, each ridge draws left to right once (data reveal), then holds still. Reduced motion = static.'], ['Sources', 'ui-ux-pro-max chart “Trend Over Time → Area Chart”; typography from design-prototype/DECISIONS.md (Manrope); ref screens/ref-oura-myhealth.png.']],
+   colors: [['D9ECF7', 'sky'], ['A7C7DC', 'far ridge'], ['6E9DBD', 'mid ridge'], ['3C6E92', 'near ridge'], ['F2F7FA', 'mist ground'], ['0F2536', 'ink'], ['3F5568', 'ink 2']],
+   pairs: [['Ink on sky', '0F2536', 'D9ECF7', 'text'], ['Ink label on far ridge', '0F2536', 'A7C7DC', 'text'], ['Ink label on mid ridge', '0F2536', '6E9DBD', 'text'], ['White label on near ridge', 'FFFFFF', '3C6E92', 'text'], ['Ink on ground', '0F2536', 'F2F7FA', 'text'], ['Ink 2 on ground', '3F5568', 'F2F7FA', 'text'], ['White on action', 'FFFFFF', '3C6E92', 'text'], ['Crest line on far ridge', '0F2536', 'A7C7DC', 'ui'], ['Ridge fill vs ridge fill', '6E9DBD', 'A7C7DC', 'ctx']] },
+ { fn: G, name: 'G · Instrument (control)', thesis: 'The current app: flat graphite, numbers first, colour reserved for meaning.', font: 'Roboto', word: 'Daily Score 84', sizes: [40, 28.8, 16, 13, 11],
+   rows: [['Type', '11 / 13 / 16 / 40 plus 28.8 and 22.4 from the gauge: no single ratio.'], ['Surface', 'Cards at 1.11:1 against the ground.'], ['Data-viz', '3 dp level bars; track and normal band under 3:1.'], ['Note', 'Rebuilt here with the same day’s data. The real device shots are in docs/design-exploration/screens/hp-*.png.']],
+   colors: [['0D0F13', 'BgDeep'], ['181B21', 'BgCard'], ['F8FAFC', 'TextPrimary'], ['A6ADBA', 'TextSecondary'], ['FFB86B', 'AccentAmber'], ['34D399', 'ScoreGreen']],
+   pairs: [['Text 2 on card', 'A6ADBA', '181B21', 'text'], ['Card vs ground', '181B21', '0D0F13', 'ui'], ['Bar track on card', '2B2E34', '181B21', 'ui']] },
+];
+const only = new URLSearchParams(location.search).get('only');
+document.getElementById('grid').innerHTML = SPECS.filter(s => !only || s.name.startsWith(only)).map(s => `<div class="col">${s.fn()}${sheet(s)}</div>`).join('');
+</script>
+</body>
+</html>

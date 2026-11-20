@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Health++ · Round 3.12 · Baked sky</title>
+<style>
+  body { margin:0; background:#ECEEF1; font:14px/1.5 system-ui, sans-serif; color:#1F2933; }
+  header, main, #out { max-width:1000px; margin:0 auto; padding:0 24px; }
+  header { margin-top:32px; }
+  h1 { font-size:26px; margin:0 0 8px; font-weight:600; }
+  header p { max-width:780px; margin:0 0 12px; color:#3E4C59; }
+  .ctl { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  label { display:flex; gap:8px; align-items:center; min-height:44px; }
+  input[type=range] { width:300px; min-height:44px; }
+  button { font:inherit; border:1px solid #C5CCD3; background:#fff; border-radius:999px; padding:8px 16px; min-height:44px; cursor:pointer; }
+  button[aria-pressed="true"] { background:#1F2933; color:#fff; border-color:#1F2933; }
+  main { display:grid; grid-template-columns:repeat(2, 330px); gap:32px; margin-top:16px; }
+  .ph { width:330px; height:733px; border-radius:24px; overflow:hidden; background:#000; box-shadow:0 8px 24px rgba(31,41,51,.15); }
+  .ph canvas { width:412px; height:915px; display:block; transform:scale(.801); transform-origin:0 0; }
+  figure { margin:0; } figcaption { margin-top:8px; font-size:13px; color:#3E4C59; } figcaption b { display:block; color:#1F2933; }
+  #out { margin-top:16px; margin-bottom:48px; color:#30363D; font-size:13px; }
+  #out td { padding:2px 12px 2px 0; } #out td:first-child { color:#3E4C59; }
+</style></head>
+<body>
+<header>
+  <h1>Technique 5 · The sky is baked, the motion stays live</h1>
+  <p>Games pre-render what is expensive and add what moves on top. Here the PC renders the sky and land once per keyframe (6 hours of a fair day, one cloudier noon) with the full shader and saves the four depth layers as images. The phone only loads them and runs the cheap passes: tilt, wind, birds, the sun disc where the hour puts it, bloom and the grade. Between keyframes the layers blend in linear light; the near clouds keep drifting by sliding their layer into extra room baked beside it. Left renders live, right plays the bake.</p>
+  <div class="ctl">
+    <label for="hour">Hour <input id="hour" type="range" min="0" max="24" step="0.25" value="13"> <output id="hv">13:00</output></label>
+    <span role="group" aria-label="Weather"><button data-r="86" aria-pressed="true">Readiness 86 · fair</button> <button data-r="55" aria-pressed="false">55 · cloudier</button></span>
+    <button id="cmp">Measure the difference</button>
+  </div>
+</header>
+<main>
+  <figure><div class="ph"><canvas id="live"></canvas></div><figcaption><b>Live</b>Full shader, 24 frames to converge</figcaption></figure>
+  <figure><div class="ph"><canvas id="baked"></canvas></div><figcaption><b>Baked</b>Two keyframes blended, drift and sun live</figcaption></figure>
+</main>
+<div id="out" aria-live="polite"></div>
+<script>document.write('<script src="scene-gl.js?' + Date.now() + '"><\/script>')</script>
+<script>
+const SEED = 20774, o = { dpr: 2, seed: SEED, hour: 13, readiness: 86, animate: true };
+const L = SceneGL.mount(document.getElementById('live'), Object.assign({}, o));
+const B = SceneGL.mount(document.getElementById('baked'), Object.assign({ baked: 'baked/today/' }, o));
+const out = document.getElementById('out'), hv = document.getElementById('hv');
+const fmt = h => `${String(Math.floor(h) % 24).padStart(2, '0')}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`;
+let man = null; fetch('baked/today/manifest.json').then(r => r.json()).then(m => { man = m; stats(); });
+function stats(extra = '') {
+  if (!man) return;
+  const mb = man.bakes.reduce((s, e) => s + e.bytes, 0) / 1048576, kf = man.bakes.filter(e => e.regime === 'fair');
+  out.innerHTML = `<table>
+    <tr><td>Baked keyframes</td><td>${man.bakes.length} (fair at ${kf.map(e => fmt(e.hour)).join(', ')}; cloudier at 13:00), ${mb.toFixed(1)} MB as PNG, ${(mb / man.bakes.length).toFixed(1)} MB each; frame ${man.W}×${man.H}</td></tr>
+    <tr><td>Baked load</td><td>${B.ready ? B.loadMs.toFixed(0) + ' ms (fetch, decode, upload, blend)' : 'loading…'}</td></tr>
+    ${extra}</table>`;
+}
+function read(c) { const gl = c.__gl, p = new Uint8Array(c.width * c.height * 4); gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.readPixels(0, 0, c.width, c.height, gl.RGBA, gl.UNSIGNED_BYTE, p); return p; }
+function psnr(a, b, W, H) {                                           // whole frame, and per tenth of the height (top first)
+  let se = 0; const band = new Float64Array(10), n = new Float64Array(10);
+  for (let i = 0; i < a.length; i += 4) { let e = 0; for (let k = 0; k < 3; k++) e += (a[i + k] - b[i + k]) ** 2; se += e; const j = Math.min(9, Math.floor((1 - Math.floor(i / 4 / W) / H) * 10)); band[j] += e; n[j]++; }
+  const db = (e, c) => (10 * Math.log10(255 * 255 / Math.max(1e-9, e / (3 * c)))).toFixed(1);
+  return { all: db(se, a.length / 4), bands: [...band].map((e, j) => db(e, n[j])) };
+}
+document.getElementById('cmp').onclick = async () => {
+  out.insertAdjacentHTML('beforeend', '<p>Measuring (still frame, drift and wind paused)…</p>');
+  const h = +document.getElementById('hour').value;
+  [L, B].forEach(s => s.set({ animate: false }));
+  const wait = ms => new Promise(r => setTimeout(r, ms)); while (!L.ready || !B.ready) await wait(200); await wait(400);
+  const a = read(L.canvas), b = read(B.canvas), r = psnr(a, b, L.canvas.width, L.canvas.height);
+  const live = L.bench('full', 4), bk = B.bench('tilt', 20);
+  stats(`<tr><td>At ${fmt(h)}, baked vs live</td><td>PSNR ${r.all} dB (40+ reads as identical; 30–40 close; under 30 visibly different). By tenth of the screen, top first: ${r.bands.join(' · ')}</td></tr>
+    <tr><td>GPU per frame on this PC</td><td>live re-render ${live.toFixed(1)} ms · baked frame ${bk.toFixed(2)} ms</td></tr>`);
+  [L, B].forEach(s => s.set({ animate: true }));
+};
+function update() { const h = +document.getElementById('hour').value; hv.textContent = fmt(h); [L, B].forEach(s => s.set({ hour: h })); }
+document.getElementById('hour').oninput = update;
+document.querySelectorAll('[data-r]').forEach(bt => bt.onclick = () => { document.querySelectorAll('[data-r]').forEach(x => x.setAttribute('aria-pressed', x === bt)); [L, B].forEach(s => s.set({ readiness: +bt.dataset.r })); });
+setTimeout(stats, 1500);
+</script>
+</body>
+</html>

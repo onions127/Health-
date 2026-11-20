@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Health++ · Round 2 · Converge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,300;6..72,400&family=Nunito+Sans:opsz,wght@6..12,300;6..12,400;6..12,700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  ::selection { background:#0E2A43; color:#F3F8F4; }
+  body { background:#E9EBEE; color:#14171A; font:400 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding:40px 40px 80px; }
+  header.board { max-width:1100px; margin-bottom:32px; }
+  header.board h1 { font-size:28px; font-weight:600; letter-spacing:-0.01em; margin-bottom:8px; }
+  header.board p { color:#4A515A; max-width:80ch; }
+  h2.row { font-size:20px; font-weight:600; margin:48px 0 16px; }
+  .row-grid { display:flex; flex-wrap:wrap; gap:40px; align-items:flex-start; }
+  .cell { width:412px; }
+  .cell > .cap { font-size:13px; font-weight:600; margin-bottom:10px; color:#30363D; }
+  .phone { position:relative; width:412px; height:915px; overflow:hidden; border-radius:32px; isolation:isolate;
+           box-shadow:0 1px 2px rgba(20,23,26,.08), 0 16px 40px rgba(20,23,26,.14); }
+  .phone svg.scene { position:absolute; inset:0; z-index:0; }
+  .abs { position:absolute; z-index:1; }
+  .ico { width:1em; height:1em; vertical-align:-0.12em; display:inline-block; }
+  .btn { display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 18px; white-space:nowrap; }
+  .nav { position:absolute; left:0; right:0; bottom:0; height:64px; z-index:2; display:grid; grid-template-columns:repeat(4,1fr); align-items:center; text-align:center; font-size:12px; }
+  .nav span { position:relative; padding-top:10px; }
+  .nav span.on { font-weight:500; }
+  .nav span.on::before { content:""; position:absolute; top:-2px; left:50%; width:24px; height:3px; margin-left:-12px; border-radius:2px; background:var(--ind); }
+
+  /* A+D glass: --ga is the tint alpha; floor .45 / full .22 by day, .40 / .25 by night */
+  .glass { position:absolute; z-index:1; border-radius:22px; background:rgba(255,255,255,var(--ga));
+           -webkit-backdrop-filter:blur(22px) saturate(1.6); backdrop-filter:blur(22px) saturate(1.6);
+           border:1px solid rgba(255,255,255,.55); box-shadow:0 1px 1px rgba(14,42,67,.05), 0 10px 28px rgba(14,42,67,.10); }
+  .night .glass { background:rgba(10,20,36,var(--gn)); border-color:rgba(255,255,255,.14); box-shadow:0 10px 28px rgba(0,0,0,.25); }
+  .navglass { -webkit-backdrop-filter:blur(22px) saturate(1.6); backdrop-filter:blur(22px) saturate(1.6); }
+
+  .sheet { background:#fff; border-radius:12px; padding:20px; font-size:12px; line-height:1.5; color:#30363D; }
+  .sheet h3 { font-size:18px; font-weight:600; color:#111; margin-bottom:4px; }
+  .sheet .thesis { font-size:13px; font-weight:500; color:#1D2125; margin-bottom:10px; }
+  .sheet dl { display:grid; grid-template-columns:76px 1fr; gap:4px 12px; margin-bottom:12px; }
+  .sheet dt { color:#6A727C; }
+  .sheet .sw { display:grid; grid-template-columns:20px 64px 1fr; gap:6px 8px; align-items:center; margin-bottom:12px; }
+  .sheet .sw i { width:20px; height:20px; border-radius:5px; box-shadow:inset 0 0 0 1px rgba(0,0,0,.14); }
+  .sheet code { font:500 11px/1 ui-monospace, "Cascadia Mono", Consolas, monospace; }
+  .sheet table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+  .sheet td { padding:3px 0; border-top:1px solid #EEF0F2; }
+  .sheet td:nth-child(2) { text-align:right; }
+  .sheet .fail { color:#B42318; font-weight:600; }
+  @media (prefers-reduced-motion: no-preference) {
+    .cloud { animation: drift 60s linear infinite alternate; }
+    @keyframes drift { to { transform: translateX(24px); } }
+  }
+</style>
+</head>
+<body>
+<header class="board">
+  <h1>Health++ · Round 2 · Converge</h1>
+  <p>Three directions across the three screens you chose: Today, Sleep and first run (the empty state before 3 nights of data). A+D Glass is shown twice, with the glass at the contrast floor and as full Apple glass, so you can compare the trade-off. Same data everywhere (<code>data.js</code>: Thu 12 Nov 15:10, last night 23:10–06:52; first run uses day 1, Sat 15 Aug). Contrast is computed live, glass included.</p>
+</header>
+<main id="board"></main>
+
+<script src="data.js"></script>
+<script>
+const HD = window.HEALTH_DATA, days = HD.days, t = HD.today, M = HD.METRICS, first = days[0];
+const prev = days.slice(-31, -1), mean = k => prev.reduce((a, d) => a + d[k], 0) / prev.length;
+const fmtMin = m => `${Math.floor(m / 60)}h ${String(Math.round(m % 60)).padStart(2, '0')}m`;
+const n = v => v.toLocaleString('en-US');
+const D = {
+  time: '15:10', date: t.label, check: '07:12', ready: t.readiness, readyNorm: M.readiness.avg30,
+  daily: t.dailyScore, sleep: fmtMin(t.sleepMin), sleepScore: t.sleepScore, sleepUsualMin: mean('sleepMin'),
+  sleepDiff: Math.round(t.sleepMin - mean('sleepMin')), steps: n(t.steps), stepsUsual: n(M.steps.avg30),
+  strain: t.strain, strainNorm: M.strain.avg30, hrv: t.hrv, hrvLo: M.hrv.normalMin, hrvHi: M.hrv.normalMax, rhr: t.rhr,
+  week: days.slice(-7).map((d, i) => ({ day: i === 6 ? 'Today' : d.dowName, v: d.readiness })),
+  nights: days.slice(-7).map((d, i) => ({ day: i === 6 ? 'Last' : d.dowName, m: d.sleepMin })),
+  stages: HD.SLEEP_STAGES, hyp: HD.HYPNOGRAM, bed: '23:10', wake: '06:52',
+};
+const diffTxt = `${Math.abs(D.ready - D.readyNorm)} ${D.ready >= D.readyNorm ? 'above' : 'below'} your normal`;
+const sleepDiffTxt = `${Math.abs(D.sleepDiff)} min ${D.sleepDiff >= 0 ? 'more' : 'less'} than usual`;
+const word = r => r >= 80 ? 'Ready' : r >= 65 ? 'Steady' : 'Take it easy';
+const sleepWord = s => s >= 80 ? 'Good' : s >= 60 ? 'Fair' : 'Short';
+const stageCtx = s => s.context.replace('↑ ', '').replace('↓ ', '').replace('m vs normal', ' min ' + (s.context.startsWith('↑') ? 'more' : 'less') + ' than normal');
+
+/* icons, one stroke family */
+const I = {
+  check: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  up: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3.5M4 7.2 8 3.2l4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  moon: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M12.8 10.6A5.6 5.6 0 0 1 5.4 3.2a5.6 5.6 0 1 0 7.4 7.4z" fill="currentColor"/></svg>',
+  band: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="4.5" y="1.5" width="7" height="13" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 6v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+  scale: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.2" y="2.2" width="11.6" height="11.6" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.6 6.2a3.4 3.4 0 0 1 4.8 0M8 6.6l1-1.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+};
+/* weather glyph: sun ≥80, sun+cloud 75–79, cloud <75; `line` adds an ink outline for light surfaces */
+const glyph = (v, line) => {
+  const st = line ? ` stroke="${line}" stroke-width="1.2"` : '';
+  const sun = `<circle cx="11" cy="9" r="5" fill="#FFC56B"${st}/>`;
+  const cloud = (x, s) => `<path transform="translate(${x} 8) scale(${s})" d="M4 12h10a3.5 3.5 0 0 0 0-7 5 5 0 0 0-9.6 1.3A2.9 2.9 0 0 0 4 12z" fill="#FFFFFF"${st}/>`;
+  return `<svg width="26" height="20" viewBox="0 0 26 20" aria-hidden="true">${v >= 75 ? sun : ''}${v < 80 ? cloud(v < 75 ? 2 : 7, v < 75 ? 1.15 : 0.9) : ''}</svg>`;
+};
+const emptyDot = c => `<svg width="26" height="20" viewBox="0 0 26 20" aria-hidden="true"><circle cx="13" cy="10" r="5" fill="none" stroke="${c}" stroke-width="1.4" stroke-dasharray="2 2"/></svg>`;
+
+/* geometry */
+const pts = (vals, x0, x1, yTop, yBot, min, max) => vals.map((v, i) => [x0 + (x1 - x0) * i / (vals.length - 1), yBot - (v - min) / (max - min) * (yBot - yTop)]);
+const smooth = p => { let d = `M ${p[0][0].toFixed(1)} ${p[0][1].toFixed(1)}`; for (let i = 1; i < p.length - 1; i++) { const mx = (p[i][0] + p[i + 1][0]) / 2, my = (p[i][1] + p[i + 1][1]) / 2; d += ` Q ${p[i][0].toFixed(1)} ${p[i][1].toFixed(1)} ${mx.toFixed(1)} ${my.toFixed(1)}`; } const l = p[p.length - 1]; return d + ` L ${l[0].toFixed(1)} ${l[1].toFixed(1)}`; };
+const arc = (cx, cy, r, f0, f1) => { const a0 = Math.PI * (1 + f0), a1 = Math.PI * (1 + f1); const p = a => [cx + r * Math.cos(a), cy + r * Math.sin(a)]; const [x0, y0] = p(a0), [x1, y1] = p(a1); return `M ${x0.toFixed(1)} ${y0.toFixed(1)} A ${r} ${r} 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`; };
+const onArc = (cx, cy, r, f) => { const a = Math.PI * (1 + f); return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; };
+const nav = (on, style) => `<nav class="nav" style="${style}">${['Today', 'Sleep', 'Trends', 'Coach'].map(l => `<span class="${l === on ? 'on' : ''}">${l}</span>`).join('')}</nav>`;
+const stars = (seed, count, yMax) => { let s = seed, out = ''; const r = () => (s = (s * 16807) % 2147483647) / 2147483647; for (let i = 0; i < count; i++) out += `<circle cx="${(r() * 412).toFixed(0)}" cy="${(r() * yMax).toFixed(0)}" r="${(0.6 + r() * 1.1).toFixed(1)}" fill="#fff" opacity="${(0.35 + r() * 0.5).toFixed(2)}"/>`; return out; };
+
+/* hypnogram: lanes by level (Awake, REM, Light, Deep). Position carries the stage, colour repeats it. */
+function hypno(w, h, c, style) {
+  const tot = D.hyp.reduce((a, x) => a + x.dur, 0), lane = h / 4, x = m => m / tot * w;
+  const blocks = style === 'step'
+    ? `<path d="${D.hyp.map((s, i) => `${i ? 'L' : 'M'} ${x(s.start).toFixed(1)} ${(s.level * lane + lane / 2).toFixed(1)} H ${x(s.start + s.dur).toFixed(1)}`).join(' ')}" fill="none" stroke="${c.line}" stroke-width="2" stroke-linejoin="round"/>`
+    : D.hyp.map(s => `<rect x="${x(s.start).toFixed(1)}" y="${(s.level * lane + 3).toFixed(1)}" width="${(x(s.dur) - 1).toFixed(1)}" height="${(lane - 6).toFixed(1)}" rx="3" fill="${c[s.stage]}"/>`).join('');
+  const ticks = [[50, '00:00'], [170, '02:00'], [290, '04:00'], [410, '06:00']].map(([m, l]) => `<text x="${x(m).toFixed(1)}" y="${h + 16}" font-size="11" fill="${c.axis}" text-anchor="middle">${l}</text><rect x="${x(m).toFixed(1)}" y="0" width="1" height="${h}" fill="${c.axis}" opacity=".2"/>`).join('');
+  return `<svg width="${w}" height="${h + 20}" viewBox="0 0 ${w} ${h + 20}" aria-hidden="true">${ticks}${blocks}</svg>`;
+}
+const laneLabels = (h, color) => ['Awake', 'REM', 'Light', 'Deep'].map((l, i) => `<div style="height:${h / 4}px;display:flex;align-items:center;font-size:11px;color:${color}">${l}</div>`).join('');
+
+/* 7 nights: bars with the usual-duration line, value labels on top */
+function nightBars(w, h, c) {
+  const max = 540, min = 300, bw = w / 7, y = m => h - (m - min) / (max - min) * h, uy = y(D.sleepUsualMin);
+  return `<svg width="${w}" height="${h + 34}" viewBox="0 0 ${w} ${h + 34}" aria-hidden="true">
+    ${D.nights.map((nn, i) => `<rect x="${i * bw + bw * 0.28}" y="${y(nn.m).toFixed(1)}" width="${bw * 0.44}" height="${(h - y(nn.m)).toFixed(1)}" rx="3" fill="${i === 6 ? c.last : c.bar}"/>
+      <text x="${i * bw + bw / 2}" y="${h + 14}" font-size="11" fill="${c.axis}" text-anchor="middle">${nn.day}</text>
+      <text x="${i * bw + bw / 2}" y="${h + 28}" font-size="11" fill="${c.text}" text-anchor="middle">${fmtMin(nn.m).replace(' ', '')}</text>`).join('')}
+    <rect x="0" y="${uy.toFixed(1)}" width="${w}" height="1.5" fill="${c.usual}"/><text x="0" y="${(uy - 5).toFixed(1)}" font-size="11" fill="${c.axis}">usual ${fmtMin(D.sleepUsualMin)}</text></svg>`;
+}
+
+/* ======================= A + D · Glass Sky ======================= */
+function adScene(mode) {
+  if (mode === 'night') return `<svg class="scene" viewBox="0 0 412 915" aria-hidden="true"><defs><linearGradient id="nAD" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0E1B33"/><stop offset=".45" stop-color="#1F3A5C"/></linearGradient><radialGradient id="mgAD"><stop offset="0" stop-color="#3A5577"/><stop offset="1" stop-color="#3A5577" stop-opacity="0"/></radialGradient></defs>
+    <rect width="412" height="915" fill="url(#nAD)"/>${stars(7, 46, 420)}<circle cx="320" cy="96" r="70" fill="url(#mgAD)"/><circle cx="320" cy="96" r="20" fill="#F1EBD9"/><circle cx="330" cy="88" r="18" fill="#1A2F4C"/>
+    <path d="${smooth([[0, 470], [90, 436], [180, 456], [290, 484], [412, 440]])} V915 H0Z" fill="#1B3346"/>
+    <path d="${smooth([[0, 600], [120, 560], [240, 582], [330, 596], [412, 574]])} V915 H0Z" fill="#16293A"/>
+    <path d="${smooth([[0, 740], [140, 708], [280, 728], [412, 712]])} V915 H0Z" fill="#112131"/></svg>`;
+  const clouds = mode === 'neutral' ? `<ellipse cx="96" cy="200" rx="84" ry="14"/><ellipse cx="300" cy="150" rx="70" ry="12"/><ellipse cx="220" cy="246" rx="60" ry="10"/>` : `<ellipse cx="104" cy="182" rx="78" ry="11"/><ellipse cx="300" cy="134" rx="56" ry="8"/>`;
+  return `<svg class="scene" viewBox="0 0 412 915" aria-hidden="true"><defs><linearGradient id="dAD${mode}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7FB8E6"/><stop offset=".46" stop-color="#E4F1FA"/></linearGradient><filter id="sAD"><feGaussianBlur stdDeviation="5"/></filter></defs>
+    <rect width="412" height="915" fill="url(#dAD${mode})"/><g class="cloud" filter="url(#sAD)" fill="#fff" opacity=".75">${clouds}</g>
+    <path d="${smooth([[0, 430], [90, 400], [180, 418], [290, 444], [412, 404]])} V915 H0Z" fill="#CFE5D6"/>
+    <path d="${smooth([[0, 540], [120, 500], [240, 522], [330, 538], [412, 514]])} V915 H0Z" fill="#A9CDB8"/>
+    <path d="${smooth([[0, 660], [140, 626], [280, 648], [412, 630]])} V915 H0Z" fill="#86B9A0"/>
+    <path d="${smooth([[0, 780], [160, 752], [300, 770], [412, 756]])} V915 H0Z" fill="#6FA88A"/></svg>`;
+}
+const AD_INK = '#0E2A43', AD_INK2 = '#2E4A62';
+function adHeader(title, sub, right) { return `<div class="abs" style="top:12px;left:20px;font:500 12px Roboto">${D.time}</div><div class="abs" style="top:40px;left:20px"><div style="font-size:19px;font-weight:500">${title}</div><div style="font-size:12px;margin-top:2px;color:var(--ink2)">${sub}</div></div>${right || ''}`; }
+const adLog = `<div class="abs btn" style="top:40px;right:20px;background:#0B5FA5;color:#fff;border-radius:24px;font-size:15px;font-weight:500">${I.scale}&nbsp;Log weight</div>`;
+const adNav = (on, night) => nav(on, night ? 'background:rgba(10,20,36,.55);color:#C9D6E3;border-top:1px solid rgba(255,255,255,.1)' : 'background:rgba(255,255,255,.55);color:#2E4A62;border-top:1px solid rgba(255,255,255,.6)').replace('class="nav"', 'class="nav navglass"');
+
+function adToday(ga) {
+  const [sx, sy] = onArc(206, 290, 120, D.ready / 100), [tx, ty] = onArc(206, 290, 134, D.readyNorm / 100), [tx2, ty2] = onArc(206, 290, 108, D.readyNorm / 100), [lx, ly] = onArc(206, 290, 146, D.readyNorm / 100);
+  const hyp = [0, 2, 3, 3, 2, 1, 2, 3, 2, 1, 2, 1, 2, 1, 0, 2];
+  return `<div class="phone" style="font-family:Roboto;color:${AD_INK};--ink2:${AD_INK2};--ind:${AD_INK};--ga:${ga}">${adScene('day')}
+  <svg class="scene" viewBox="0 0 412 915" aria-hidden="true" style="z-index:1"><path d="${arc(206, 290, 120, 0, 1)}" fill="none" stroke="#fff" stroke-opacity=".9" stroke-width="3"/><path d="${arc(206, 290, 120, 0, D.ready / 100)}" fill="none" stroke="${AD_INK}" stroke-width="4" stroke-linecap="round"/><path d="M ${tx2} ${ty2} L ${tx} ${ty}" stroke="${AD_INK}" stroke-width="2" stroke-linecap="round"/><circle cx="${sx}" cy="${sy}" r="12" fill="#FFE8A3" stroke="${AD_INK}" stroke-width="2"/></svg>
+  ${adHeader(D.date, `${I.check} Morning check ${D.check} · synced 15:02`, adLog)}
+  <div class="abs" style="top:${ly - 18}px;left:${lx + 2}px;font-size:12px;color:var(--ink2)">normal ${D.readyNorm}</div>
+  <div class="abs" style="top:206px;left:0;right:0;text-align:center"><div style="font-size:57px;font-weight:300;line-height:1.05;letter-spacing:-0.02em">${D.ready}</div><div style="font-size:19px;font-weight:500">${word(D.ready)}</div><div style="font-size:12px;color:var(--ink2);margin-top:2px">Readiness · ${diffTxt}</div></div>
+  <div class="glass" style="top:330px;left:16px;right:16px;height:104px;padding:10px 14px">
+    <div style="font-size:12px;color:var(--ink2)">Readiness this week</div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-top:4px">${D.week.map(w => `<div><div style="font-size:12px;${w.day === 'Today' ? 'font-weight:500' : 'color:var(--ink2)'}">${w.day}</div>${glyph(w.v, AD_INK)}<div style="font-size:15px;font-weight:500;line-height:1.2">${w.v}</div></div>`).join('')}</div></div>
+  <div class="glass" style="top:446px;left:16px;width:184px;height:212px;padding:14px 16px">
+    <div style="font-size:12px;color:var(--ink2)">${I.moon} Sleep</div><div style="font-size:29px;font-weight:500;line-height:1.25;margin-top:2px">${D.sleep}</div><div style="font-size:15px">Score ${D.sleepScore}</div><div style="font-size:12px;color:var(--ink2)">${sleepDiffTxt}</div>
+    <svg width="150" height="44" viewBox="0 0 150 44" aria-hidden="true" style="margin-top:14px">${hyp.map((v, i) => `<rect x="${i * 9.4}" y="${v * 10}" width="7" height="${44 - v * 10}" rx="2" fill="${AD_INK}" fill-opacity=".55"/>`).join('')}</svg></div>
+  <div class="glass" style="top:446px;left:208px;right:16px;height:102px;padding:14px 16px"><div style="font-size:12px;color:var(--ink2)">Steps</div><div style="font-size:29px;font-weight:500;line-height:1.25">${D.steps}</div><div style="font-size:12px;color:var(--ink2)">usual full day ${D.stepsUsual}</div></div>
+  <div class="glass" style="top:556px;left:208px;right:16px;height:102px;padding:14px 16px"><div style="font-size:12px;color:var(--ink2)">HRV</div><div style="font-size:29px;font-weight:500;line-height:1.25">${D.hrv} ms</div><div style="font-size:12px;color:var(--ink2)">${I.up} above normal ${D.hrvLo}–${D.hrvHi}</div></div>
+  <div class="glass" style="top:666px;left:16px;right:16px;height:84px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center">
+    <div><div style="font-size:12px;color:var(--ink2)">Daily score</div><div style="font-size:29px;font-weight:500;line-height:1.2">${D.daily}</div></div><div style="font-size:12px;color:var(--ink2);max-width:170px;text-align:right">Firms up as your day is logged</div></div>
+  <div class="glass" style="top:758px;left:16px;right:16px;height:72px;padding:12px 16px"><div style="font-size:15px">Resting HR ${D.rhr} bpm · normal</div><div style="font-size:12px;color:var(--ink2)">Strain ${D.strain}, normal ${D.strainNorm}</div></div>
+  ${adNav('Today')}</div>`;
+}
+function adSleep(gn) {
+  const sc = { Awake: '#F5C08A', REM: '#A8D4F5', Light: '#6FA4DA', Deep: '#4A7BD0', axis: '#C9D6E3' };
+  return `<div class="phone night" style="font-family:Roboto;color:#F4F7FA;--ink2:#C9D6E3;--ind:#F4F7FA;--gn:${gn}">${adScene('night')}
+  ${adHeader('Sleep', `Wed 11 → Thu 12 Nov · ${D.bed} – ${D.wake}`)}
+  <div class="abs" style="top:118px;left:20px"><div style="font-size:57px;font-weight:300;line-height:1.05;letter-spacing:-0.02em">${D.sleep}</div><div style="font-size:19px;font-weight:500;margin-top:4px">${sleepWord(D.sleepScore)} · score ${D.sleepScore}</div><div style="font-size:15px;color:var(--ink2)">${sleepDiffTxt}</div></div>
+  <div class="glass" style="top:262px;left:16px;right:16px;height:176px;padding:14px 16px;display:grid;grid-template-columns:44px 1fr;column-gap:8px">
+    <div style="grid-column:1/3;font-size:12px;color:var(--ink2);margin-bottom:6px">Last night, stage by stage</div><div>${laneLabels(112, '#C9D6E3')}</div><div>${hypno(300, 112, sc)}</div></div>
+  <div class="glass" style="top:450px;left:16px;right:16px;height:184px;padding:12px 16px">${D.stages.map((s, i) => `<div style="display:grid;grid-template-columns:14px 64px 1fr auto;align-items:center;gap:8px;height:40px;${i ? 'border-top:1px solid rgba(255,255,255,.1)' : ''}"><i style="width:10px;height:10px;border-radius:3px;background:${sc[s.name]}"></i><span style="font-size:15px">${s.name}</span><span style="font-size:12px;color:var(--ink2)">${s.context.includes('vs') ? stageCtx(s) : 'normal'}</span><span style="font-size:15px;font-weight:500;font-variant-numeric:tabular-nums">${s.duration} <span style="font-weight:400;color:var(--ink2);font-size:12px">${s.pct}%</span></span></div>`).join('')}</div>
+  <div class="glass" style="top:646px;left:16px;right:16px;height:190px;padding:12px 16px"><div style="font-size:12px;color:var(--ink2);margin-bottom:8px">Last 7 nights</div>${nightBars(348, 110, { bar: 'rgba(255,255,255,.35)', last: '#F4F7FA', usual: '#F5C08A', axis: '#C9D6E3', text: '#F4F7FA' })}</div>
+  ${adNav('Sleep', true)}</div>`;
+}
+function adFirst(ga) {
+  return `<div class="phone" style="font-family:Roboto;color:${AD_INK};--ink2:${AD_INK2};--ind:${AD_INK};--ga:${ga}">${adScene('neutral')}
+  <svg class="scene" viewBox="0 0 412 915" aria-hidden="true" style="z-index:1"><path d="${arc(206, 290, 120, 0, 1)}" fill="none" stroke="${AD_INK}" stroke-opacity=".55" stroke-width="2" stroke-dasharray="3 7" stroke-linecap="round"/></svg>
+  ${adHeader(first.label, `${I.band} Band connected · 64%`)}
+  <div class="abs" style="top:200px;left:56px;right:56px;text-align:center"><div style="font-size:23px;font-weight:500;line-height:1.25">Your first readiness score arrives tomorrow morning</div><div style="font-size:15px;color:var(--ink2);margin-top:8px">Wear your band to bed tonight.</div></div>
+  <div class="glass" style="top:330px;left:16px;right:16px;height:128px;padding:14px 16px">
+    <div style="font-size:15px;font-weight:500">Learning your normal</div><div style="font-size:12px;color:var(--ink2);margin-top:2px">After 3 nights, every score compares you with yourself, not with other people.</div>
+    <div style="display:flex;gap:20px;margin-top:12px;align-items:center">${['Tonight', 'Night 2', 'Night 3'].map((l, i) => `<div style="display:flex;align-items:center;gap:6px;font-size:12px;${i ? 'color:var(--ink2)' : 'font-weight:500'}"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5" ${i ? 'stroke-dasharray="2.5 2.5"' : ''}/></svg>${l}</div>`).join('')}<span style="margin-left:auto;font-size:12px;color:var(--ink2)">0 of 3</span></div></div>
+  <div class="glass" style="top:470px;left:16px;width:184px;height:150px;padding:14px 16px"><div style="font-size:12px;color:var(--ink2)">Steps so far</div><div style="font-size:29px;font-weight:500;line-height:1.25">${n(first.steps)}</div><div style="font-size:12px;color:var(--ink2)">Counting since you paired. Your usual day shows after 3 days.</div></div>
+  <div class="glass" style="top:470px;left:208px;right:16px;height:150px;padding:14px 16px"><div style="font-size:12px;color:var(--ink2)">${I.moon} Sleep</div><div style="font-size:15px;font-weight:500;margin-top:6px">Starts tonight</div><div style="font-size:12px;color:var(--ink2)">Stages, duration and a score each morning.</div></div>
+  <div class="glass" style="top:632px;left:16px;right:16px;height:128px;padding:14px 16px">
+    <div style="font-size:15px;font-weight:500">Add your weight</div><div style="font-size:12px;color:var(--ink2);margin-top:2px">Used to estimate calories. You can change it any time.</div>
+    <div class="btn" style="margin-top:10px;background:#0B5FA5;color:#fff;border-radius:24px;font-size:15px;font-weight:500">${I.scale}&nbsp;Log weight</div></div>
+  <div class="abs" style="top:772px;left:20px;right:20px;font-size:12px;color:var(--ink2);text-align:center">The 60-second morning check unlocks tomorrow.</div>
+  ${adNav('Today')}</div>`;
+}
+
+/* ======================= B · Altitude ======================= */
+function bScene(p) {
+  return `<svg class="scene" viewBox="0 0 412 915" aria-hidden="true"><defs>
+    <linearGradient id="sky${p.id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${p.s0}"/><stop offset=".4" stop-color="${p.s1}"/><stop offset=".62" stop-color="${p.s2}"/></linearGradient>
+    <linearGradient id="haze${p.id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${p.s2}" stop-opacity="0"/><stop offset="1" stop-color="${p.s2}" stop-opacity=".92"/></linearGradient>
+    <linearGradient id="snow${p.id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${p.snow0}"/><stop offset="1" stop-color="${p.snow1}"/></linearGradient></defs>
+    <rect width="412" height="915" fill="url(#sky${p.id})"/>${p.stars ? stars(3, 40, 330) : ''}${p.moon || ''}
+    <path d="M-10 600 L30 566 L70 552 L110 528 L150 538 L190 512 L240 532 L300 506 L350 528 L422 498 V720 H-10Z" fill="${p.far}" opacity=".85"/>
+    <path d="M-20 640 L30 592 L70 568 L104 530 L134 500 L162 462 L184 420 L200 388 L215 340 L224 352 L236 346 L250 372 L266 396 L292 424 L322 458 L360 494 L400 522 L432 540 V720 H-20Z" fill="url(#snow${p.id})"/>
+    <path d="M215 340 L224 352 L236 346 L250 372 L266 396 L292 424 L322 458 L360 494 L400 522 L432 540 V720 H252 L246 600 L236 486 L226 410Z" fill="${p.shade}"/>
+    <path d="M226 410 L236 486 L246 600 L230 600 L224 520 L218 452Z" fill="${p.rock}" opacity=".7"/>
+    <path d="M134 500 L162 462 L172 470 L150 516 L120 556 L94 590 L76 596Z" fill="${p.lit}"/>
+    <path d="M262 452 L280 470 L272 500 Z M300 486 L318 500 L306 528 Z M196 470 L206 492 L192 520 Z" fill="${p.rock}" opacity=".55"/>
+    <rect y="470" width="412" height="110" fill="url(#haze${p.id})"/>
+    <path d="M-10 602 Q100 556 200 588 Q300 614 422 574 V720 H-10Z" fill="${p.foot}"/></svg>`;
+}
+const B_DAY = { id: 'Bd', s0: '#0F3B5F', s1: '#2D6E96', s2: '#8FB4C9', snow0: '#F4F7F9', snow1: '#C9D6DF', far: '#6F98B5', shade: '#9FB3C2', rock: '#7F97A8', lit: '#B7C7D2', foot: '#16303F' };
+const B_NIGHT = { id: 'Bn', s0: '#06111E', s1: '#0F2A42', s2: '#3E5A72', snow0: '#C9D5E0', snow1: '#7D93A6', far: '#2D4A62', shade: '#5D7489', rock: '#3F566B', lit: '#9EB1C2', foot: '#0A1724', stars: 1,
+  moon: '<circle cx="300" cy="120" r="16" fill="#EDE6D3"/><circle cx="308" cy="114" r="14" fill="#091829"/>' };
+const bSheet = (top, inner) => `<div class="abs" style="top:${top}px;left:0;right:0;bottom:0;background:#10202B;border-radius:28px 28px 0 0;padding:12px 24px 0"><div style="width:32px;height:4px;border-radius:2px;background:rgba(185,201,212,.6);margin:0 auto 14px"></div>${inner}</div>`;
+const bNav = on => nav(on, 'background:#10202B;color:#B9C9D4');
+function bToday() {
+  const [ex, ey] = onArc(206, 250, 140, D.ready / 100);
+  return `<div class="phone" style="font-family:Roboto;color:#F4F7F9;--ind:#F2C48D">${bScene(B_DAY)}
+  <svg class="scene" viewBox="0 0 412 915" aria-hidden="true" style="z-index:1"><path d="${arc(206, 250, 140, 0, 1)}" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="2"/><path d="${arc(206, 250, 140, 0, D.ready / 100)}" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="${ex}" cy="${ey}" r="6" fill="#fff"/></svg>
+  <div class="abs" style="top:12px;left:20px;font-size:12px;font-weight:500">${D.time}</div><div class="abs" style="top:44px;left:24px;font-size:12px;color:#E6EEF3">${D.date} · ${I.check} check ${D.check}</div>
+  <div class="abs" style="top:158px;left:0;right:0;text-align:center"><div style="font-family:Newsreader;font-weight:300;font-size:67px;line-height:1.1">${D.ready}</div><div style="font-size:12px;font-weight:500;letter-spacing:.12em;color:#E6EEF3;margin-top:6px">READINESS</div></div>
+  ${bSheet(540, `<div style="font-family:Newsreader;font-size:38px;line-height:1.15">Well recovered.</div><div style="font-size:16px;line-height:22px;color:#B9C9D4;margin-top:8px">Readiness is ${diffTxt}. A good day for hard training.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px"><div><div style="font-size:12px;color:#B9C9D4">Sleep</div><div style="font-family:Newsreader;font-size:28px;line-height:1.2">${D.sleep}</div><div style="font-size:12px;color:#B9C9D4">Score ${D.sleepScore} · +${D.sleepDiff} min</div></div><div><div style="font-size:12px;color:#B9C9D4">Activity</div><div style="font-family:Newsreader;font-size:28px;line-height:1.2">${D.steps}</div><div style="font-size:12px;color:#B9C9D4">steps · usual day ${D.stepsUsual}</div></div></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(255,255,255,.12);margin-top:16px;padding-top:12px"><div><div style="font-size:16px">Daily score ${D.daily}</div><div style="font-size:12px;color:#B9C9D4">Firms up as your day is logged</div></div><div class="btn" style="background:#F2C48D;color:#10202B;border-radius:24px;font-size:16px;font-weight:500">Log weight</div></div>`)}
+  ${bNav('Today')}</div>`;
+}
+function bSleep() {
+  return `<div class="phone" style="font-family:Roboto;color:#F4F7F9;--ind:#F2C48D">${bScene(B_NIGHT)}
+  <div class="abs" style="top:12px;left:20px;font-size:12px;font-weight:500">${D.time}</div><div class="abs" style="top:44px;left:24px;font-size:12px;color:#D5DEE6">Wed 11 → Thu 12 Nov · ${D.bed} – ${D.wake}</div>
+  <div class="abs" style="top:150px;left:0;right:0;text-align:center"><div style="font-family:Newsreader;font-weight:300;font-size:67px;line-height:1.1">${D.sleep}</div><div style="font-size:12px;font-weight:500;letter-spacing:.12em;color:#D5DEE6;margin-top:6px">SLEEP · SCORE ${D.sleepScore}</div></div>
+  ${bSheet(400, `<div style="font-family:Newsreader;font-size:38px;line-height:1.15">A good night.</div><div style="font-size:16px;line-height:22px;color:#B9C9D4;margin-top:8px">${sleepDiffTxt.charAt(0).toUpperCase() + sleepDiffTxt.slice(1)}, with 12 extra minutes of deep sleep.</div>
+    <div style="display:grid;grid-template-columns:44px 1fr;column-gap:8px;margin-top:18px"><div>${laneLabels(96, '#B9C9D4')}</div><div>${hypno(312, 96, { line: '#F4F7F9', axis: '#B9C9D4' }, 'step')}</div></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px;border-top:1px solid rgba(255,255,255,.12);padding-top:12px">${D.stages.map(s => `<div><div style="font-size:12px;color:#B9C9D4">${s.name}</div><div style="font-family:Newsreader;font-size:21px;line-height:1.2">${s.duration}</div><div style="font-size:12px;color:#B9C9D4">${s.pct}%</div></div>`).join('')}</div>
+    <div style="margin-top:14px;border-top:1px solid rgba(255,255,255,.12);padding-top:10px;font-size:12px;color:#B9C9D4">Usual ${fmtMin(D.sleepUsualMin)} · last 7 nights ${fmtMin(Math.min(...D.nights.map(x => x.m)))} to ${fmtMin(Math.max(...D.nights.map(x => x.m)))}</div>`)}
+  ${bNav('Sleep')}</div>`;
+}
+function bFirst() {
+  return `<div class="phone" style="font-family:Roboto;color:#F4F7F9;--ind:#F2C48D">${bScene(B_DAY)}
+  <svg class="scene" viewBox="0 0 412 915" aria-hidden="true" style="z-index:1"><path d="${arc(206, 250, 140, 0, 1)}" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="2" stroke-dasharray="3 7" stroke-linecap="round"/></svg>
+  <div class="abs" style="top:12px;left:20px;font-size:12px;font-weight:500">${D.time}</div><div class="abs" style="top:44px;left:24px;font-size:12px;color:#E6EEF3">${first.label} · ${I.band} band connected</div>
+  <div class="abs" style="top:170px;left:64px;right:64px;text-align:center"><div style="font-family:Newsreader;font-size:38px;line-height:1.15">The climb starts tonight.</div></div>
+  ${bSheet(540, `<div style="font-size:16px;line-height:22px">Wear your band to bed. Your first readiness score arrives tomorrow morning.</div><div style="font-size:16px;line-height:22px;color:#B9C9D4;margin-top:8px">After 3 nights, every score compares you with your own normal.</div>
+    <div style="display:flex;gap:20px;margin-top:16px;font-size:12px;color:#B9C9D4">${['Tonight', 'Night 2', 'Night 3'].map((l, i) => `<span style="display:flex;align-items:center;gap:6px;${i ? '' : 'color:#F4F7F9'}"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5" ${i ? 'stroke-dasharray="2.5 2.5"' : ''}/></svg>${l}</span>`).join('')}</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(255,255,255,.12);margin-top:18px;padding-top:12px"><div><div style="font-size:12px;color:#B9C9D4">Steps so far</div><div style="font-family:Newsreader;font-size:28px;line-height:1.2">${n(first.steps)}</div></div><div class="btn" style="background:#F2C48D;color:#10202B;border-radius:24px;font-size:16px;font-weight:500">Log weight</div></div>`)}
+  ${bNav('Today')}</div>`;
+}
+
+/* ======================= D · Forecast ======================= */
+function dScene(night) {
+  if (night) return `<svg class="scene" viewBox="0 0 412 915" aria-hidden="true"><defs><linearGradient id="skyDn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0E2547"/><stop offset=".45" stop-color="#24476F"/></linearGradient><radialGradient id="glowDn"><stop offset="0" stop-color="#E9E2C8" stop-opacity=".35"/><stop offset="1" stop-color="#E9E2C8" stop-opacity="0"/></radialGradient></defs>
+    <rect width="412" height="915" fill="url(#skyDn)"/>${stars(11, 44, 300)}<circle cx="332" cy="112" r="70" fill="url(#glowDn)"/><circle cx="332" cy="112" r="28" fill="#EDE6CF"/><circle cx="344" cy="102" r="25" fill="#163056"/>
+    <path d="${smooth([[0, 330], [80, 298], [170, 316], [280, 340], [412, 300]])} L 412 460 L 0 460 Z" fill="#20435A"/><path d="${smooth([[0, 374], [140, 338], [260, 362], [340, 378], [412, 352]])} L 412 460 L 0 460 Z" fill="#183548"/><rect y="430" width="412" height="485" fill="#132B3C"/></svg>`;
+  return `<svg class="scene" viewBox="0 0 412 915" aria-hidden="true"><defs><linearGradient id="skyD" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#235C96"/><stop offset=".45" stop-color="#5A9AD0"/></linearGradient><linearGradient id="meadowD" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4F8C6E"/><stop offset=".35" stop-color="#2F6B55"/></linearGradient><radialGradient id="glowD"><stop offset="0" stop-color="#FFE7A8" stop-opacity=".55"/><stop offset="1" stop-color="#FFE7A8" stop-opacity="0"/></radialGradient><filter id="softD"><feGaussianBlur stdDeviation="1.5"/></filter></defs>
+    <rect width="412" height="915" fill="url(#skyD)"/><circle cx="332" cy="112" r="72" fill="url(#glowD)"/><circle cx="332" cy="112" r="32" fill="#FFE7A8"/>
+    <g fill="#fff" opacity=".92" filter="url(#softD)"><ellipse cx="292" cy="158" rx="50" ry="16"/><ellipse cx="312" cy="144" rx="28" ry="20"/><ellipse cx="344" cy="158" rx="36" ry="14"/></g>
+    <path d="${smooth([[0, 330], [80, 298], [170, 316], [280, 340], [412, 300]])} L 412 460 L 0 460 Z" fill="#6FA88A"/><path d="${smooth([[0, 374], [140, 338], [260, 362], [340, 378], [412, 352]])} L 412 460 L 0 460 Z" fill="#4F8C6E"/><rect y="430" width="412" height="485" fill="url(#meadowD)"/></svg>`;
+}
+const T_DAY = '#1D4A48', T2_DAY = '#C5DDD8', T_NIGHT = '#16304A', T2_NIGHT = '#B8C9DA';
+const tl = (css, bg, inner) => `<div class="abs" style="${css};background:${bg};border-radius:20px;padding:14px 16px">${inner}</div>`;
+function dToday() {
+  const hyp = [0, 2, 3, 3, 2, 1, 2, 3, 2, 1, 2, 1, 2, 1, 0, 2];
+  return `<div class="phone" style="font-family:'Nunito Sans';color:#fff;--ind:#FFC56B">${dScene()}
+  <div class="abs" style="top:12px;left:20px;font-size:12px;font-weight:700">${D.time}</div>
+  <div class="abs" style="top:38px;left:24px"><div style="font-size:17px">${D.date}</div><div style="font-size:96px;font-weight:300;line-height:1;margin:2px 0 0 -4px">${D.ready}</div><div style="font-size:34px;font-weight:700;line-height:1.2">Clear · ${word(D.ready).toLowerCase()}</div><div style="font-size:24px;line-height:1.3">${diffTxt}</div></div>
+  ${tl('top:276px;left:16px;right:16px;height:100px;padding:10px 16px', '#1F4E7A', `<div style="font-size:12px;color:#C9DCEE">Readiness this week</div><div style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-top:4px">${D.week.map(w => `<div><div style="font-size:12px;${w.day === 'Today' ? 'font-weight:700' : 'color:#C9DCEE'}">${w.day}</div>${glyph(w.v)}<div style="font-size:17px;font-weight:700;line-height:1.1">${w.v}</div></div>`).join('')}</div>`)}
+  ${tl('top:388px;left:16px;width:182px;height:212px', T_DAY, `<div style="font-size:12px;color:${T2_DAY}"><span style="color:#FFE7A8">${I.moon}</span> Sleep</div><div style="font-size:34px;font-weight:700;line-height:1.2;margin-top:2px">${D.sleep}</div><div style="font-size:17px">Score ${D.sleepScore}</div><div style="font-size:12px;color:${T2_DAY}">${sleepDiffTxt}</div><svg width="150" height="48" viewBox="0 0 150 48" aria-hidden="true" style="margin-top:12px">${hyp.map((v, i) => `<rect x="${i * 9.4}" y="${v * 11}" width="7" height="${48 - v * 11}" rx="2" fill="#fff" fill-opacity=".75"/>`).join('')}</svg>`)}
+  ${tl('top:388px;left:206px;width:190px;height:102px', T_DAY, `<div style="font-size:12px;color:${T2_DAY}">Steps</div><div style="font-size:34px;font-weight:700;line-height:1.2">${D.steps}</div><div style="font-size:12px;color:${T2_DAY}">usual full day ${D.stepsUsual}</div>`)}
+  ${tl('top:498px;left:206px;width:190px;height:102px', T_DAY, `<div style="font-size:12px;color:${T2_DAY}">HRV</div><div style="font-size:34px;font-weight:700;line-height:1.2">${D.hrv} ms</div><div style="font-size:12px;color:${T2_DAY}">${I.up} above normal ${D.hrvLo}–${D.hrvHi}</div>`)}
+  ${tl('top:608px;left:16px;right:16px;height:100px;display:flex;justify-content:space-between;align-items:center', T_DAY, `<div><div style="font-size:12px;color:${T2_DAY}">Daily score</div><div style="font-size:34px;font-weight:700;line-height:1.2">${D.daily}</div><div style="font-size:12px;color:${T2_DAY}">Firms up as your day is logged</div></div><div class="btn" style="background:#FFC56B;color:#0F2536;border-radius:24px;font-size:17px;font-weight:700">Log weight</div>`)}
+  ${tl('top:716px;left:16px;right:16px;height:72px;padding:12px 16px', T_DAY, `<div style="font-size:17px">Resting HR ${D.rhr} bpm · normal</div><div style="font-size:12px;color:${T2_DAY}">Strain ${D.strain}, normal ${D.strainNorm} · ${I.check} check ${D.check}</div>`)}
+  ${nav('Today', `background:${T_DAY};color:${T2_DAY}`)}</div>`;
+}
+function dSleep() {
+  const hours = ['23', '00', '01', '02', '03', '04', '05', '06'], tot = D.hyp.reduce((a, x) => a + x.dur, 0);
+  const at = m => D.hyp.find(s => m >= s.start && m < s.start + s.dur) || D.hyp[D.hyp.length - 1];
+  const hourCells = hours.map((h, i) => { const m = Math.min(tot - 1, 20 + i * 60), s = at(m); return { h, s }; });
+  const lvlGlyph = l => `<svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">${[0, 1, 2].map(k => `<rect x="${3 + k * 6}" y="${18 - (k + 1) * 5}" width="4" height="${(k + 1) * 5}" rx="1" fill="#fff" fill-opacity="${k < l ? 1 : 0.25}"/>`).join('')}</svg>`;
+  return `<div class="phone" style="font-family:'Nunito Sans';color:#fff;--ind:#FFC56B">${dScene(true)}
+  <div class="abs" style="top:12px;left:20px;font-size:12px;font-weight:700">${D.time}</div>
+  <div class="abs" style="top:38px;left:24px"><div style="font-size:17px">Last night · ${D.bed} – ${D.wake}</div><div style="font-size:68px;font-weight:300;line-height:1.1;margin:8px 0 4px -2px;letter-spacing:-0.02em">${D.sleep}</div><div style="font-size:34px;font-weight:700;line-height:1.2">Calm night · ${D.sleepScore}</div><div style="font-size:24px;line-height:1.3">${sleepDiffTxt}</div></div>
+  ${tl('top:276px;left:16px;right:16px;height:112px;padding:10px 16px', '#1A3A63', `<div style="font-size:12px;color:#C9D6E6">Hour by hour · bars = how deep</div><div style="display:grid;grid-template-columns:repeat(8,1fr);text-align:center;margin-top:6px">${hourCells.map(c => `<div><div style="font-size:12px;color:#C9D6E6">${c.h}</div>${lvlGlyph(c.s.level === 0 ? 0 : 4 - c.s.level)}<div style="font-size:12px;font-weight:700">${c.s.stage}</div></div>`).join('')}</div>`)}
+  ${D.stages.map((s, i) => tl(`top:${400 + Math.floor(i / 2) * 110}px;left:${i % 2 ? 206 : 16}px;width:${i % 2 ? 190 : 182}px;height:102px`, T_NIGHT, `<div style="font-size:12px;color:${T2_NIGHT}">${s.name}</div><div style="font-size:34px;font-weight:700;line-height:1.2">${s.duration}</div><div style="font-size:12px;color:${T2_NIGHT}">${s.pct}% · ${s.context.includes('vs') ? stageCtx(s) : 'normal'}</div>`)).join('')}
+  ${tl('top:620px;left:16px;right:16px;height:216px', T_NIGHT, `<div style="font-size:12px;color:${T2_NIGHT};margin-bottom:8px">7-night outlook</div>${nightBars(348, 120, { bar: 'rgba(255,255,255,.35)', last: '#FFC56B', usual: '#FFFFFF', axis: T2_NIGHT, text: '#FFFFFF' })}`)}
+  ${nav('Sleep', `background:${T_NIGHT};color:${T2_NIGHT}`)}</div>`;
+}
+function dFirst() {
+  const slots = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  return `<div class="phone" style="font-family:'Nunito Sans';color:#fff;--ind:#FFC56B">${dScene()}
+  <div class="abs" style="top:12px;left:20px;font-size:12px;font-weight:700">${D.time}</div>
+  <div class="abs" style="top:38px;left:24px;right:24px"><div style="font-size:17px">${first.label} · ${I.band} band connected</div><div style="font-size:96px;font-weight:300;line-height:1;margin:2px 0 0 -4px">Day 1</div><div style="font-size:34px;font-weight:700;line-height:1.2">First forecast<br>tomorrow</div></div>
+  ${tl('top:276px;left:16px;right:16px;height:100px;padding:10px 16px', '#1F4E7A', `<div style="font-size:12px;color:#C9DCEE">Readiness this week · learning your normal, 0 of 3 nights</div><div style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-top:4px">${slots.map((d, i) => `<div><div style="font-size:12px;color:#C9DCEE">${d}</div>${emptyDot('#C9DCEE')}<div style="font-size:17px;font-weight:700;line-height:1.1;color:#C9DCEE">–</div></div>`).join('')}</div>`)}
+  ${tl('top:388px;left:16px;width:182px;height:150px', T_DAY, `<div style="font-size:12px;color:${T2_DAY}">Steps so far</div><div style="font-size:34px;font-weight:700;line-height:1.2">${n(first.steps)}</div><div style="font-size:12px;color:${T2_DAY}">Your usual day shows after 3 days.</div>`)}
+  ${tl('top:388px;left:206px;width:190px;height:150px', T_DAY, `<div style="font-size:12px;color:${T2_DAY}"><span style="color:#FFE7A8">${I.moon}</span> Sleep</div><div style="font-size:24px;font-weight:700;line-height:1.3;margin-top:4px">Starts tonight</div><div style="font-size:12px;color:${T2_DAY}">Wear your band to bed. Stages and a score each morning.</div>`)}
+  ${tl('top:546px;left:16px;right:16px;height:112px;display:flex;justify-content:space-between;align-items:center', T_DAY, `<div style="max-width:190px"><div style="font-size:17px;font-weight:700">Add your weight</div><div style="font-size:12px;color:${T2_DAY}">Used to estimate calories.</div></div><div class="btn" style="background:#FFC56B;color:#0F2536;border-radius:24px;font-size:17px;font-weight:700">Log weight</div>`)}
+  ${tl('top:666px;left:16px;right:16px;height:72px;padding:12px 16px', T_DAY, `<div style="font-size:17px">Morning check</div><div style="font-size:12px;color:${T2_DAY}">The 60-second check unlocks tomorrow.</div>`)}
+  ${nav('Today', `background:${T_DAY};color:${T2_DAY}`)}</div>`;
+}
+
+/* ======================= sheets + contrast ======================= */
+const Lum = h => { const c = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) / 255).map(x => x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+const CR = (a, b) => { const x = Lum(a), y = Lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+const mix = (a, fg, bg) => [0, 2, 4].map(i => Math.round(a * parseInt(fg.slice(i, i + 2), 16) + (1 - a) * parseInt(bg.slice(i, i + 2), 16)).toString(16).padStart(2, '0')).join('').toUpperCase();
+const NEED = { text: 4.5, large: 3, ui: 3 };
+function sheet(s) {
+  return `<section class="sheet"><h3>${s.name}</h3><p class="thesis">${s.thesis}</p><dl>${s.rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
+  ${s.colors ? `<div class="sw">${s.colors.map(([h, r]) => `<i style="background:#${h}"></i><code>#${h}</code><span>${r}</span>`).join('')}</div>` : ''}
+  <table>${s.pairs.map(([lab, fg, bg, kind]) => { const r = CR(fg, bg); return `<tr><td>${lab} <span style="color:#8A929B">(${kind} ≥ ${NEED[kind]})</span></td><td class="${r >= NEED[kind] ? '' : 'fail'}">${r.toFixed(2)}:1</td></tr>`; }).join('')}</table></section>`;
+}
+const worstDay = '6FA88A', worstNight = '3A5577';
+const SHEETS = [
+ { name: 'A+D · Glass Sky', thesis: 'A’s open sky and sun-path arc, with D’s tiles rebuilt as glass that lets the landscape through.',
+   rows: [['Principles', 'Figure/ground by a tinted glass layer over a calm scene. Grouping by common region (tiles of unequal weight). One primary number per screen.'], ['Colour', 'Day: pale sky into layered meadow greens; navy ink. Night (Sleep): deep blue sky, dark glass, white text. Stage colours run light to dark with depth, and lane position carries the stage too.'], ['Glass', 'Blur 22, saturation 1.6, 1 px light edge, soft offset shadow. Floor: white 45% by day, navy 40% by night, so text passes over the darkest scene colour. Full: white 22% / navy 25%. Solid fallback when reduce transparency is on or blur is unsupported.'], ['Type', 'Roboto (system). Ratio 1.25 from 12: 12 / 15 / 19 / 23 / 29 / 57. Light for hero numbers with −2% tracking.'], ['Spacing', 'Base 8, card padding 14–16, gutters 8.'], ['Radius', 'Cards 22, buttons 24.'], ['Motion', 'One drifting cloud layer; glass tiles settle in with a 40 ms stagger. Reduced motion = static.'], ['Sources', 'ui-ux-pro-max colour “Weather App”; chart “Performance vs Target → Gauge”; refs screens/ref-weather-*.png. Glass requested by you in Round 1 (overrides the brief’s no-blur rule).']],
+   colors: [['7FB8E6', 'sky top'], ['6FA88A', 'deepest meadow (worst case)'], ['0E2A43', 'ink'], ['2E4A62', 'ink 2'], ['0B5FA5', 'action'], ['1F3A5C', 'night sky'], ['C9D6E3', 'night ink 2']],
+   pairs: [['Ink 2 · floor glass on meadow', '2E4A62', mix(0.45, 'FFFFFF', worstDay), 'text'], ['Ink 2 · full glass on meadow', '2E4A62', mix(0.22, 'FFFFFF', worstDay), 'text'], ['Ink · full glass on meadow', '0E2A43', mix(0.22, 'FFFFFF', worstDay), 'text'], ['Night ink 2 · floor glass on moon glow', 'C9D6E3', mix(0.40, '0A1424', worstNight), 'text'], ['Night ink 2 · full glass on moon glow', 'C9D6E3', mix(0.25, '0A1424', worstNight), 'text'], ['Deep stage on night glass', '4A7BD0', mix(0.40, '0A1424', '1F3A5C'), 'ui'], ['White on action', 'FFFFFF', '0B5FA5', 'text'], ['Sun glyph outline on glass', '0E2A43', mix(0.45, 'FFFFFF', '7FB8E6'), 'ui']] },
+ { name: 'B · Altitude', thesis: 'Unchanged from Round 1 by day. Sleep turns the same summit to moonlight; first run leaves the dial empty and lets the sentence lead.',
+   rows: [['New', 'Night palette: sky #06111E→#0F2A42, moonlit snow #C9D5E0. Hypnogram as a single white step line (no stage colours at all). Stage totals as four serif numbers.'], ['First run', 'Dashed empty dial; serif headline on the sky; progress as three night markers (solid = tonight, dashed = to come).']],
+   pairs: [['Text on night sky (dial zone)', 'F4F7F9', '0B2034', 'text'], ['Label D5DEE6 on night sky', 'D5DEE6', '0F2A42', 'text'], ['Text 2 on sheet', 'B9C9D4', '10202B', 'text'], ['Step line on sheet', 'F4F7F9', '10202B', 'ui'], ['Headline on day sky (first run)', 'F4F7F9', '1E5A84', 'large']] },
+ { name: 'D · Forecast', thesis: 'Unchanged by day. Sleep reads like a night forecast: hour-by-hour depth, four stage tiles like the weather details, a 7-night outlook.',
+   rows: [['New', 'Night tiles #16304A, text 2 #B8C9DA. Depth glyph = 0–3 bars (shape carries the stage, so no stage colours).'], ['First run', 'The forecast strip is shown empty with dashed markers and “learning your normal, 0 of 3 nights”.']],
+   pairs: [['White on night tile', 'FFFFFF', '16304A', 'text'], ['Text 2 on night tile', 'B8C9DA', '16304A', 'text'], ['Text 2 on night strip', 'C9D6E6', '1A3A63', 'text'], ['White 24 sp on night sky', 'FFFFFF', '24476F', 'large'], ['Dashed marker on sky tile', 'C9DCEE', '1F4E7A', 'ui']] },
+];
+
+/* ======================= layout ======================= */
+const COLS = [
+  { cap: 'A+D Glass · floor (45% tint)', today: () => adToday(0.45), sleep: () => adSleep(0.40), first: () => adFirst(0.45) },
+  { cap: 'A+D Glass · full (22% tint)', today: () => adToday(0.22), sleep: () => adSleep(0.25), first: () => adFirst(0.22) },
+  { cap: 'B · Altitude', today: bToday, sleep: bSleep, first: bFirst },
+  { cap: 'D · Forecast', today: dToday, sleep: dSleep, first: dFirst },
+];
+const only = new URLSearchParams(location.search).get('only');
+const ROWS = [['today', 'Today'], ['sleep', 'Sleep · last night'], ['first', 'First run · empty state, before 3 nights of data']].filter(r => !only || r[0] === only);
+document.getElementById('board').innerHTML = ROWS.map(([k, title]) => `<h2 class="row">${title}</h2><div class="row-grid">${COLS.map(c => `<div class="cell"><div class="cap">${c.cap}</div>${c[k]()}</div>`).join('')}</div>`).join('')
+  + `<h2 class="row">Tokens and contrast</h2><div class="row-grid">${SHEETS.map(s => `<div class="cell">${sheet(s)}</div>`).join('')}</div>`;
+</script>
+</body>
+</html>
