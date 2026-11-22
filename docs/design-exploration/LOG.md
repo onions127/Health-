@@ -623,3 +623,61 @@ STOP: waiting for the user's pick (A flat / B swell / C fields, or a mix).
 - First run read ~1 fps: the test drove a background Chrome tab (throttled); `phoneT.js` now brings the test tab to the front. No GL errors; the only 404 is `favicon.ico`.
 
 **Terrain lock done.** Nothing committed yet.
+
+## G1 · Glass for dusk and night (2026-11-22)
+**Asked:** dark glass for dusk and night (open since 3.12: night with the day glass reads 1.35:1).
+
+**Measured first** (`tools/visual-loop/glassSweep.js`, `glassNeed.js`; `glass-check.js` now takes a glass tint, `saturate()` and light ink):
+- The day glass (22% white, ink `#2E4A62`) fails well before night: 18:00–19:45 reads 3.2–4.2, dawn 05:15–05:45 1.7–3.7.
+- At dusk the page under the cards is mid grey (L\* 55–70): dark ink on light glass and light ink on dark glass both fail at their usual strengths. The smallest glass for AA (4.6) rises to ~.5 on both sides; the two are equal at page L\* ≈ 55.
+- Clear night needs almost no glass (any dark tint passes); rain and snow nights sit at L\* 37–43.
+- Sky text: the hero cloud behind the number is lit by day and by the moon at night (`#7789C2`, white on it 3.15). Which ink needs less help follows the sky behind the text, not the page (rain night: light ink needs no veil; snow night: dark ink + white veil .34).
+
+**Proposed rule (`design-prototype/glass-rule.js`, the same for every option):**
+- Cards follow the page L\* under them: ≥ 56 day glass, strength from a measured table (22% → 53% as the light falls); < 56 night glass with light ink (`#FFFFFF` / `#C9D7EA`), ≥ 40%. Nav 55% day / 72% night.
+- Sky text takes the ink that needs the weaker veil; the veil is a top band (full to 272 px, gone by 340 px) in the glass tint or white, at the measured strength + .03.
+- The Log weight button picks its fill from the sky behind it: blue `#0B5FA5`, light pill `#DCE9F7`, or deep navy `#082F5A` (non-text 3:1), sitting on the veil.
+
+**Board:** `design-prototype/r5a-board.html` (renders `g1/`, numbers `g1/measure.json` from `tools/visual-loop/g1.js`). One decision, the night glass's colour: **A · Navy** `#0A1E4A` (constant, like the reference) · **B · Smoke** `#0E1116` (neutral) · **C · Sky** (the zenith's hue at Y .013: navy at night, `#1D1B33` at dusk, `#1B1D2F` in rain).
+
+**Measured (9 states: day control, 18:30, 19:45, 20:30, night clear / partly / rain / snow, dawn 05:30):** every text passes in every state for A, B and C; worst 4.78 (day glass at 18:30, secondary text). Cards at night 9.3–10.4 (A), 10.4–15.1 (B); nav ≥ 5.57; sky text ≥ 4.83; button ≥ 3.35. The night options differ in look, not in contrast.
+
+**Open / still differs:** twilight 20:30, snow night and dawn need a white veil of 28–41% behind dark sky text (the moonlit or dusk-lit hero cloud is mid-grey): visible as a pale band. A scene-side fix (dim the hero cloud's lit side behind the text after sunset) would remove it; not in this round. Transition timing (how fast the swap animates when it crosses while the app is open) not shown on stills.
+STOP: waiting for the pick (A navy / B smoke / C sky).
+
+## G2 · Scene glass, lower contrast (2026-11-22)
+**Asked:** none of G1's night glasses (navy, smoke, sky) felt right: the cards felt cut off from the scene. Lower the contrast to get the feel right.
+
+**Found:** at night the text needs almost no glass. White ink passes AA at 12–16% on every clear, cloudy and rainy night. G1's slabs came from the **40% night floor** (a design choice) and from `saturate(1.6)`, which lifted the blue land under the cards *above* the page around them. Contrast only costs glass at dusk (18:00–20:00, page L\* 55–65), at dawn, on snow nights, and for the sky text over the moonlit hero cloud.
+
+**G2 material (the same in every section):** the glass is only as strong as the text needs. Night glass = the land's hue under the cards at Y .02 (`#152256` clear night, `#1E263F` twilight), 22% floor (the day glass's strength), `saturate(1)` (reads a little darker than its surroundings, like the reference), faint light edge (inset 10% white hairline). Day glass unchanged (white, ≥ 22%, saturate 1.6, dark ink). Mode = whichever ink needs less glass. Sky text: veil in the same tint only where the floor needs it.
+
+**Board:** `design-prototype/r5b-board.html` (scene renders reused from `g1/`, numbers `g2/measure.json` from `tools/visual-loop/g2.js`, `SATD=` sets the night saturate). One decision, the contrast floor for small text:
+| Floor | Worst small text | Hero number | Dusk 19:45 glass | Night veil |
+|---|---|---|---|---|
+| 4.5 (AA, control) | 4.65 | 4.29 | white 52% | 29–32% |
+| 4.0 | 4.17 | 3.76 | white 44% | 21–24% |
+| 3.5 | 3.69 | 3.38 | white 36% | 11–15% |
+| 3.0 (AA large only) | 3.18 | 3.29 | white 27% | 0–4% |
+Night cards 9.3:1 and the button ≥ 3.32 under every floor. Deep night and day look the same in all four sections.
+
+**Still differs:** dusk 19:45 stays a milky lavender light glass under every floor above 3.0. Twilight and snow nights keep a 19–40% veil behind the sky text: the scene-side fix (dim the hero cloud's lit side after sunset) is still open. Below 4.5, the 12 px secondary text fails WCAG AA at dusk and dawn. This rewrites the brief's "AA measured" rule for those hours: the user's call.
+**Picked (2026-11-22): 3.0.** Encoded as `GlassRule.G2` in `design-prototype/glass-rule.js` (floor 3.0; day glass white ≥ 22% from page L\* 50 up, 27% at L\* 55, 31% at 50; night glass the land's hue, 22%, saturate 1, light edge; nav 55% / 30%). Checked against `g2/measure.json`: mode and strength match all 9 states. G1's navy / smoke / sky options are dropped. Still open: the 19–24% veil behind the sky text at twilight and on snow nights (scene-side fix: dim the hero cloud's lit side after sunset).
+
+## G3 · The sky behind the text after sunset (2026-11-22)
+**Asked:** remove the veil behind the sky text (number, header) that G2 at 3.0 still needed: twilight 20:30 24%, snow night 19%, dawn 05:30 12%.
+
+**Found** (`tools/visual-loop/skyProbe.js`: L\* range under each sky-text rect, no glass): light ink reaches 3:1 only where the sky under it is L\* ≤ 59, dark ink only where it is ≥ 48. After sunset four things broke that, all in the scene:
+- Cloud sky light mixed 55% white at every hour (`ambHi`): the moonlit hero cloud read L\* 61–81 behind the text at twilight and dawn.
+- The key light faded linearly from dusk (I 1.1) to night (I .26): cloud tops stayed sunlit next to sky gaps that were already dark (05:30: L\* 43–79 in one rect, so neither ink passes).
+- Stars at full strength: L\* 70–78 points under the header.
+- Falling snow pure white at night: L\* 96 specks on an L\* 41 sky.
+
+**Changed (scene-gl.js):** `ambHi` white mix × (1 − `AMBN`·night), `AMBN` 1. Key intensity × (1 − `TWI`·sstep(.35, .6, night)·(1 − sstep(.85, 1, night))), `TWI` .9 (`?twi=` to preview; 19:45 is untouched, the sun is still up). Stars × .30 (the reference's "low intensity"). Snow colour `uSnowCol` = white by day, the palette's lit-cloud colour × .6 at night. `glass-check.js`: header rect ends at 245 px, where its text ends (it ran under the button and the moon's starburst). Log weight button: the pale pill `#DCE9F7` failed on the moonlit sky without a veil (2.58), so its light option is now white (`#FFFFFF`, ink `#0B3A66`).
+
+**Measured (floor 3.0, `g2.js` with `OUT=g3 SHOOT=1 FLOORS=3`):** veil 0 in all 9 states (was 24 / 19 / 12 / 4% at twilight / snow / dawn / partly). Worst sky text 3.17 (snow night), number 3.20, cards 3.18 (dusk 19:45), button 3.14. Sweep (`glassNeed.js`, T 3.05): no veil from 20:15 to 06:15; 5–14% left at 20:00 (clear 6, rain 5, partly 14), the minute the ink swaps. Clear night passes even AA 4.5 with no veil (4.61). Pixel diff vs G1 renders: day 13:00 mean 1.0 (noise); changes in the top half at twilight, night and dawn, and the flakes. Load to converged 29.3 s (baseline ~25 s; no new call sites).
+
+**Board:** `design-prototype/r5c-board.html` (before = G2 scene `g1/` + `g2/measure.json` regenerated on the pre-G3 scene; after = `g3/`).
+
+**Still differs:** twilight clouds are greyer and flatter than before (they lost the set sun's glow); the moon's starburst still shows at 20:30. Baked keyframes (`baked/`) are stale for twilight and night hours: rebake before phone tests.
+**Picked (2026-11-22): keep** the greyer twilight clouds (`AMBN` 1, `TWI` .9). Open: rebake `baked/` for twilight and night before the next phone test.

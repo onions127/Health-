@@ -164,7 +164,8 @@ vec4 clouds(vec3 rd, vec3 sd, vec3 skyH, float jit, float tLo, float tHi){
   if (t0 >= t1) return vec4(0., 0., 0., 1.);
   float c = dot(rd, sd);
   float ph = min(mix(hgN(c, .50), hgN(c, -.20), .40), 2.4);   // capped so the side facing the sun glows without blowing out
-  vec3 sunL = toL(uCLit)*uSunI, ambHi = mix(toL(uMid), vec3(1.), .55)*.62, ambLo = mix(toL(uCDark), toL(uMid), .35)*.62;   // 3.15: high-key, low self-shadow contrast (reference)
+  const float AMBN = 1.;   // G3: after sunset the sky light on cloud tops is the dark sky, not white (white lit the moonlit hero cloud to L* 70-81 behind the sky text)
+  vec3 sunL = toL(uCLit)*uSunI, ambHi = mix(toL(uMid), vec3(1.), .55*(1. - AMBN*uNight))*.62, ambLo = mix(toL(uCDark), toL(uMid), .35)*.62;   // 3.15: high-key, low self-shadow contrast (reference)
   // the sun is at infinity: one direction for every cloud (the palette's key, which follows the sun's side). A point light placed over
   // the field (3.5) lit each lobe from its own angle and gave every billow a round highlight, like bubble wrap (3.14)
   vec3 Ld = normalize(uKey);
@@ -652,7 +653,7 @@ uniform sampler2D uS0, uS1, uS2, uS3, uM2, uM3; uniform vec2 uRes, uMargin, uSli
 uniform vec4 uXf;                                                       // canvas px -> frame px (scale, offset): a baked frame covers any screen aspect
 uniform vec2 uSun; uniform float uSunR, uShowSun, uVeil, uStars; uniform vec3 uSunDisc, uHalo;
 uniform float uT, uRain, uNight, uWind, uBirds, uDpr, uWindDbg; uniform vec3 uRainCol, uBirdCol;
-uniform float uSnowF, uBolt;                                            // 3.15: falling snow (0..1), lightning (review visual only: D2 keeps storms out of the body mapping)
+uniform float uSnowF, uBolt; uniform vec3 uSnowCol;                                            // 3.15: falling snow (0..1), lightning (review visual only: D2 keeps storms out of the body mapping)
 out vec4 o;
 float hash(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x*p.y); }
 float noise(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f*f*(3. - 2.*f);
@@ -772,10 +773,10 @@ void main(){
     c += uHalo*(.0035*hgN(cc, .90) + .004*hgN(cc, .45))*s0.a*hz;
     if (uStars > .001) {
       vec2 g = floor(P*300.); float h = hash(g);
-      if (h > .9968) {                                                  // one star in ~300 cells: a soft point at the cell centre
+      if (h > .9968) {                                                  // one star in ~300 cells: a soft point at the cell centre. G3: low intensity, as in the reference (full-strength stars read L* 70-78 under the sky text)
         float d = length(P - (g + .5)/300.)*uRes.y;
         float tw = .55 + .45*sin(uT*.8 + h*40.);
-        c += vec3(.70, .79, 1.)*(1. - smoothstep(.5*uDpr, 1.3*uDpr, d))*tw*(1. - smoothstep(.05, HOR, P.y))*uStars*s0.a;
+        c += vec3(.70, .79, 1.)*.30*(1. - smoothstep(.5*uDpr, 1.3*uDpr, d))*tw*(1. - smoothstep(.05, HOR, P.y))*uStars*s0.a;
       }
     }
   }
@@ -801,7 +802,7 @@ void main(){
     float s = snowAt(P, .085, 4.5, 5.5, .030, 1.)*.75                     // near: large, soft (depth of field)
             + snowAt(P, .045, 2.0, 1.6, .022, 5.)*.85                     // middle
             + snowAt(P, .022, .9, .3, .014, 9.);                          // far: small and sharp
-    c = mix(c, vec3(.96, .98, 1.), clamp(s, 0., 1.)*uSnowF);
+    c = mix(c, uSnowCol, clamp(s, 0., 1.)*uSnowF);                     // G3: white by day; at night lit like the cloud's moonlit side (pure white flakes read L* 96 on an L* 41 sky)
   }
   if (uBolt > 0.) {
     vec2 P = vec2(px.x/uRes.y, 1. - px.y/uRes.y);
@@ -907,6 +908,7 @@ void main(){
   // Hour of day: palettes are keyframes, blended in linear light, so the scene moves smoothly through the day.
   const KEYS = [[0, 'night'], [5, 'night'], [6.5, 'dawn'], [9, 'day'], [16.5, 'day'], [19, 'dusk'], [21, 'night'], [24, 'night']];
   const SUN = [[5.5, [.10, .43]], [6.5, [.13, .355]], [8.5, [.22, .20]], [13, [.64, .15]], [16.5, [.80, .17]], [19, [.86, .35]], [20, [.90, .43]]];   // screen x, y from the top; horizon at .37 (3.15: was .58). Midday sun high, right of centre, as in the reference
+  const TWI = +(new URLSearchParams(typeof location !== 'undefined' ? location.search : '').get('twi') ?? .9);   // G3: twilight dip of the key light (0 = the old linear fade)
   const MOON = [.78, .12], HOURS = { dawn: 6.5, day: 13, dusk: 19, night: 23 };
   const sstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
   const toHex = a => '#' + a.map(c => Math.round(Math.min(1, Math.max(0, c)) ** (1 / 2.2) * 255).toString(16).padStart(2, '0')).join('');
@@ -1099,9 +1101,10 @@ void main(){
     for (const [k, x] of Object.entries(p)) { if (k === 'g') continue; (Array.isArray(x) ? x : [x]).forEach(y => typeof y === 'string' ? v.push(...hex(y).map(c => c ** 2.2)) : typeof y === 'number' && v.push(y)); }
     return v.concat(p.night < .5 ? sunAt(h) : MOON); };
   // Hours baked per weather: densest where the light changes fastest; 21:00 holds the night until 05:00.
-  const KEYFRAMES = [5, 5.75, 6.5, 7.5, 9, 11, 13, 15, 16.5, 17.75, 19, 20, 21];
+  // G3: 5.5, 20.25 and 20.5 hold the twilight dip of the key light (TWI), which a blend of the neighbours misses (20:30 read 32.7 dB from 20 + 21).
+  const KEYFRAMES = [5, 5.5, 5.75, 6.5, 7.5, 9, 11, 13, 15, 16.5, 17.75, 19, 20, 20.25, 20.5, 21];
   const bracketHours = (h, list = KEYFRAMES) => { const L = list.slice().sort((a, b) => a - b), i = L.findIndex(x => x > ((h % 24) + 24) % 24); return [L[i <= 0 ? L.length - 1 : i - 1], L[i < 0 ? 0 : i]]; };
-  const SKY_CACHE = 'sky-v3';                                             // Cache Storage for layers baked on this device. Bump it whenever the sky's look changes: bakes from an older shader are then dropped (v2: 3.14 clouds, v3: 3.15 horizon and land)
+  const SKY_CACHE = 'sky-v4';                                             // Cache Storage for layers baked on this device. Bump it whenever the sky's look changes: bakes from an older shader are then dropped (v2: 3.14 clouds, v3: 3.15 horizon and land, v4: G3 night and twilight light)
   const cached = async url => { if (G.caches) { const r = await (await G.caches.open(SKY_CACHE)).match(new URL(url, G.location.href).href); if (r) return r; } return fetch(url); };
   const regimeOf = r => r == null ? 'firstRun' : r >= 80 ? 'fair' : r >= 65 ? 'partly' : r >= 50 ? 'stratocumulus' : 'stratus';
   const DRIFT_ROOM = 72, DRIFT_V = .8;                                   // baked near clouds: CSS px of extra layer to drift into, CSS px per second (clouds ~10 km away at 10 m/s)
@@ -1187,7 +1190,7 @@ void main(){
       gl.uniform1f(Up(pC, 'uT'), st.animate ? (now - t0) / 1000 + 40 : 40); gl.uniform1f(Up(pC, 'uRain'), cur.w.rain); gl.uniform1f(Up(pC, 'uNight'), cur.p.night);
       gl.uniform3fv(Up(pC, 'uRainCol'), hex(mixV('#EDF2FA', cur.p.fog, cur.p.night)).map(v => v ** 2.2));   // light streaks by day, fog-coloured at night
       [2, 3].forEach((i, j) => { gl.activeTexture(gl.TEXTURE11 + j); gl.bindTexture(gl.TEXTURE_2D, RT.s[i].m); gl.uniform1i(Up(pC, 'uM' + i), 11 + j); });
-      gl.uniform1f(Up(pC, 'uSnowF'), cur.w.snow || 0); gl.uniform1f(Up(pC, 'uBolt'), cur.w.bolt || 0);
+      gl.uniform1f(Up(pC, 'uSnowF'), cur.w.snow || 0); gl.uniform3fv(Up(pC, 'uSnowCol'), hex(mixV('#FBFDFF', cur.p.cl, cur.p.night)).map(v => v ** 2.2 * (1 - .4 * cur.p.night)));   // G3: at night the flakes are lit like the cloud's moonlit side, a little under it (L* ~60) gl.uniform1f(Up(pC, 'uBolt'), cur.w.bolt || 0);
       gl.uniform1f(Up(pC, 'uWind'), cur.w.wind); gl.uniform1f(Up(pC, 'uDpr'), dpr); gl.uniform1f(Up(pC, 'uWindDbg'), st.windDebug ? 1 : 0);
       gl.uniform1f(Up(pC, 'uBirds'), live ? (1 - cur.p.night) * (1 - cur.w.rain) * (1 - .8 * Math.min(1, cur.w.fog)) * (1 - .7 * cur.w.grey) : 0);   // day, dry, clear enough to see them; none when still
       gl.uniform3fv(Up(pC, 'uBirdCol'), hex(mixV('#2F3B48', cur.p.mid, .18)).map(v => v ** 2.2));   // dark, a little hazed by the air between
@@ -1245,7 +1248,7 @@ void main(){
       gl.uniform2f(U('uRes'), RT.W, RT.H); gl.uniform1f(U('uT'), st.animate ? (now - t0) / 1000 + 40 : 40);
       gl.uniform1f(U('uCover'), w.cover); gl.uniform1f(U('uTall'), w.tall); gl.uniform1f(U('uGrey'), w.grey); gl.uniform1f(U('uHaze'), w.haze);
       [['uStyle', w.style], ['uPaintCov', w.paintCov], ['uCirrus', w.cirrus], ['uCiHook', w.ciHook], ['uCiVeil', w.ciVeil], ['uCiAng', w.ciAng + (rndDay(12) - .5) * 1.1]].forEach(([n, v]) => gl.uniform1f(U(n), v));
-      [['uSnow', w.snow || 0], ['uSheet', w.sheet], ['uSType', w.sType], ['uSB', w.sb], ['uST', w.st], ['uFogD', w.fog], ['uFogH', w.fogH], ['uRain', w.rain]].forEach(([n, v]) => gl.uniform1f(U(n), v)); gl.uniform1f(U('uNight'), p.night); gl.uniform1f(U('uSunI'), p.I);
+      [['uSnow', w.snow || 0], ['uSheet', w.sheet], ['uSType', w.sType], ['uSB', w.sb], ['uST', w.st], ['uFogD', w.fog], ['uFogH', w.fogH], ['uRain', w.rain]].forEach(([n, v]) => gl.uniform1f(U(n), v)); gl.uniform1f(U('uNight'), p.night); gl.uniform1f(U('uSunI'), p.I * (1 - TWI * sstep(.35, .6, p.night) * (1 - sstep(.85, 1, p.night))));   // G3: twilight. Once the sun is down (night .35-.6) the key goes before the linear dusk->night blend would take it, and the moon takes over near full night: the cloud tops lose the light before the sky gaps go dark
       [['uPg0', w.pg ? w.pg[0] : p.pg[0]], ['uPg1', w.pg ? w.pg[1] : p.pg[1]], ['uPg2', w.pg ? w.pg[2] : p.pg[2]], ['uPg3', w.pg ? w.pg[3] : p.pg[3]], ['uZen', p.zen], ['uMid', p.mid], ['uHor', p.hor], ['uSunC', p.sunC], ['uCLit', p.cl], ['uCDark', p.cd], ['uFog', p.fog], ['uH0', p.h[0]], ['uH1', p.h[1]], ['uH2', p.h[2]], ['uH3', p.h[3]], ['uTree', p.tree], ['uPath', p.path]]
         .forEach(([n, c]) => gl.uniform3fv(U(n), hex(c)));
       gl.uniform3fv(U('uKey'), norm(p.key));
@@ -1405,7 +1408,8 @@ void main(){
       skip(sec) { t0 -= sec * 1000; dirty = true; kick(); },              // jump the clock (board: bring the birds now)
       get t() { return (performance.now() - t0) / 1000 + 40; },
       canvas, baked, get ready() { return baked ? ready : k >= 24; }, get loadMs() { return loadMs; }, get drift() { return RT ? driftAt(performance.now()) / RT.dpr : 0; },   // CSS px the baked near clouds have slid
-      get cost() { return cost; }, get gpu() { return gpu; }, get frames() { return k; }, get tilt() { return { x: tilt.x, y: tilt.y }; },
+      get cost() { return cost; }, get gpu() { return gpu; }, get frames() { return k; }, get pal() { if (!cur) state(); return cur.p; },   // G1: the hour's palette after weather (the UI picks its glass from it)
+      get tilt() { return { x: tilt.x, y: tilt.y }; },
       bench(kind, n) {                                                     // GPU timing for the board: n synchronous frames, waits for the GPU
         const px = new Uint8Array(4), sync = () => { gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); };
         sync(); const t = performance.now(), now = t;
