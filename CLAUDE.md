@@ -40,6 +40,8 @@ Health++ is a personal recovery/readiness companion app for a JCWear band (Andro
 | `design-prototype/bake.html`, `bake-server.py`, `sky-baker.js`, `baked/` | Keyframe baking (PC and on-device worker). |
 | `design-prototype/scene-gl-34.js`, `scene-kit.js` | Old versions (3.4 volumetric, 3.2 SVG). Comparison only. |
 | `reference/` | Samsung Weather references (see below). |
+| `design-prototype/r4a-board.html` … `r4h-board.html`, `t1/` … `t8/` | Terrain rounds T1–T8 boards and their saved renders (history only: the live variants were removed at terrain lock; the boards' images still open). |
+| `reference/terrain/` | Terrain photo and stylised references (local only, gitignored). See "Terrain reference specs". |
 | `tools/visual-loop/` | Headless screenshot + side-by-side compare script. |
 
 Servers (`.claude/launch.json`): `design-board` → http://127.0.0.1:8765 (serves `design-prototype/`), `design-board-2` → :8767, `design-bake` → :8768 (bake-server, PUT into `baked/` only).
@@ -71,6 +73,7 @@ Servers (`.claude/launch.json`): `design-board` → http://127.0.0.1:8765 (serve
   - Glass stays **as designed** (full glass 22% / 25% white, dark ink, AA measured). Samsung's dark glass + white text is not adopted.
   - Renderer stays **hand-written WebGL2 / GLSL**, no Three.js runtime: it already holds the whole pipeline (float slices, bakes, tilt) and must port to AGSL. Three.js skills are technique references (bloom, DOF, lens flare, particles), ported by hand.
   - `reference/` is local only (gitignored): third-party screenshots are never committed.
+- **Terrain lock (2026-11-22, rounds T0–T9):** the land is the **open calm loch** (T3 `lochCalm`): wide still water, a mountain range far off on the left (snow follows the season), two long low ranges, a shore with coves of sand, **two maple trees** on the lip (grown branching, fine leaf clumps, thinning without holes; colour, fullness and bloom follow the day of the year), and a **flat page** under the cards (no swell or fields under the glass, T8). One land only: `LAND`, `TK` (tokens) and `LEAF` in `scene-gl.js`; the `terrain`, `tree`, `leaf` and `ground` options are gone. Season: Mediterranean year (`DRY`, `MSNOW`, the maple's `year`). `?dry=` and `?doy=` still preview a season.
 - Phone tests: Galaxy S21 via adb; never uninstall the app. Figma Starter plan runs out of MCP calls; fall back to HTML boards.
 
 ## Samsung One UI Weather reference specs
@@ -138,12 +141,57 @@ Rules read off these:
 - No visible border hairline (≤ ~8% white if any), no shadow. Corner radius ≈ 26–28 dp, side margin ≈ 11–12 dp, gap ≈ 12 dp.
 - Text is **white** (primary 100%, secondary ~75–80%). Note: white on the green card top measures ≈ 3.5:1, **below AA**. Our AA rule wins: copy the materials, not the contrast. Decided 2026-11-19: we keep our light glass with dark ink; take only proportions (radius, margins, no border) from Samsung.
 
+## Terrain reference specs (Round T0, 2026-11-20)
+
+Sources in `reference/terrain/` (local only, gitignored, never committed or traced): `photo/` = Wikimedia Commons photography (lakes, Lake District, Loch Lomond, fjords, Seven Sisters coast, downs, Palouse, Tuscany, Blue Ridge/Smokies, alpine meadow, steppe, wetland, Namib and coastal dunes, fog, rain, snow, dusk, night); `style/` = store screenshots of games known for environment art (Firewatch, Old Man's Journey, Sable, Alba, A Short Hike, Journey, Season, Ghost of Tsushima, Lost Ember, The Pathless, Sky, GRIS, Dordogne). Contact sheets: `reference/terrain/sheet-*.png`. Ramps measured with `tools/visual-loop/bands.js` (median colour of horizontal bands, centre 80% width; value = CIE L*).
+
+### Silhouette and massing
+- Depth reads from **3–5 overlapping silhouettes** (Smokies `ridges-1`: 5; Lake District `lake-district-2`: 3 + valley floor; `fog-valley-1`: 3). Stylised work uses **3–4 planes** (Old Man's Journey, Firewatch). More than 5 turns into texture.
+- Each nearer silhouette **overlaps the one behind across ≥ 30% of the width** and has a different rhythm (one long slow swell against shorter peaks). No two crests run parallel; no crest is symmetric about the screen centre.
+- Crests carry the detail; bases dissolve into haze or the next layer. The eye reads the **top edge** of every layer, so the top edge must be clean (one line, a little fine noise), not lumpy all over.
+
+### Value steps per depth layer (aerial perspective)
+| Reference | Horizon sky | Far | Mid | Near | Foreground |
+|---|---|---|---|---|---|
+| Smokies (photo, clear) | `#E2EEF6` L93 → `#BED9EC` 85 | `#87B0CF` 70 | `#4E7A9E` 50 | `#4B6B89` 44 | `#4B5128`–`#6B5729` 33–38 |
+| Lake District (photo) | `#ACC5DA` 78 | `#52647A` 42 (blue) | `#647D3E` 49 | `#5A5C31` 38 | `#56441C` 30 |
+| Fog valley (photo) | `#D2EAF5` 91 | fog `#CCD5DB` 85 | `#6D7570` 48 | `#5B5342` 36 | 27–35 |
+| Steppe (photo) | `#ADBAC2` 75 | horizon land `#AD9561` 63 | `#896E3A` 48 | `#77672D` 44 | — |
+| Old Man's Journey (style) | `#F0E9D7` 92 | haze 85 | `#C79E77` 68 | `#C78565`→`#9F6B5C` 62–50 | `#4E4B51` 32 |
+| Alba (style, high-key) | `#8BE8FE` 87 | `#95E39A` 84 | `#A5CC7D` 78 | `#C6B972` 75 | `#90A56A` 65 |
+| Sable (style, low-contrast) | `#D3FAB7` 94 | `#82B08C` 68 | `#7BAB92` 66 | `#88B29A` 69 | `#A5BCAA` 74 |
+- Rule: the **far layer sits 8–20 L\* under the horizon sky**; steps between far layers are small (5–10 L\*), between near layers large (10–20 L\*). Order is fixed: far is never darker than mid in clear air.
+- Hue: far = the sky's horizon hue at low chroma (blue-grey); mid = blend; near = local colour at full chroma (green, ochre). Haze is additive toward the horizon colour, not a grey fog.
+- Stylised work keeps the same order but **compresses the range high-key** (Alba 87→65, Sable 94→66). This is the only route that fits our glass rule: **anything under the cards must stay ≥ L\* 71** (`#86B9A0` = L\* 71). So deep near-values (L\* 25–45) can only live **above the first card (y < .42)**, and the page under the cards stays a high-key gradient.
+
+### Water against the sky
+- Open lake under open sky: water reads **5–15 L\* darker than the sky just above the horizon** (Derwentwater: sky L82, water L70; Kilchurn dusk: a reflection ~8 L\* under its object). Ripples break the mirror nearest the viewer; the far water is a clean mirror strip.
+- Enclosed or steep water (fjord) mirrors dark slopes: **L\* 14–19** (`#1B313B`–`#122632`) under an L80 sky.
+- Sea at the coast (Samsung, Seven Sisters): more saturated than the haze just above it; a pale shore band separates it from land.
+- Night: water darker than the sky at the horizon (night lake: sky L24 at the horizon, water L9–11), the moon path is the only bright mark.
+
+### Weather, hour and season on the land
+- **Overcast** (`lake-haze-1`): the whole frame compresses to L\* ~35–75, chroma drops, no sun-facing slope light; low cloud sits *between* ridges, and the lake mirrors the grey sky.
+- **Rain** (`rain-hills-1`): far layers vanish into the veil; mid ridges lift toward the sky value; rain shafts lighten the hill behind them; foreground grass saturates (wet).
+- **Fog**: banks lie in the hollows at about L85 (brighter than every land layer), ridge tops break through; the far range drops out first.
+- **Snow** (`snow-hills-1`): lit snow L85–95, shaded snow blue-grey L53–60 (`#797E82`): the form is drawn by shading, not by hue. Dark marks (walls, shrubs, stones) carry the composition.
+- **Dusk / low sun** (`dusk-lake-2`): lit slopes take the light colour and shadowed faces go to the sky colour; contrast between lit and shaded faces peaks; the lake carries a near-perfect mirror. (Our dusk is lavender, so lit faces go lilac-white, not orange.)
+- **Night** (`night-lake-1`): land is near-black silhouette (L4–11) below a sky that is brighter toward the horizon (L14 → 24); form only at the crest line against the sky.
+- **Season**: steppe and downs swing green (spring) → straw `#AD9561` (late summer); Palouse shows the same hills in bands of green and wheat. Snow is the winter extreme.
+
+### Stylised quality (what the best illustrated work does)
+- **Few flat planes + one detailed layer**: Firewatch and Old Man's Journey keep far/mid layers as near-flat colour with a soft vertical gradient and put texture (grass, rocks, trees) only in the nearest plane.
+- **Crest light**: a thin lighter band along the top of a sunlit hill (Old Man's Journey) separates overlapping planes without outlines.
+- **Grain, not noise**: a fine print grain over flat colour (Old Man's Journey, Sable) reads as material; large-scale repeating noise reads as a pattern (banned).
+- **Limited palette per scene**: 3–5 hues per frame (Sable: mint/teal only; Alba: cyan, sand, sage), each layer one hue at one value.
+
 ## Shader and rendering standards
 
 - The scene is GPU-rendered GLSL (WebGL2 now, AGSL later). **Banned for the scene:** flat 2D `<canvas>` shapes (circle suns, ellipse clouds), CSS gradients as the sky, SVG primitives, stock photos or traced art.
 - Required qualities: multi-octave noise (Perlin-Worley / FBM) for every cloud form; physically motivated light (extinction, phase function, multiple-scatter approximation); atmospheric scattering and aerial perspective; linear-light compositing in float targets; post (bloom, grade, highlight shoulder, dither against OLED banding). Depth of field is the standard for precipitation particles (near blurred, far sharp).
 - Everything is driven by SkyState + hour + seed. No weather is hard-coded into a shader branch that SkyState cannot reach.
 - Keep the phone in budget: measure GPU ms per frame (PC and Galaxy S21) for every change; heavy work goes into the baked layers, not the per-frame passes.
+- **Compile time (T9):** every call site of a function is a full inlined copy for the compiler (HLSL on ANGLE/D3D, and the GPU driver after it). Keep ONE call site for the cloud march (`clouds()`) and one cloud-density sample per pixel per program (`cDen`); add heavy work by widening an existing site, not by calling again. The scene is two programs from one source (`SKY_ONLY` slices 0–1, `LAND_ONLY` slices 2–3), compiled in parallel. Check any shader change with `tools/visual-loop/loadT.js` (page load to converged, ~25 s headless since terrain lock; was 410 s before T9) and `pixdiff.js` against the previous shots.
 - Use the skills: `shader-art-coding` (noise, atmosphere, colour), `threejs-shaders` / `threejs-postprocessing` (techniques for bloom, DOF, lens effects — port, don't import).
 
 ## Mandatory visual self-critique loop

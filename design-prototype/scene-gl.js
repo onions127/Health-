@@ -61,7 +61,9 @@ uniform float uSheet, uSType, uSB, uST, uFogD, uFogH, uRain;
 uniform float uCirrus, uCiHook, uCiVeil, uCiAng;
 uniform float uStyle, uPaintCov;   // 0 = volumetric sky, 1 = painted sky (soft airbrushed layer, after the weather-app reference)   // cirrus cover, hooked heads (mares' tails), milky veil with halo, streak direction   // sheet cloud amount, type (0 stratocumulus .. 1 stratus), base/top km; fog density, fog height; rain
 uniform vec3 uZen, uMid, uHor, uSunC, uCLit, uCDark, uFog, uH0, uH1, uH2, uH3, uTree, uPath, uKey;
-uniform vec3 uHill, uWater, uPg0, uPg1, uPg2, uPg3; uniform float uSnow;   // 3.15: far hills, lake, the page meadow under the cards (top .. bottom), snow on the ground
+uniform vec3 uPg0, uPg1, uPg2, uPg3; uniform float uSnow;   // 3.15: far hills, lake, the page meadow under the cards (top .. bottom), snow on the ground
+uniform float uDry; uniform vec3 uTk[8]; uniform vec4 uLy[18], uLz[9], uLip[3]; uniform float uNL; uniform vec4 uGr[2], uTr[2]; uniform vec4 uLm[3], uTs[8], uSd, uTst; uniform highp sampler2D uTreeTex; uniform ivec2 uTreeN;   // T5: the trees' grown branching (2 texels per segment, one row per tree)   // T3: per-layer mountain (peak height, snow 0..1, rock, -); per-tree species and season (shape; leaf rgb + fullness; leaf2 rgb + bark red; bloom rgb + amount); shore (beach width, earth patches, litter, -)   // T2: per-layer woodland patches; grass rows (back dens, height, front dens, height; mask u0, u1, comb); two small trees (u, height, seed, on) and their colour
+   // + per-layer crest shape (6 vec4 each), layer props (3 vec4 each), the lip's shape   // T1: terrain direction (0 = the 3.15 land, the control), season dryness (0 green .. 1 straw), the direction's colour tokens (sRGB albedo)
 uniform vec2 uSun; uniform float uSunR, uShowSun, uStepK, uFrame, uSlice, uSplit; uniform vec2 uOff, uMargin;   // depth slice to render (0 sky+far clouds+far ridge, 1 near clouds, 2 mid land, 3 near land), overscan margin (px)
 uniform vec2 uSeed; uniform vec4 uHero1, uHero2;   // day seed offset (km); hero clouds: x, z, radius (km), height
 layout(location = 0) out vec4 o;
@@ -203,18 +205,41 @@ vec4 clouds(vec3 rd, vec3 sd, vec3 skyH, float jit, float tLo, float tHi){
 // Screen space, y from the top. The first card starts just under the lip (~.42); below it the page meadow runs green -> teal -> blue.
 const float LIP = .398;
 float ovcF(){ return clamp(uSheet*mix(.6, 1., uSType), 0., 1.); }   // how overcast: flattens sun light on the land
-float hillFar(float x){ return HOR - .004 - .020*smoothstep(.30, .80, fbm3(vec2(x*4.4 + 3.1, .7))) - .0010*noise(vec2(x*160., .3)); }
-float hillNear(float x){ float s = smoothstep(.40, .78, fbm3(vec2(x*2.4 + 9.7, 1.9))); return HOR + .002 - .042*s*s - .0012*noise(vec2(x*120., 1.3)); }
-vec3 hillCol(float x, float y, float top, float far, float aspect){
-  float e = .004, sl = far > .5 ? (hillFar(x + e) - hillFar(x - e))/(2.*e) : (hillNear(x + e) - hillNear(x - e))/(2.*e);
-  vec2 n = normalize(vec2(sl, -1.)), L = normalize(vec2(uSun.x*aspect - x, uSun.y - y - .2));
-  float lam = clamp(dot(n, L), 0., 1.)*(1. - ovcF());
-  vec3 c = mix(uHill, mix(uHill, uHor, .45), far);                        // the far range sits deeper in the haze
-  c *= mix(.93, 1.06, lam)*(.97 + .05*fbm3(vec2(x*40., y*90.)));
-  c = mix(c, uHor, smoothstep(top, HOR + .002, y)*.30);                  // aerial perspective: haze thickens toward the base
-  return mix(c, vec3(.96, .98, 1.), uSnow*smoothstep(top + .010, top, y)*.7);   // snow on the crests
+// ---------- terrain (locked T9: the open calm loch). Parametric and branch-free: the land is
+// numbers in uniforms (set in JS, LAND), so the shader stays one small program (per-direction branches inside the grass loops
+// made the D3D compiler flatten them all and stall) and ports to AGSL as data. Each far layer is a crest line (designed massing + fbm detail) with a foot.
+float gAsp = .45;                                                          // screen width / height, set in main
+vec3 gPgTop = vec3(0.);
+float gNear = 0.;                                                          // T3: how much of this pixel is a near tree (fog and rain veil the distance, not the tree 300 m away)                                                    // the page's top colour, lifted from the near land's colour
+float bump(float u, float c, float w){ float d = (u - c)/w; return exp(-d*d); }
+float rdg(float x, float f, float o){ return fbm3(vec2(x*f + o, o*.73)) - .45; }
+int tN(){ return int(uNL + .5); }                                           // far layers in this direction (the near land is the lip)
+float tDist(int i){ return uLz[i*3].x; }                                   // km: aerial perspective
+float tBase(int i){ return uLz[i*3].y; }                                   // the layer's foot (screen y); > 1: it runs down under the nearer land
+int tSlice(int i){ return int(uLz[i*3].z + .5); }                          // depth slice: 0 far, 2 mid
+float tMass(int i, float x){                                              // the designed massing only (height above y0): smooth, for slope light
+  int k = i*6; float u = x/gAsp;
+  vec4 a = uLy[k], b = uLy[k + 1], c = uLy[k + 2], d = uLy[k + 3];
+  return (a.y + a.z*bump(u, a.w, b.x) + b.y*bump(u, b.z, b.w) + c.x*smoothstep(c.y, c.z, u))*(1. - c.w + c.w*cos(u*d.x + d.y))*smoothstep(d.z, d.w, u);
 }
-float lipTop(float x){ return LIP + .065*(fbm3(vec2(x*2.3 + 4., 2.)) - .45) + .0030*(fbm3(vec2(x*11. + 4., 2.)) - .45) + .0015*(noise(vec2(x*60., 7.)) - .5); }   // a rolling shore: the turf rises and dips along the lake
+float tCrest(int i, float x){
+  int k = i*6; float u = x/gAsp;
+  vec4 a = uLy[k], e = uLy[k + 4], f = uLy[k + 5];
+  float h = tMass(i, x);
+  float pk = uLm[i].x;
+  if (pk > 0.) {                                                            // T4: a mountain range: sharp ridged detail that lives only on the massif, so the range ends and open horizon stays open
+    float m = clamp(h/(pk*.30), 0., 1.), r1 = 1. - abs(2.*noise(vec2(x*e.y, e.z)) - 1.), r2 = 1. - abs(2.*noise(vec2(x*e.y*2.3, e.z + 4.)) - 1.);
+    return a.x - h - m*(e.x*(r1*r1 - .35) + e.x*.45*(r2*r2 - .35) + e.w*(noise(vec2(x*f.x, e.z)) - .5));
+  }
+  h += e.x*rdg(x, e.y, e.z) + e.w*noise(vec2(x*f.x, e.z));                 // ridge detail, fine break-up of the line
+  return a.x - h;
+}
+// the near lip (control: the 3.15 rolling shore): p0 + rise*smoothstep(s0, s1, u) + bump + fbm swell + fine break-up
+float lipTop(float x){
+  vec4 a = uLip[0], b = uLip[1], c = uLip[2]; float u = x/gAsp;
+  float r = .0030*(fbm3(vec2(x*11. + 4., 2.)) - .45) + .0015*(noise(vec2(x*60., 7.)) - .5);
+  return a.x + a.y*smoothstep(a.z, a.w, u) + b.x*bump(u, b.y, b.z) + b.w*(fbm3(vec2(x*c.x + c.y, 2.)) - .45) + c.z*r;
+}
 // grass blades rising off the lip: cell width cw, height up to hm. Returns coverage, place along the blade (0 base .. 1 tip), a per-blade random
 vec3 blades(vec2 P, float cw, float hm, float seed, float dens){
   float c0 = floor(P.x/cw); vec3 r = vec3(0.);
@@ -232,79 +257,10 @@ vec3 blades(vec2 P, float cw, float hm, float seed, float dens){
   }
   return r;
 }
-vec4 flowers(vec2 P, float seed){                                         // small white and yellow heads on thin stems, at the lip's edge
-  float cw = .017, c0 = floor(P.x/cw); vec4 r = vec4(0.);
-  for (int i = -1; i <= 1; i++) {
-    float c = c0 + float(i); if (hash(vec2(c, seed)) > .42) continue;
-    float cx = (c + .2 + .6*hash(vec2(c, seed + 1.)))*cw, gy = lipTop(cx) + .003, cy = gy - .004 - .004*hash(vec2(c, seed + 2.));
-    float rr = .0015 + .0009*hash(vec2(c, seed + 3.));
-    float a = 1. - smoothstep(rr*.70, rr, length((P - vec2(cx, cy))*vec2(1., 1.3)));
-    float st = (1. - smoothstep(.0005, .0005 + .8/uRes.y, abs(P.x - cx - (gy - P.y)*.08)))*step(cy, P.y)*step(P.y, gy);
-    vec3 col = hash(vec2(c, seed + 5.)) < .55 ? vec3(1., .99, .95) : vec3(1., .85, .40);
-    col *= .80 + .20*smoothstep(rr, -rr, P.y - cy);                       // lit from above
-    if (st*.55 > r.a) r = vec4(uH0*.75, st*.55);
-    if (a > r.a) r = vec4(col, a);
-  }
-  return r;
-}
-vec4 stones(vec2 P, float seed, float aspect){                            // a few rounded stones half sunk in the turf
-  float cw = .060, c0 = floor(P.x/cw); vec4 r = vec4(0.);
-  for (int i = -1; i <= 1; i++) {
-    float c = c0 + float(i); if (hash(vec2(c, seed)) > .38) continue;
-    float cx = (c + .2 + .6*hash(vec2(c, seed + 1.)))*cw, rx = .005 + .007*hash(vec2(c, seed + 2.)), ry = rx*(.52 + .18*hash(vec2(c, seed + 3.)));
-    float cy = lipTop(cx) + .004;
-    vec2 u = (P - vec2(cx, cy))/vec2(rx, ry);
-    float e = length(u) + (noise(u*2.5 + c*3.) - .5)*.14;
-    float a = (1. - smoothstep(.90, 1., e))*smoothstep(.55, .35, u.y);   // the turf hides the lower part
-    if (a <= r.a) continue;
-    vec3 nn = normalize(vec3(u.x, -u.y, sqrt(max(0., 1. - dot(u, u)))));
-    float lam = clamp(dot(nn, normalize(vec3((uSun.x*aspect - cx)*2., .9, .5))), 0., 1.);
-    vec3 col = mix(vec3(.47, .38, .31), vec3(.86, .74, .60), lam*(1. - .5*ovcF()) + .15*ovcF())*(.94 + .1*noise(u*9. + c));   // warm sandstone
-    r = vec4(col*mix(vec3(1.), toS(uCLit), .25), a);
-  }
-  return r;
-}
-vec4 shrubs(vec2 P, float seed){                                          // low flowering shrubs on the lip: a dome of small leaves with yellow blossom
-  float cw = .085, c0 = floor(P.x/cw); vec4 r = vec4(0.);
-  for (int i = -1; i <= 1; i++) {
-    float c = c0 + float(i); if (hash(vec2(c, seed)) > .62) continue;
-    float cx = (c + .2 + .6*hash(vec2(c, seed + 1.)))*cw, w = .020 + .024*hash(vec2(c, seed + 2.)), hg = w*(.35 + .20*hash(vec2(c, seed + 3.)));
-    float base = lipTop(cx) + .005;
-    vec2 u = vec2((P.x - cx)/w, (base - P.y)/hg);
-    if (u.y < 0. || abs(u.x) > 1.2) continue;
-    float n = noise(P*900. + c*7.)*.55 + noise(P*360. + c*3.)*.45;
-    float a = smoothstep(0., .10, 1. - u.x*u.x - u.y + (n - .5)*.45);
-    if (a <= r.a) continue;
-    float bl = smoothstep(.60, .80, noise(P*620. + c*11.))*smoothstep(.1, .6, u.y)*hash(vec2(c, seed + 4.));
-    vec3 col = mix(uH0*.68, uH3*1.12, clamp(u.y*.55 + n*.5, 0., 1.));
-    r = vec4(mix(col, vec3(1., .80, .30), bl*.85), a);
-  }
-  return r;
-}
 vec3 page(float x, float y){                                              // the meadow continues under the cards as one long calm gradient
-  vec3 c = mix(uPg0, uPg1, smoothstep(.42, .62, y));
+  vec3 c = mix(mix(uPg0, gPgTop, .7*(1. - uNight)), uPg1, smoothstep(.42, .62, y));   // T1: the page starts in the near land's own colour, lifted light
   c = mix(c, uPg2, smoothstep(.60, .82, y)); c = mix(c, uPg3, smoothstep(.80, 1., y));
   return c*(.988 + .024*fbm3(vec2(x*2.5, y*3.)));
-}
-vec3 water(vec3 rd, vec2 P, float aspect){                                // the lake: sky and hills mirrored, ripples, a light path under the sun
-  float dy = max(P.y - HOR, 1e-4), dist = .03/dy;
-  vec2 wp = vec2((P.x - .5*aspect)*dist/FOC, dist);
-  float fade = smoothstep(.001, .016, dy);                                // ripples shrink to nothing at the horizon (they would alias)
-  float n = (fbm3(wp*vec2(2.5, 16.) + vec2(uT*.02, uT*.06)) - .45)*fade;
-  vec3 refl = skyBase(normalize(vec3(rd.x + n*.02, max(-rd.y + n*.012, .002), rd.z)));
-  float my = 2.*HOR - P.y + n*.004, mx = P.x + n*.003, hn = hillNear(mx), hf = hillFar(mx);
-  if (hn < HOR && my > hn) refl = mix(refl, toL(hillCol(mx, my, hn, 0., aspect))*.82, .75);
-  else if (my > hf) refl = mix(refl, toL(hillCol(mx, my, hf, 1., aspect))*.88, .65);
-  float F = .02 + .98*pow(1. - clamp(-rd.y, 0., 1.), 5.);
-  vec3 w = mix(toL(uWater), refl, F*.42)*(1. + .10*n);
-  w += refl*.22*smoothstep(.58, .80, noise(wp*vec2(1.1, 34.) + vec2(uT*.03, 0.)))*fade;   // long light streaks on the water
-  if (uSun.y < HOR) {                                                     // the sun's (or moon's) path on the water: widest near the shore
-    float sx = uSun.x*aspect, wd = .004 + .35*dy, g = exp(-pow((P.x - sx)/wd, 2.));
-    float spark = smoothstep(.55, .85, noise(wp*vec2(5., 40.) + vec2(uT*.3, uT*.5)));
-    float k = mix(.25, 1., smoothstep(.12, .32, uSun.y))*mix(1., .35, uNight)*uShowSun*(1. - ovcF());
-    w += toL(uSunC)*g*(.10 + .9*spark*fade)*k*uSunI;
-  }
-  return toS(w);
 }
 
 // ---------- cirrus: ice cloud on a plane at 9.5 km, drawn as long fibres that follow a bending flow
@@ -369,7 +325,7 @@ vec4 painted(vec2 P, float y, vec2 FC){
 void over(inout vec3 C, inout float A, vec3 c, float a){ C = c*a + C*(1. - a); A = a + A*(1. - a); }
 void overM(inout vec2 M, vec2 m, float a){ M = m*a + M*(1. - a); }   // the wind material, composited the same way
 vec3 landFinish(vec3 L, float x, float y, float aspect){
-  float far = smoothstep(LIP + .03, HOR - .01, y);                         // 1 at the hills and the lake, 0 from the lip down: fog and haze live in the distance
+  float far = smoothstep(LIP + .03, HOR - .01, y)*(1. - .8*gNear);         // 1 at the hills and the lake, 0 from the lip down: fog and haze live in the distance
   if ((uFogD > 0. || uRain > 0.) && far > 0.) {
     // fog lies in horizontal banks over the lake and the far hills, thickest at the horizon; fogH lifts it higher
     float bank = fbm(vec2(x*3.2 + uT*.008, y*70.));
@@ -379,51 +335,217 @@ vec3 landFinish(vec3 L, float x, float y, float aspect){
     L = mix(L, fc, clamp(f*mix(1., .78, uFogD), 0., .93));   // 3.16: thick fog still lets the hills and the lake show through faintly, in layers
   }
   L = mix(L, lum(L)*vec3(.95, .96, 1.06), uGrey*.35*far);
-  L = mix(L, uFog, uHaze*far*.8);
   return L*(1. - .1*smoothstep(.3, .9, uNight));
+}
+// ---------- T1 terrain: light, air and the layers (painterly-real: each layer one lit plane, pushed into the haze by its distance, misted at its foot)
+vec3 grassAlb(){ return mix(uTk[3], uTk[4], uDry); }                        // the season: green winter and spring .. straw summer (Mediterranean year)
+vec3 snowy(vec3 a, float k){ return mix(a, vec3(.93, .95, .98), uSnow*k); }
+vec3 lift(vec3 c, float L){ float l = lum(c); return mix(c, vec3(1.), clamp((L - l)/max(1. - l, .01), 0., 1.)); }
+vec3 tLight(vec3 albS, float lam, float shadow){                            // sun (or moon) on a plane plus sky light; overcast trades the sun for a brighter, even sky
+  float ov = ovcF();
+  return toL(albS)*(toL(uSunC)*(uSunI/1.25)*(.14 + .72*lam)*(1. - .8*ov)*(1. - .55*shadow)*(1. - .8*uNight) + toL(mix(uHor, uMid, .5))*(.26 + .45*ov)*(1. - .35*uNight));   // ~1x albedo in full sun: brighter flattened the value steps
+}
+vec3 tAir(vec3 c, float d, float x){                                        // aerial perspective: toward the horizon colour with distance; the haze glows toward the sun
+  float D = mix(42., 9., clamp(uRain*.8 + uHaze*2.5 + uFogD*.5 + uGrey*.3, 0., 1.));
+  vec3 hz = toL(uHor)*(1. + .45*exp(-abs(x - uSun.x*gAsp)*5.)*uShowSun*(1. - uNight)*(1. - ovcF()));
+  return mix(c, hz, 1. - exp(-d/D));
+}
+float tLam(float sl, float x, float y){ vec2 n = normalize(vec2(sl, -1.)), L = normalize(vec2(uSun.x*gAsp - x, uSun.y - y - .2)); return clamp(dot(n, L), 0., 1.); }
+float cDen(float x, float d){ vec3 gp = vec3((x - .5*gAsp)*d/FOC, 0., d); return density(gp + uKey*((BASE + 1.0)/max(uKey.y, .15)) + vec3(0., 0., 9.), false); }   // cloud density over the ground point at distance d, toward the sun
+float tShadow(float x, float d){                                            // the volume's cloud shadow on the ground at distance d
+  if (uCover + uSheet <= 0.) return 0.;
+  return smoothstep(.0, .25, cDen(x, d));
+}
+float tCover(int i, float x, float y){
+  float c = tCrest(i, x), b = tBase(i), px = .8/uRes.y;
+  return smoothstep(c - px, c + px, y)*(1. - smoothstep(b - px, b + px, y))*smoothstep(.0004, .0025, b - c);
+}
+vec3 tColor(int i, float x, float y, float shadow){                         // a far layer's colour (linear) at (x, y); shadow: cloud shadow, sampled once per pixel by the caller
+  vec4 z0 = uLz[i*3], z1 = uLz[i*3 + 1], z2 = uLz[i*3 + 2];
+  float d = z0.x, b = z0.y;
+  float c = tCrest(i, x), e = .004, sl = (tMass(i, x - e) - tMass(i, x + e))/(2.*e), t = max(y - c, 0.);   // slope from the smooth massing (y = y0 - h)
+  float lam = tLam(sl, x, y);
+  vec3 a = mix(uTk[int(z1.w + .5)], grassAlb(), z2.x);                    // local colour: a token, part grass (the season)
+  float rock = z2.w*step(b - .0045 - .0015*noise(vec2(x*120., 2.)), y);    // limestone at the waterline
+  a = mix(a, mix(uTk[7], vec3(.55, .52, .48), .35), rock);
+  vec4 mt = uLm[i];                                                         // T3: a high mountain far off: rock faces, snow above a line that follows the season, gullies carry it down
+  if (mt.x > 0.) {
+    float hg = b - y, gq = noise(vec2(x*520., y*30.))*.7 + noise(vec2(x*1300., y*60.))*.3, gl2 = noise(vec2(x*95., 1.3));
+    a = mix(a, vec3(.50, .50, .52), mt.z*smoothstep(.2, 1.4, abs(sl)));      // steep faces: bare rock
+    float line = mt.x*(1. - .58*mt.y) + .012*(gl2 - .5) - .020*(gq - .45)*mt.y;   // snow runs down the gullies, rock ribs stay dark
+    float sn = mt.y*smoothstep(line - .0015, line + .0025, hg);
+    a = mix(a, vec3(.95, .96, .99), sn);
+    lam = clamp(lam + (gq - .5)*.45, 0., 1.);                               // ribs and gullies catch the light
+  }
+  a = snowy(a, .85);
+  vec3 L = tLight(a, lam, shadow);
+  L *= 1. + .35*exp(-t*320.)*lam*(1. - ovcF());                             // crest light: a thin bright band along a sunlit top
+  L = tAir(L, d, x);
+  L = mix(L, toL(mix(uHor, vec3(1.), .25)), smoothstep(.004, .035, t)*z0.w*(1. + 1.5*uFogD)*.6);   // mist pools at each layer's foot
+  return L*(.97 + .06*noise(vec2(x, y)*uRes.y*.45));                       // print grain
+}
+vec3 tWater(vec3 rd, vec2 P, float aspect){                                 // lake or sea (linear): sky and far shore mirrored, ripples, a light path
+  float dy = max(P.y - HOR, 1e-4), dist = .03/dy;
+  vec2 wp = vec2((P.x - .5*aspect)*dist/FOC, dist);
+  float fade = smoothstep(.001, .016, dy);
+  float n = (fbm3(wp*vec2(2.5, 16.) + vec2(uT*.02, uT*.06)) - .45)*fade;
+  vec3 refl = skyBase(normalize(vec3(rd.x + n*.02, max(-rd.y + n*.012, .002), rd.z)));
+  float mx = P.x + n*.003;
+  int ri = -1; float rcv = 0., ry = 0.;
+  for (int i = 2; i >= 0; i--) {                                            // the far shore mirrored about its foot, nearest layer first
+    if (ri >= 0 || i >= tN()) continue;
+    float b = tBase(i); if (b > 1. || P.y <= b) continue;
+    float cv = tCover(i, mx, 2.*b - P.y + n*.004);
+    if (cv > .01) { ri = i; rcv = cv; ry = 2.*b - P.y + n*.004; }
+  }
+  if (ri >= 0) refl = mix(refl, tColor(ri, mx, ry, 0.)*.86, rcv*.85);
+  float ov = ovcF(), nr = smoothstep(.0, .035, dy);
+  vec3 amb = toL(mix(uHor, uMid, .5))*.80 + toL(uSunC)*(uSunI/1.25)*.30*(1. - ov);
+  vec3 body = toL(mix(uTk[5], uTk[6], nr))*amb;
+  float F = .02 + .98*pow(1. - clamp(-rd.y, 0., 1.), 5.);
+  vec3 w = mix(body, refl, F*.55)*(1. + .10*n);
+  w += refl*.18*smoothstep(.58, .80, noise(wp*vec2(1.1, 34.) + vec2(uT*.03, 0.)))*fade;   // long light streaks
+  if (uSun.y < HOR) {                                                       // the sun's (or moon's) path, widest near the shore
+    float sx = uSun.x*aspect, wd = .004 + .35*dy, g = exp(-pow((P.x - sx)/wd, 2.));
+    float spark = smoothstep(.55, .85, noise(wp*vec2(5., 40.) + vec2(uT*.3, uT*.5)));
+    float k = mix(.25, 1., smoothstep(.12, .32, uSun.y))*mix(1., .35, uNight)*uShowSun*(1. - ov);
+    w += toL(uSunC)*g*(.10 + .9*spark*fade)*k*uSunI;
+  }
+  return tAir(w, dist*.6, P.x);
+}
+vec4 tWor(vec2 p, float s){                                                  // cellular noise: x = distance to the nearest feature point (cell units), y = to the second, zw = the nearest cell
+  vec2 i = floor(p), f = fract(p); vec4 r = vec4(9., 9., 0., 0.);
+  for (int yy = -1; yy <= 1; yy++) for (int xx = -1; xx <= 1; xx++) {
+    vec2 o = vec2(float(xx), float(yy)), id = i + o;
+    float d = length(o + .15 + .7*vec2(hash(id + s), hash(id + s + 17.3)) - f);
+    if (d < r.x) r = vec4(d, r.x, id); else if (d < r.y) r.y = d;
+  }
+  return r;
+}
+vec4 tOver(vec4 dst, vec3 c, float a){ float ra = a + dst.a*(1. - a); return vec4((c*a + dst.rgb*dst.a*(1. - a))/max(ra, 1e-4), ra); }   // straight-alpha over
+vec4 tTree(vec2 P, int k, float shadow){                                     // T5: a near deciduous tree drawn from its grown branching (uTreeTex, see treeSkel): every
+  vec4 q4 = uTr[k], sp = uTs[k*4], lf = uTs[k*4 + 1], l2 = uTs[k*4 + 2], bl = uTs[k*4 + 3];   // limb and twig is a tapered, lit cylinder (twigs thinner than a pixel fade
+  float cx = q4.x*gAsp, h = q4.y, s = q4.z, g = lipTop(cx) + .003;                              // by their width, so the bare crown is real twigs, not a haze); the foliage
+  float wR = sp.x, hR = sp.y, cy = 1. - hR, pl = 1./(uRes.y*h);                                 // is leaf clumps hung on the outer branches, shaded as crown, limb mass, clump
+  vec2 Q = vec2(P.x - cx, g - P.y)/h;                                       // tree units: height 1, y up from the root
+  if (abs(Q.x) > wR*1.25 || Q.y < -.03 || Q.y > 1.10) return vec4(0.);
+  vec3 Ld = normalize(vec3(uSun.x*gAsp - cx, g - h*(1. - hR) - uSun.y + .25, .55));   // toward the sun (or moon), y up
+  float full = max(lf.w, bl.w*.92), fl = bl.w/max(lf.w + bl.w, .001), ov = ovcF();
+  float nb = .62*noise(Q*20. + s*1.3) + .38*noise(Q*52. + s*2.1);          // T7: where leaves still cling along the twigs (irregular clusters, never round holes)
+  float wA = 0., wLam = .4, wFine = 0., dLeaf = 9.; vec2 mc = vec2(0., cy);
+  int n = k == 0 ? uTreeN.x : uTreeN.y;
+  for (int i = 0; i < 400; i++) {
+    if (i >= n) break;
+    vec4 s0 = texelFetch(uTreeTex, ivec2(i*2, k), 0), s1 = texelFetch(uTreeTex, ivec2(i*2 + 1, k), 0);
+    vec2 lo = min(s0.xy, s0.zw) - .08, hi = max(s0.xy, s0.zw) + .08;
+    if (Q.x < lo.x || Q.y < lo.y || Q.x > hi.x || Q.y > hi.y) continue;
+    vec2 pa = Q - s0.xy, ba = s0.zw - s0.xy; float t = clamp(dot(pa, ba)/max(dot(ba, ba), 1e-8), 0., 1.);
+    vec2 dv = pa - ba*t; float d = length(dv), hw = .5*mix(s1.x, s1.y, t);
+    if (s1.x < .0105) {                                                     // outer branches carry the leaves, each branch group within its dome
+      vec2 gk = floor(s1.zw*53.);
+      float fd = clamp(full + (hash(gk + s*1.9) - .5)*1.6*(1. - full), 0., 1.);   // T7: some branch groups thin (and go bare) before others
+      float lrr = mix(.004, .082, pow(fd, 1.5))*(1. - (1. - fd)*.85*smoothstep(.30, .70, nb));   // a thinning crown falls back onto its twigs, in clusters
+      float dl = max(d - lrr, length(Q - s1.zw) - (.20 + .08*hash(gk + s*.37))*mix(.55, 1., fd));
+      if (dl < dLeaf) { dLeaf = dl; mc = s1.zw; }
+    }
+    float cov = clamp((max(hw, .5*pl) - d)/pl + .5, 0., 1.)*min(2.*hw/pl, 1.);   // sub-pixel twigs fade by their width
+    if (cov > .002) {
+      vec2 nr = normalize(vec2(-ba.y, ba.x)); float ac = clamp(dot(dv, nr)/max(hw, .5*pl), -1., 1.);   // across the branch: -1 .. 1
+      float lam = clamp(.42 + .50*ac*sign(dot(nr, Ld.xy)) + .10*Ld.z, 0., 1.);   // a lit and a shaded side
+      if (cov > wA*.9) { wLam = lam; wFine = 1. - smoothstep(.0015, .006, hw); }
+      wA = 1. - (1. - wA)*(1. - cov);                                       // twigs add up into a fine mesh
+    }
+  }
+  vec4 r = vec4(0.);
+  if (wA > .005) {
+    vec3 bark = mix(vec3(.46, .41, .37), vec3(.50, .35, .30), l2.w);
+    vec3 twig = mix(vec3(.52, .40, .38), bark, .4);                         // the year's twigs are redder, and paler with the sky behind them
+    vec3 bc = mix(bark, twig, wFine)*(.93 + .14*noise(P*uRes.y*.35));
+    r = vec4(toS(tAir(tLight(snowy(bc, .3), wLam, shadow), .6, P.x)), wA*mix(1., .85, wFine));
+  }
+  if (full < .01 || dLeaf > .05) return r;
+  // ---- foliage (T6): the crown is a cluster of leaf domes, one per branch group (its twigs, clipped to a dome around the group's centre), each
+  // lit as a form with a soft painted ramp; the texture is round leaf clumps (bright tops, a soft crevice between them) that also scallop
+  // the outline; a thinning crown loses whole clumps, chosen in clusters, so the gaps are round, not salt
+  float Rm = .20 + .08*hash(floor(mc*53.) + s*.37);
+  vec2 mq = (Q - mc)/Rm;
+  float cs = h*uTst.x; vec4 wc = tWor(P/cs, s); vec2 cid = wc.zw, cp = (cid + .15 + .7*vec2(hash(cid + s), hash(cid + s + 17.3)))*cs;
+  float c1 = 1. - wc.x, n4 = noise(P/(h*.007));
+  float dS = dLeaf + .030*(.62 - c1) + .004*(n4 - .5);                    // clumps scallop the outline
+  vec2 cq = vec2(cp.x - cx, g - cp.y)/h;                                    // the clump's centre in tree units
+  float cov = 1. - smoothstep(-pl*1.2, pl*1.2, dS);                        // T7: no holes punched in a surface: thinning comes from the twigs (see the loop)
+  if (cov < .01) return r;
+  vec2 qc = (Q - vec2(0., cy))/vec2(wR, hR);
+  vec3 nC = normalize(vec3(qc.x, qc.y, sqrt(max(0., 1. - min(dot(qc, qc), 1.))) + .2));   // the crown as one form
+  vec3 nM = normalize(vec3(mq.x, mq.y, sqrt(max(0., 1. - min(dot(mq, mq), 1.))) + .10));   // this branch group's dome
+  vec2 kq = (P - cp)/(cs*.62); vec3 nK = normalize(vec3(kq.x, -kq.y, sqrt(max(0., 1. - min(dot(kq, kq), 1.))) + .35));   // the clump
+  vec3 N = normalize(nM*1.0 + nC*.40 + nK*.55);
+  float lam = clamp(dot(N, Ld), 0., 1.);
+  float tone = .55*smoothstep(.06, .40, lam) + .45*smoothstep(.48, .82, lam);   // a soft painted ramp: shade, mid, light
+  float crev = smoothstep(.45, .95, wc.x/.62);                              // between clumps
+  float ao = mix(.62, 1., clamp(.5 + mq.y*.65, 0., 1.))*mix(.78, 1., clamp(.5 + qc.y*.7, 0., 1.))*(1. - .22*crev);   // each dome's underside, the crown's underside
+  float mh = hash(floor(mc*53.) + s), kh = hash(cid + 3.1);
+  vec3 lc = mix(lf.rgb, l2.rgb, clamp(mh*.70 + kh*.25 + .20*dot(nC.xy, Ld.xy) - .05, 0., 1.))*(.95 + .10*kh);   // colour per group, a little per clump; autumn turns the sun side first
+  float bm = step(.001, bl.w)*step(hash(cid + 7.7), fl);                   // blossom clumps among the leaf clumps
+  vec3 alb = snowy(mix(lc, bl.rgb, bm), .8*smoothstep(.3, .8, N.y));
+  vec3 L = tLight(alb, mix(.05, 1., tone), shadow)*ao*mix(.70, 1., tone);
+  L += toL(alb)*toL(uSunC)*.20*smoothstep(.80, .95, lam)*(1. - crev)*(1. - ov)*(1. - uNight)*uShowSun;   // sun through the leaves on the brightest clumps
+  L += toL(bl.rgb)*bm*.06*(1. - uNight)*(1. - ov);
+  return tOver(r, toS(tAir(L, .6, P.x)), cov);
+}
+vec3 skyCol(vec3 rd, vec3 sd, vec2 P, vec2 FC, float veil, vec3 fogVeil, vec4 cl, out float skyMask){   // sky, cirrus and far clouds (sRGB, cl = the march, done once in main); skyMask = open sky
+  float x = P.x, y = P.y;
+  vec3 sk = skyBase(rd);                                                 // halo and stars are drawn live in COMPOSE (3.12): they switch with the hour, which a blend of baked hours cannot follow
+  vec4 ci = cirrus(rd, sd);
+  sk = sk*(1. - ci.a) + ci.rgb;
+  vec3 lin = sk*cl.a + cl.rgb;
+  lin = mix(lin, vec3(1.) - (vec3(1.) - .8)*exp(-(lin - .8)/.2), step(.8, lin));   // soft highlight shoulder
+  vec3 col = toS(lin);
+  skyMask = cl.a*(1. - ci.a*.6);
+  if (uStyle > .5) { vec4 pt = painted(P, y, FC); float hz = smoothstep(HOR - .04, HOR, y); col = mix(pt.rgb, col, hz); skyMask = mix(1. - pt.a, skyMask, hz); }   // painted sky; the real haze takes over just above the horizon
+  col = mix(col, lum(col)*vec3(.95, .96, 1.06), uGrey*.5);              // greyer weather leans cool, never neutral (reference)
+  return mix(col, fogVeil, veil*(uFogD > 0. ? mix(.70, 1.20, fbm(vec2(x*2.4 + uT*.006, y*48.))) : 1.));   // 3.16: fog lies in drifting horizontal layers above the lake
 }
 void main(){
   vec2 FC = gl_FragCoord.xy + uOff - uMargin;                         // screen pixel; slices extend past the screen by the margin so they can slide
   float y = 1.0 - FC.y/uRes.y;
   vec2 P = vec2(FC.x/uRes.y, y);
   float aspect = uRes.x/uRes.y, x = P.x;
+  gAsp = aspect;
   vec3 rd = rayAt(FC);
   vec3 sd = rayAt(vec2(uSun.x*uRes.x, (1. - uSun.y)*uRes.y));
   float jit = hash(FC*1.37 + 11. + uFrame*7.31);
   vec3 fogVeil = mix(uFog, vec3(1.), .35*(1. - uNight));
   float veil = clamp(uFogD*.9 + uRain*.5, 0., 1.)*smoothstep(HOR - .16, HOR, y)*mix(.85, .55, uFogD);   // 3.16: a softer band in fog (it read as a white wall)   // fog and rain veil the horizon
 
-  if (uSlice < .5) {
-    // ---- slice 0: sky, cirrus, far clouds, far hills, the lake (opaque; alpha carries the open-sky mask for light shafts)
-    vec3 col = vec3(0.);
-    float skyMask = 0.;
-    float hf = hillFar(x), hn = hillNear(x);
-    if (y < min(hf, hn)) {
-      vec3 sk = skyBase(rd);                                             // halo and stars are drawn live in COMPOSE (3.12): they switch with the hour, which a blend of baked hours cannot follow
-      vec4 ci = cirrus(rd, sd);
-      sk = sk*(1. - ci.a) + ci.rgb;
-      vec3 skyH = sky(normalize(vec3(rd.x, .015, rd.z)), sd);
-      vec4 cl = clouds(rd, sd, skyH, jit, uSplit, 70.);
-      vec3 lin = sk*cl.a + cl.rgb;
-      lin = mix(lin, vec3(1.) - (vec3(1.) - .8)*exp(-(lin - .8)/.2), step(.8, lin));   // soft highlight shoulder
-      col = toS(lin);
-      skyMask = cl.a*(1. - ci.a*.6);
-      if (uStyle > .5) { vec4 pt = painted(P, y, FC); float hz = smoothstep(HOR - .04, HOR, y); col = mix(pt.rgb, col, hz); skyMask = mix(1. - pt.a, skyMask, hz); }   // painted sky; the real haze takes over just above the horizon
-      col = mix(col, lum(col)*vec3(.95, .96, 1.06), uGrey*.5);              // greyer weather leans cool, never neutral (reference)
-      col = mix(col, fogVeil, veil*(uFogD > 0. ? mix(.70, 1.20, fbm(vec2(x*2.4 + uT*.006, y*48.))) : 1.));   // 3.16: fog lies in drifting horizontal layers above the lake
-    } else {
-      col = y < HOR ? hillCol(x, y, y > hn ? hn : hf, y > hn ? 0. : 1., aspect) : water(rd, P, aspect);
-      col = landFinish(col, x, y, aspect);
-    }
-    o = vec4(toL(max(col, 0.)), skyMask);
-    return;
-  }
-
+#ifndef LAND_ONLY
   if (uSlice < 1.5) {
-    // ---- slice 1: near clouds, premultiplied (they may sit in front of the far hills)
-    if (rd.y <= .004 || uStyle > .5) { o = vec4(0.); return; }
-    vec3 skyH = sky(normalize(vec3(rd.x, .015, rd.z)), sd);
-    vec4 cl = clouds(rd, sd, skyH, jit, 0., uSplit);
+    // Slices 0 and 1 share ONE call of the cloud march: every call site of clouds() is a full inlined copy of the march (and of the
+    // cloud density inside it) for the shader compiler, and three copies took the D3D11 compile to ~6 min.
+    vec3 C = vec3(0.), col = vec3(0.); float A = 0., tLo = uSplit, tHi = 70.; bool need = true;
+    if (uSlice < .5) {
+      // ---- slice 0: sky, cirrus, far clouds, far hills, the lake (opaque; alpha carries the open-sky mask for light shafts)
+      // far layers over the water, then the sky where they leave it open
+      float cvs[3]; float fd = y > HOR ? .03/max(y - HOR, 1e-4) : 0.;  // coverage per layer; the front surface's distance
+      for (int i = 0; i < 3; i++) { cvs[i] = i < tN() && tSlice(i) == 0 ? tCover(i, x, y) : 0.; if (cvs[i] > .001) fd = tDist(i); }
+      float sh = fd > 0. ? tShadow(x, fd) : 0.;                        // one cloud-shadow sample per pixel, at the front surface's distance
+      if (y > HOR - 1./uRes.y) over(C, A, toS(tWater(rd, P, aspect)), smoothstep(HOR - .7/uRes.y, HOR + .7/uRes.y, y));
+      for (int i = 0; i < 3; i++) if (cvs[i] > .001) over(C, A, toS(tColor(i, x, y, sh)), cvs[i]);
+      need = A < .999;
+    } else {
+      // ---- slice 1: near clouds, premultiplied (they may sit in front of the far hills)
+      if (rd.y <= .004 || uStyle > .5) { o = vec4(0.); return; }
+      tLo = 0.; tHi = uSplit;                                            // T2: the march stops at the terrain, so a ridge hides the clouds behind it
+      for (int i = 0; i < 3; i++) if (i < tN() && tCover(i, x, y) > .5) tHi = min(tHi, tDist(i));
+    }
+    vec4 cl = vec4(0., 0., 0., 1.);
+    if (need) cl = clouds(rd, sd, sky(normalize(vec3(rd.x, .015, rd.z)), sd), jit, tLo, tHi);
+    if (uSlice < .5) {
+      float skyMask = 0.;
+      if (need) col = skyCol(rd, sd, P, FC, veil, fogVeil, cl, skyMask);
+      vec3 land = A > .001 ? landFinish(C/A, x, y, aspect) : vec3(0.); o = vec4(toL(max(col*(1. - A) + land*A, 0.)), skyMask*(1. - A));
+      return;
+    }
     float a = 1. - cl.a;
     vec3 S1 = cl.rgb;
     S1 = mix(S1, dot(S1, vec3(.2126, .7152, .0722))*vec3(.94, .96, 1.07), uGrey*.5);
@@ -431,44 +553,82 @@ void main(){
     o = vec4(S1, a);
     return;
   }
+#endif
+#ifndef SKY_ONLY
 
   // ---- slices 2 (the lip's back row of grass) and 3 (the lip: turf, stones, front tufts, flowers, then the page meadow), premultiplied
   float top = lipTop(x);
+  float bK = uSd.x > 0. ? smoothstep(.003, .010, top - HOR) : 0.;   // T3: where the shore meets open water (a beach, fewer grass tufts)
   float near = 1. - smoothstep(.0, .05, abs(y - LIP));                 // the lip's detail only exists near it
   vec3 C = vec3(0.); float A = 0.; vec2 M = vec2(0.);
-  vec3 tip = mix(mix(uH3*1.12 + .04, toS(uCLit), .18), vec3(.97, .99, 1.), uSnow*.6);
+  // T1: the near land's colours, lit, and the page's top colour lifted from them
+  vec3 nAlb = grassAlb();
+  vec3 gS = toS(tLight(snowy(nAlb, .85), .65, 0.));
+  gPgTop = lift(gS, .80); vec3 tip = mix(gS*1.18 + .03, vec3(.97, .99, 1.), uSnow*.6);
+  float u = x/aspect;
+  // one cloud-density sample per pixel for slices 2 and 3, at one call site (each call site is an inlined copy of the density for the compiler):
+  // slice 2 at the mid layer's distance, slice 3 on the ground under the lip and the page
+  int mi = tN() - 1; float cv = uSlice < 2.5 && mi >= 0 && tSlice(mi) == 2 ? tCover(mi, x, y) : 0.;   // the one mid layer
+  float gd = .03/max(y - HOR, .002), cloudy = uCover + uSheet;
+  float shd = uSlice < 2.5 ? (cv > .001 && cloudy > 0. ? tDist(mi) : -1.) : (near > 0. ? gd : -1.);
+  float dn = shd > 0. ? cDen(x, shd) : 0.;
   if (uSlice < 2.5) {
-    if (near > 0.) {
-      vec3 b = blades(P, .0026, .010, 3., .70);
-      if (b.x > .01) { vec3 bc = mix(uH0*.70, tip, b.y)*(.92 + .16*b.z); over(C, A, mix(bc, uHor, .18), b.x); overM(M, vec2(1., 0.), b.x); }
+    if (cv > .001) { over(C, A, toS(tColor(mi, x, y, smoothstep(.0, .25, dn))), cv); overM(M, vec2(0.), cv); }
+    if (near > 0. && uGr[0].x > 0.) {
+      vec3 b = blades(P, .0026, uGr[0].y, 3., uGr[0].x*smoothstep(uGr[1].x, uGr[1].y, u)*(1. - .8*bK));
+      if (b.x > .01) { vec3 bc = mix(gS*.70, tip, b.y)*(.92 + .16*b.z); over(C, A, toS(tAir(toL(bc), 1.2, x)), b.x); overM(M, vec2(1., 0.), b.x); }
     }
   } else {
-    float gd = .03/max(y - HOR, .002);                                   // cloud shadows on the turf, cast by the volume
-    vec3 gp = vec3((FC.x - .5*uRes.x)/uRes.y*gd/FOC, 0., gd);
-    float shadow = near > 0. ? smoothstep(.0, .25, density(gp + uKey*((BASE + 1.0)/max(uKey.y, .15)) + vec3(0., 0., 9.), false)) : 0.;
-    if (y > top) {
-      float t = y - top;
-      vec3 L = mix(uH1, uH2, smoothstep(0., .02, t));
-      float bl = noise(vec2(x*720., y*60.))*.6 + noise(vec2(x*1300., y*110.))*.4;
-      float g1 = noise(P*vec2(620., 330.)), g2 = noise(P*vec2(1500., 800.));      // dense short turf, not streaks
-      L *= (.88 + .14*g1 + .08*g2 + .04*bl)*mix(.82, 1.05, smoothstep(0., .006, t))*mix(1., .93, smoothstep(.006, .03, t))*(1. - .06*shadow);   // darker right under the tufts, sunlit crest, a little shade on the slope
-      L = mix(L, vec3(.93, .96, .99), uSnow*.75*(1. - smoothstep(.0, .03, t)));
-      float pm = smoothstep(top + .010, .448, y);
-      L = mix(L, page(x, y), pm);
-      over(C, A, L, 1.); overM(M, vec2(1. - pm, 0.), 1.);              // the page meadow does not wave
+    float shadow = near > 0. ? smoothstep(.0, .25, dn) : 0.;            // cloud shadows on the turf, cast by the volume
+    float t = y - top;
+    if (t > 0.) {
+      float e = .004, sl = (lipTop(x + e) - lipTop(x - e))/(2.*e), lam = tLam(sl, x, top);
+      vec3 a = snowy(nAlb, .85);
+      float g1 = noise(P*vec2(620., 330.)), g2 = noise(P*vec2(1500., 800.)), bl = noise(vec2(x*720., y*60.))*.6 + noise(vec2(x*1300., y*110.))*.4;
+      a *= .86 + .16*g1 + .08*g2 + .05*bl;
+      if (uSd.x > 0.) {                                                 // T3: a sand beach where the shore meets open water, a fringe of bare earth behind it, worn earth patches, litter under the trees
+        vec3 soil = vec3(.56, .43, .31);
+        float bw = uSd.x*bK*smoothstep(.42, .62, noise(vec2(x*7.5, 5.)) + .25*noise(vec2(x*40., 2.)));   // beaches in coves, grass down to the water between them
+        float sand = 1. - smoothstep(bw - .0008, bw + .0008, t), wet = 1. - smoothstep(.0005, .0015, t);
+        vec3 sa = mix(uTk[7], uTk[7]*vec3(.72, .69, .66), wet)*(.95 + .08*noise(vec2(x*900., y*2400.)));
+        float earth = .55*smoothstep(.0006, .002, bw)*smoothstep(bw, bw + .0010, t)*(1. - smoothstep(bw + .0008, bw + .0026, t))*smoothstep(.3, .6, noise(vec2(x*160., 2.)));   // a broken fringe of earth where the turf ends
+        earth = max(earth, uSd.y*smoothstep(.62, .72, noise(P*vec2(70., 210.))*.8 + noise(P*vec2(300., 700.))*.2 + .08*uDry));
+        vec3 fC = soil; float fA = 0.;
+        for (int k = 0; k < 2; k++) if (uTr[k].w > .5) {
+          float cx = uTr[k].x*gAsp, h = uTr[k].y, g = lipTop(cx), ap = exp(-pow((x - cx)/(h*.42), 2.) - pow((y - g - .0045)/.0045, 2.));
+          vec4 lf = uTs[k*4 + 1], l2 = uTs[k*4 + 2], bl = uTs[k*4 + 3];
+          earth = max(earth, ap*.65*uSd.z);
+          float fall = ap*uSd.z*smoothstep(.55, .70, noise(P*vec2(1100., 2600.)));   // fallen leaves in autumn, petals after the bloom
+          float la = 1. - lf.w, pb = smoothstep(.2, .6, bl.w);
+          fC = mix(mix(soil*.8, l2.rgb, smoothstep(.05, .3, lf.w)), bl.rgb, pb); fA = max(fA, fall*max(la, pb));
+        }
+        a = mix(a, soil*(.88 + .2*noise(P*vec2(800., 1900.))), clamp(earth, 0., 1.)*(1. - uSnow*.7));
+        a = mix(a, fC, fA*(1. - uSnow*.8));
+        a = mix(a, snowy(sa, .6), sand);
+      }
+      vec3 L = tLight(a, lam*mix(1., .85, smoothstep(.0, .03, t)), shadow);
+      L *= 1. + .30*exp(-t*300.)*lam*(1. - ovcF());                     // crest light
+      float cs = 0.;                                                    // T2: the trees' contact shadow on the turf, cast away from the sun
+      for (int k = 0; k < 2; k++) if (uTr[k].w > .5) { float cx = uTr[k].x*gAsp, h = uTr[k].y, g = lipTop(cx), sx = cx - sign(uSun.x*gAsp - cx)*h*.30; cs = max(cs, exp(-pow((x - sx)/(h*.55), 2.) - pow((y - g - .0025)/.0030, 2.))); }
+      L *= 1. - cs*(.12 + .30*(1. - ovcF()));
+      L = tAir(L, mix(1.2, .3, smoothstep(.0, .04, t)), x);
+      float pm = smoothstep(min(max(top + .004, .398), .412), .419, y);   // the page is fully in by the first card (.42): nothing under the glass darker than #86B9A0
+      vec3 sc = mix(toS(L), page(x, y), pm);
+      over(C, A, sc, 1.); overM(M, vec2(1. - pm, 0.), 1.);
     }
-    if (near > 0.) {
-      vec4 sh = shrubs(P, 31.); if (sh.a > .01) { over(C, A, sh.rgb*(1. - .06*shadow), sh.a); overM(M, vec2(.6, 0.), sh.a); }
-      vec4 s = stones(P, 21., aspect); if (s.a > .01) { over(C, A, s.rgb*(1. - .06*shadow), s.a); overM(M, vec2(0.), s.a); }
-      vec3 b = blades(P, .0032, .016, 7., .80);
-      if (b.x > .01) { over(C, A, mix(uH0*.58, tip, b.y)*(.90 + .20*b.z)*(1. - .06*shadow), b.x); overM(M, vec2(1., 0.), b.x); }
-      vec4 f = flowers(P, 13.); if (f.a > .01) { over(C, A, mix(f.rgb, vec3(1.), uSnow*.5), f.a); overM(M, vec2(1., 0.), f.a); }
+    for (int k = 0; k < 2; k++) { if (uTr[k].w < .5) continue; vec4 tr = tTree(P, k, shadow); if (tr.a > .01) { over(C, A, tr.rgb, tr.a); overM(M, vec2(0., 1.), tr.a); gNear = tr.a + gNear*(1. - tr.a); } }   // T2/T3: trees on the lip
+    if (near > 0. && uGr[0].z > 0.) {
+      vec3 b = blades(P, .0032, uGr[0].w, 7., uGr[0].z*smoothstep(uGr[1].x, uGr[1].y, u)*(1. - .8*bK));   // grass rows (loch: taller reeds at the shore)
+      if (b.x > .01) { over(C, A, mix(gS*.58, tip, b.y)*(.90 + .20*b.z)*(1. - .06*shadow), b.x); overM(M, vec2(1., 0.), b.x); gNear *= 1. - b.x; }
     }
   }
   if (A < .001) { o = vec4(0.); o2 = vec4(0.); return; }
   vec3 L = landFinish(C/A, x, y, aspect);
   o = vec4(toL(max(L, 0.))*A, A);
   o2 = vec4(M, 0., A);
+#else
+  o = vec4(0.); o2 = vec4(0.);
+#endif
 }`;
 
 
@@ -707,7 +867,7 @@ vec3 sunOptics(vec2 uv){
   if (r > .25) return c*uFlare;                                     // cull: the rim only exists near the sun (phone cost)
   vec2 e = vec2(1.5*px/asp, 1.5*px);
   float edge = length(vec2(msk(uv + vec2(e.x, 0.)) - msk(uv - vec2(e.x, 0.)), msk(uv + vec2(0., e.y)) - msk(uv - vec2(0., e.y))));
-  c += vec3(1., .99, .97)*clamp(edge*2.5, 0., 1.)*exp(-r*11.)*(1. - vis)*uRimK*step(1. - HOR + .01, uv.y);   // 3.16: only a hidden sun lights a rim, and only on clouds (not the hill line)
+  c += vec3(1., .99, .97)*clamp(edge*2.5, 0., 1.)*exp(-r*11.)*(1. - vis)*uRimK*step(1. - HOR + .085, uv.y);   // 3.16: only a hidden sun lights a rim, and only on clouds (not the hill line). T2: above the highest ridge (y .285), terrains rise to .30
   return c*uFlare;
 }
 float hash(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x*p.y); }
@@ -787,12 +947,111 @@ void main(){
     snow: { cover: .10, tall: .30, grey: .15, haze: .10, sheet: 1, sType: .85, sb: .60, st: 1.5, fog: .20, fogH: .30, snow: 1, wind: .25, pal: PAL_SNOW, palK: .9 },
   };
   PRESETS.stratus = Object.assign({}, PRESETS.stratus, { grey: .25, pal: PAL_OVC, palK: .8 });
+  // The land (terrain lock, 2026-11-22: the open calm loch of Round T3, maple trees, fine foliage, a flat page under the cards).
+  // Tokens are sRGB albedo (local colour before light and air); the shader lights them with the hour's sun and sky and pushes each
+  // layer into the haze by its distance, so weather and hour need no extra colours.
+  //   0 mountain, 1 mid moor, 2 near wood, 3 grass green, 4 grass straw, 5 lake deep, 6 lake near, 7 sand
+  // Shapes, as numbers (the shader is branch-free, see tCrest). Per far layer:
+  //   crest: [y0, a0, a1, c1,  w1, a2, c2, w2,  rise, s0, s1, cosMod,  cosF, phase, end0, end1,  rdgAmp, rdgF, seed, noiseAmp,  noiseF, -, -, -]
+  //          y = y0 - (a0 + a1*bump(u,c1,w1) + a2*bump(u,c2,w2) + rise*smoothstep(s0,s1,u))*(1 - m + m*cos(u*cosF + phase))*smoothstep(end0,end1,u) - detail
+  //   props: [dist km, foot y (>1 none), slice, mist,  -, -, -, token,  grassMix, -, -, rockBand]
+  // lip: [y0, rise, s0, s1,  bumpAmp, bumpU, bumpW, swellAmp,  swellF, swellSeed, fineK, ground (0 none, 1 water, 2 plane)]
+  const H = .37, NO = [0, 0, -10, -9];                                      // HOR; NO: no headland end (smoothstep(-10, -9, u) = 1)
+  // T3: the high mountain far off (55 km, ~7% of the screen high, centre-left between the swells); mtn: [peak height, -, rock on steep faces, -] (snow comes from the season)
+  const MTN = { crest: [H, 0, .046, .25, .37, .018, .40, .07, 0, 0, 1, .14, 34, .9, ...NO.slice(2), .016, 26, 2.7, .0014, 240, 0, 0, 0], props: [38, H + .0004, 0, .15, 0, -10, 0, 0, 0, 0, 0, 0], mtn: [.074, 0, .6, 0] };   // T5: a range from the left edge to ~u .66 (twice the T4 span), a little taller
+  const LAND = { lip: [.404, 0, 0, 1, -.014, 0, .16, .006, 2.0, 4, 1, 1], gr: [.40, .008, .50, .014], trees: [[.865, .108, 3, 1], [.655, .052, 7, 1]], species: 'maple', shore: [.0055, .20, 1, 0], layers: [   // the open loch: wide still water, long low ranges, the mountain beyond, land rising at the left
+    MTN,
+    { crest: [H, .004, .018, .72, .42, .006, .22, .12, 0, 0, 1, 0, ...NO, .004, 6, 1.3, .0008, 150, 0, 0, 0], props: [26, H + .0004, 0, .18, 0, -10, 0, 1, .2, 0, 0, 0] },
+    { crest: [H, .0015, .012, .12, .22, 0, 0, 1, 0, 0, 1, 0, ...NO, .003, 9, 4.1, .0008, 170, 0, 0, 0], props: [11, H + .0004, 0, .18, 0, -10, 0, 1, .35, 0, 0, 1] }] };
 
+  const TK = ['#5E7078', '#5C7A50', '#3A5A3C', '#7DA556', '#B79C5A', '#2D6C93', '#3C88A8', '#D9C7A0'];
+
+  // Season, Mediterranean year: green winter and spring, straw by July, first rains green it again from November. Day of year -> dryness 0..1.
+  const DRY = [[0, .05], [59, .05], [105, .2], [135, .45], [166, .8], [196, 1], [258, 1], [288, .85], [319, .45], [349, .15], [366, .05]];
+  const dryAt = (date = new Date()) => { const d = (date - new Date(date.getFullYear(), 0, 1)) / 864e5; for (let i = 1; i < DRY.length; i++) if (d <= DRY[i][0]) return DRY[i - 1][1] + (DRY[i][1] - DRY[i - 1][1]) * (d - DRY[i - 1][0]) / (DRY[i][0] - DRY[i - 1][0]); return .05; };
+
+  // Round T3: near trees. Shape [crown half-width / height, crown half-height / height, fork height / height, tiers 0..1], bark redness, bloom colour,
+  // and a year (day of year -> leaf colour, second leaf colour, crown fullness, bloom amount) for a Mediterranean lake shore at ~40 N.
+  const LEAF = [.040, .20, 1.0, .17];   // foliage texture (T4 fine: clump cell, lobes, edge break-up, mass cell; fractions of the tree's height)
+  const BARE = '#6B5B45';
+  const SPECIES = {
+    maple:   { name: 'Maple (sugar-maple habit; Italian / Montpellier maple)', shape: [.44, .40, .24, 0], bark: 0, bloom: '#D8D890', year: [   // round dense crown; yellow, orange, then red in November
+      [0, BARE, BARE, 0, 0], [95, BARE, BARE, 0, 0], [108, '#A6C860', '#BCD26A', .55, 0], [125, '#5E8C3E', '#6E9A44', .95, 0], [272, '#4E7A36', '#5C8A3C', 1, 0],
+      [292, '#8E9A3A', '#C9A23A', 1, 0], [306, '#E2B23A', '#E08A2E', .97, 0], [318, '#E27A2C', '#D2482A', .92, 0], [328, '#CC3F2C', '#E2862E', .72, 0], [338, '#A8422E', '#B86A30', .3, 0], [348, BARE, BARE, 0, 0], [366, BARE, BARE, 0, 0]] },
+  };
+  const hx2 = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+  function phen(sp, doy) {   // -> [shape vec4, leaf rgb + fullness, leaf2 rgb + bark, bloom rgb + amount]
+    const S = SPECIES[sp] || SPECIES.maple, Y = S.year; let i = 1; while (i < Y.length - 1 && doy > Y[i][0]) i++;
+    const a = Y[i - 1], b = Y[i], f = Math.min(1, Math.max(0, (doy - a[0]) / Math.max(1, b[0] - a[0]))), L = (p, q) => p + (q - p) * f, C = (p, q) => hx2(p).map((v, k) => L(v, hx2(q)[k]));
+    return [...S.shape, ...C(a[1], b[1]), L(a[3], b[3]), ...C(a[2], b[2]), S.bark, ...hx2(S.bloom), L(a[4], b[4])];
+  }
+  // Round T5: a tree's branching, grown once on the CPU and drawn by the shader from a small float texture (2 texels per segment).
+  // Local units: the tree's height = 1, x right, y up from the root. Trunk to the fork, four scaffold limbs, then each branch ends in a leader
+  // (small turn, 0.78 length) and throws laterals along its outer half (alternate sides, 0.55-0.9 rad out); widths follow da Vinci's rule
+  // (the cross-sections of the children add up to the parent's); every tip is pulled back inside the species' crown envelope, so the twigs
+  // fill the crown's shape the way a real maple's do. Each segment also carries the centre of its scaffold limb's mass (for shading).
+  const SEG_MAX = 400;
+  function treeSkel(spName, seed) {
+    const S = SPECIES[spName] || SPECIES.maple, [wR, hR, fork] = S.shape, cy = 1 - hR;
+    let z = (seed * 2654435761 + 12345) >>> 0; const rnd = () => { z = (z + 0x6D2B79F5) >>> 0; let t = Math.imul(z ^ (z >>> 15), 1 | z); t ^= t + Math.imul(t ^ (t >>> 7), 61 | t); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    const out = [], push = (a, b, wa, wb, mc) => { if (out.length < SEG_MAX) out.push([a[0], a[1], b[0], b[1], wa, wb, mc[0], mc[1]]); };
+    const inEnv = (p, k) => { const ex = p[0] / (wR * k), ey = (p[1] - cy) / (hR * k), r = Math.hypot(ex, ey); return r <= 1 ? p : [ex / r * wR * k, cy + ey / r * hR * k]; };
+    const MAXL = 6, Q = [];
+    const inside = (q, k) => Math.hypot(q[0] / (wR * k), (q[1] - cy) / (hR * k)) <= 1;
+    function grow(p, ang, len, w, lev, mc) {
+      const bend = (rnd() - .5) * (lev < 3 ? .45 : .35);
+      let a1 = ang, mid = [p[0] + Math.sin(a1) * len * .5, p[1] + Math.cos(a1) * len * .5];
+      const a2 = ang + bend; let end = [mid[0] + Math.sin(a2) * len * .5, mid[1] + Math.cos(a2) * len * .5];
+      const k = lev >= 4 ? 1.04 : .94;
+      if (!inside(end, k) && inside(p, k)) {                                 // stop at the crown's edge: shorten the branch along itself (projecting the tip made hoops)
+        let lo = 0, hi = 1; for (let i = 0; i < 10; i++) { const m = (lo + hi) / 2; if (inside([p[0] + (end[0] - p[0]) * m, p[1] + (end[1] - p[1]) * m], k)) lo = m; else hi = m; }
+        const f = Math.max(lo, .25); end = [p[0] + (end[0] - p[0]) * f, p[1] + (end[1] - p[1]) * f]; mid = [p[0] + (mid[0] - p[0]) * f, p[1] + (mid[1] - p[1]) * f]; len *= f;
+      }
+      const wm = w * .90, we = w * .80;
+      if (lev === 2) { const dx = end[0] - p[0], dy = end[1] - p[1], l = Math.hypot(dx, dy) || 1; mc = inEnv([end[0] + dx / l * .06, end[1] + dy / l * .06], .86); }   // T6: this branch group's dome of foliage
+      if (lev < 4) { push(p, mid, w, wm, mc); push(mid, end, wm, we, mc); } else push(p, end, w, we, mc);
+      if (lev >= MAXL) return;
+      const da = Math.atan2(end[0] - mid[0], end[1] - mid[1]);              // the direction at the tip
+      const nLat = lev <= 2 ? 2 : lev <= 4 ? (rnd() < .5 ? 2 : 1) : (rnd() < .45 ? 1 : 0);   // twigs get denser toward the outside
+      const kids = lev === 5 && rnd() < .35 ? [] : [[end, da + (rnd() - .5) * .50, .74, 1]];   // the leader zigzags (each year's bud breaks a little aside)
+      let side = rnd() < .5 ? -1 : 1;
+      for (let i = 0; i < nLat; i++, side = -side) {                        // laterals on the outer half, alternate sides
+        const t = .45 + .45 * (i + rnd()) / Math.max(1, nLat), at = [p[0] + (end[0] - p[0]) * t, p[1] + (end[1] - p[1]) * t];
+        kids.push([at, da + side * (.55 + .35 * rnd()), .60 + .12 * rnd(), 0]);
+      }
+      const area = kids.reduce((s, k) => s + (k[3] ? 1 : .55), 0);          // da Vinci: children's cross-sections add up to the parent's
+      for (const [at, a, lk, lead] of kids) {
+        let aa = a * (lev >= 2 ? .88 : 1);                                    // reach up toward the light
+        if (lev >= 3) aa += Math.sign(at[0] || 1) * .08;                      // and out
+        Q.push([at, aa, len * lk, we * Math.sqrt((lead ? 1 : .55) / area), lev + 1, mc]);   // breadth first: every limb reaches the same depth before the budget ends
+      }
+    }
+    const lean = (rnd() - .5) * .05, top = [lean, fork];
+    push([0, 0], [lean * .5, fork * .5], .040, .033, [0, cy]); push([lean * .5, fork * .5], top, .033, .029, [0, cy]);
+    const L1 = [-.80, -.28, .26, .78].map(a => a + (rnd() - .5) * .22);
+    L1.forEach((a, i) => { const at = [top[0] - lean * .15 * i, top[1] - .025 * (i % 2)]; Q.push([at, a, .30 + .06 * rnd(), .021, 1, [0, cy]]); });
+    while (Q.length && out.length < SEG_MAX) grow(...Q.shift());
+    return out;
+  }
+  // snow on the far mountain through the year: deep in winter, patches in summer, the first falls in late October
+  const MSNOW = [[0, 1], [60, 1], [110, .72], [150, .38], [190, .14], [250, .10], [292, .30], [322, .62], [350, .9], [366, 1]];
+  const lerpT = (T, d) => { for (let i = 1; i < T.length; i++) if (d <= T[i][0]) return T[i - 1][1] + (T[i][1] - T[i - 1][1]) * (d - T[i - 1][0]) / (T[i][0] - T[i - 1][0]); return T[T.length - 1][1]; };
+  const doyOf = (date = new Date()) => (date - new Date(date.getFullYear(), 0, 1)) / 864e5;
   function prog(gl, fs) {
     const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
     const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, VERT)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs));
     gl.bindAttribLocation(p, 0, 'a'); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); return p;
   }
+  function progs(gl, list) {                                               // several programs at once: every compile and link is issued before any status is read,
+    const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); return o; };   // so the driver can build them in parallel (KHR_parallel_shader_compile)
+    gl.getExtension('KHR_parallel_shader_compile');
+    const ps = list.map(fs => { const v = sh(gl.VERTEX_SHADER, VERT), f = sh(gl.FRAGMENT_SHADER, fs), p = gl.createProgram(); gl.attachShader(p, v); gl.attachShader(p, f); gl.bindAttribLocation(p, 0, 'a'); gl.linkProgram(p); return { p, f }; });
+    return ps.map(({ p, f }) => { if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getShaderInfoLog(f) || gl.getProgramInfoLog(p)); return p; });
+  }
+  // The scene shader is built as two programs from one source: the sky (slices 0, 1: sky, cirrus, cloud march, far land) and the land
+  // (slices 2, 3: near land, trees, page). One program held both and compiled twice over (D3D's FXC at link, then the GPU driver at the
+  // first draw), ~4.5 min headless; each half is far cheaper, because compile time grows faster than the code (T9, LOG).
+  const FRAG_PART = d => FRAG.replace('#version 300 es\n', '#version 300 es\n#define ' + d + '\n');
   function makeNoise(gl) {
     const p = prog(gl, GEN), fb = gl.createFramebuffer(); gl.useProgram(p);
     const hf = !!gl.getExtension('EXT_color_buffer_float');               // 16-bit float noise: 8-bit steps show up as walls once coverage is thresholded
@@ -860,10 +1119,15 @@ void main(){
     // The sky renders into depth slices that are composited, graded and post-processed: float render targets are required.
     if (!gl.getExtension('EXT_color_buffer_float')) { fail(canvas, 'Needs float render targets (EXT_color_buffer_float)'); return { set() {} }; }   // shortcut: no 8-bit fallback; current desktop and phone browsers support it
     // live: the heavy scene shader and its noise volumes. Baked: none of it, only the cheap passes below.
-    let pr = null, U = null;
+    let pr = null, PR = [], U = null, treeTex = null, treeKey = '', treeN = [0, 0];   // pr: the program uniforms go to (U); PR: [sky, land]
     if (!baked) {
-      const tex = makeNoise(gl); pr = prog(gl, FRAG); gl.useProgram(pr); U = n => gl.getUniformLocation(pr, n);
-      [[tex.shape, gl.TEXTURE_3D, 'uShape'], [tex.detail, gl.TEXTURE_3D, 'uDetail'], [tex.weather, gl.TEXTURE_2D, 'uWeather']].forEach(([t, k, n], i) => { gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(k, t); gl.uniform1i(U(n), i); });
+      const T0 = performance.now(), lt = m => G.SCENE_T && console.log('[load]', m, ((performance.now() - T0) / 1000).toFixed(1) + ' s');   // window.SCENE_T = true: log load timing (tools/visual-loop/loadT.js)
+      // two programs from one source, compiled in parallel: sky (slices 0, 1) and land (slices 2, 3), see T9
+      const tex = makeNoise(gl); lt('noise'); PR = progs(gl, [FRAG_PART('SKY_ONLY'), FRAG_PART('LAND_ONLY')]); lt('scene shaders'); G.__lt = lt; U = n => gl.getUniformLocation(pr, n);
+      [[tex.shape, gl.TEXTURE_3D, 'uShape'], [tex.detail, gl.TEXTURE_3D, 'uDetail'], [tex.weather, gl.TEXTURE_2D, 'uWeather']].forEach(([t, k, n], i) => { gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(k, t); PR.forEach(q => { gl.useProgram(q); gl.uniform1i(gl.getUniformLocation(q, n), i); }); });
+      treeTex = gl.createTexture(); gl.activeTexture(gl.TEXTURE15); gl.bindTexture(gl.TEXTURE_2D, treeTex);   // T5: unit 15 is the trees' alone
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, SEG_MAX * 2, 2, 0, gl.RGBA, gl.FLOAT, null);
+      [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER].forEach(k => gl.texParameteri(gl.TEXTURE_2D, k, gl.NEAREST)); PR.forEach(q => { gl.useProgram(q); gl.uniform1i(gl.getUniformLocation(q, 'uTreeTex'), 15); });
     }
     const pB = prog(gl, BRIGHT), pBl = prog(gl, BLUR), pF = prog(gl, FINAL), pC = prog(gl, COMPOSE), pR = prog(gl, RAYS), Up = (q, n) => gl.getUniformLocation(q, n);
     // Parallax: each slice slides by its own amount (CSS px at full tilt). Nearer slices slide further, as when the eye moves sideways;
@@ -879,11 +1143,16 @@ void main(){
         [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T].forEach(k => gl.texParameteri(gl.TEXTURE_2D, k, gl.CLAMP_TO_EDGE)); return t; };
       const t = tex(), f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
       if (!mat) return { t, f, w, h };
+      if (mat === 'pad') {                                                 // slices 0 and 1 write no material, but get a second target anyway: ANGLE (D3D11) compiles one
+        const pad = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, pad); gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA8, w, h);   // copy of the scene shader per render-target
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, pad, 0);   // layout, and the scene shader takes ~2 min to compile: one layout for all four slices
+        gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]); return { t, f, w, h, pad };
+      }
       const m = tex(); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, m, 0);   // wind material, accumulated with the colour
       gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
       return { t, m, f, w, h };
     }
-    const drop = x => { gl.deleteTexture(x.t); if (x.m) gl.deleteTexture(x.m); gl.deleteFramebuffer(x.f); };
+    const drop = x => { gl.deleteTexture(x.t); if (x.m) gl.deleteTexture(x.m); if (x.pad) gl.deleteTexture(x.pad); gl.deleteFramebuffer(x.f); };
     // The frame is the picture the slices hold; the canvas shows it (cover fit). Live, they are the same; baked, the frame is the bake's.
     function targets() {
       const CW = canvas.width, CH = canvas.height;
@@ -892,7 +1161,7 @@ void main(){
       if (RT) [...RT.s, RT.acc, RT.a, RT.b, RT.c, RT.d, RT.r].forEach(drop);
       k = 0;                                                               // new buffers: restart the average
       const m = Math.ceil(MARGIN * F.dpr), q = n => [Math.max(1, Math.ceil(CW / n)), Math.max(1, Math.ceil(CH / n))];
-      RT = { W: F.W, H: F.H, CW, CH, m, E: F.E, dpr: F.dpr, s: [0, 1, 2, 3].map(i => target(F.W + 2 * m + (i === 1 ? F.E : 0), F.H + 2 * m, i >= 2)),
+      RT = { W: F.W, H: F.H, CW, CH, m, E: F.E, dpr: F.dpr, s: [0, 1, 2, 3].map(i => target(F.W + 2 * m + (i === 1 ? F.E : 0), F.H + 2 * m, i >= 2 ? true : baked ? false : 'pad')),
         acc: target(CW, CH), a: target(...q(4)), b: target(...q(4)), c: target(...q(16)), d: target(...q(16)), r: target(...q(4)) };
       const kx = Math.min(RT.W / CW, RT.H / CH); RT.xf = [kx, kx, RT.W / 2 - CW / 2 * kx, RT.H / 2 - CH / 2 * kx];   // canvas px -> frame px, cover fit, centred
       return true;
@@ -977,9 +1246,26 @@ void main(){
       gl.uniform1f(U('uCover'), w.cover); gl.uniform1f(U('uTall'), w.tall); gl.uniform1f(U('uGrey'), w.grey); gl.uniform1f(U('uHaze'), w.haze);
       [['uStyle', w.style], ['uPaintCov', w.paintCov], ['uCirrus', w.cirrus], ['uCiHook', w.ciHook], ['uCiVeil', w.ciVeil], ['uCiAng', w.ciAng + (rndDay(12) - .5) * 1.1]].forEach(([n, v]) => gl.uniform1f(U(n), v));
       [['uSnow', w.snow || 0], ['uSheet', w.sheet], ['uSType', w.sType], ['uSB', w.sb], ['uST', w.st], ['uFogD', w.fog], ['uFogH', w.fogH], ['uRain', w.rain]].forEach(([n, v]) => gl.uniform1f(U(n), v)); gl.uniform1f(U('uNight'), p.night); gl.uniform1f(U('uSunI'), p.I);
-      [['uHill', p.hill], ['uWater', p.water], ['uPg0', w.pg ? w.pg[0] : p.pg[0]], ['uPg1', w.pg ? w.pg[1] : p.pg[1]], ['uPg2', w.pg ? w.pg[2] : p.pg[2]], ['uPg3', w.pg ? w.pg[3] : p.pg[3]], ['uZen', p.zen], ['uMid', p.mid], ['uHor', p.hor], ['uSunC', p.sunC], ['uCLit', p.cl], ['uCDark', p.cd], ['uFog', p.fog], ['uH0', p.h[0]], ['uH1', p.h[1]], ['uH2', p.h[2]], ['uH3', p.h[3]], ['uTree', p.tree], ['uPath', p.path]]
+      [['uPg0', w.pg ? w.pg[0] : p.pg[0]], ['uPg1', w.pg ? w.pg[1] : p.pg[1]], ['uPg2', w.pg ? w.pg[2] : p.pg[2]], ['uPg3', w.pg ? w.pg[3] : p.pg[3]], ['uZen', p.zen], ['uMid', p.mid], ['uHor', p.hor], ['uSunC', p.sunC], ['uCLit', p.cl], ['uCDark', p.cd], ['uFog', p.fog], ['uH0', p.h[0]], ['uH1', p.h[1]], ['uH2', p.h[2]], ['uH3', p.h[3]], ['uTree', p.tree], ['uPath', p.path]]
         .forEach(([n, c]) => gl.uniform3fv(U(n), hex(c)));
       gl.uniform3fv(U('uKey'), norm(p.key));
+      gl.uniform1f(U('uDry'), st.dry != null ? st.dry : st.doy != null ? lerpT(DRY, st.doy) : dryAt());
+      const tp = LAND, L3 = [0, 1, 2].map(i => tp.layers[i]);
+      gl.uniform3fv(U('uTk'), TK.flatMap(hex));
+      gl.uniform1f(U('uNL'), tp.layers.length); gl.uniform4fv(U('uLip'), tp.lip);
+      gl.uniform4fv(U('uLy'), L3.flatMap(l => l ? l.crest : Array(24).fill(0))); gl.uniform4fv(U('uLz'), L3.flatMap(l => l ? l.props : Array(12).fill(0)));
+      gl.uniform4fv(U('uGr'), [...tp.gr, -10, -9, 0, 0]);
+      gl.uniform4fv(U('uTr'), tp.trees.flat());
+      const doy = st.doy != null ? st.doy : doyOf(), spp = [tp.species];   // the trees follow the day of the year
+      gl.uniform4fv(U('uTs'), [0, 1].flatMap(i => phen(spp[Math.min(i, spp.length - 1)], doy)));
+      { const trs = [0, 1].map(i => (tp.trees || [])[i] || [0, 0, 0, 0]), key = trs.map((t, i) => spp[Math.min(i, spp.length - 1)] + ':' + t[2]).join('|');   // T5: regrow only when a tree changes
+        if (key !== treeKey) { treeKey = key; const ns = [0, 0], buf = new Float32Array(SEG_MAX * 2 * 4 * 2);
+          trs.forEach((t, i) => { const sg = treeSkel(spp[Math.min(i, spp.length - 1)], t[2] * 7 + 1); ns[i] = sg.length; sg.forEach((g, j) => buf.set(g, (i * SEG_MAX * 2 + j * 2) * 4)); });
+          gl.activeTexture(gl.TEXTURE15); gl.bindTexture(gl.TEXTURE_2D, treeTex); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, SEG_MAX * 2, 2, gl.RGBA, gl.FLOAT, buf); treeN = ns; }
+        gl.uniform2i(U('uTreeN'), treeN[0], treeN[1]); }   // every call: each program needs it
+      gl.uniform4fv(U('uLm'), L3.flatMap(l => l && l.mtn ? [l.mtn[0], lerpT(MSNOW, doy), l.mtn[2], 0] : [0, 0, 0, 0]));
+      gl.uniform4fv(U('uSd'), tp.shore);
+      gl.uniform4fv(U('uTst'), LEAF);
       const day = st.seed != null ? st.seed : Math.floor(Date.now() / 864e5), rnd = k => { const x = Math.sin(day * 127.1 + k * 311.7) * 43758.5453; return x - Math.floor(x); };
       gl.uniform2f(U('uSeed'), rnd(1) * 160, rnd(2) * 160);
       // hero clouds: one or two large cumulus in the mid distance. Their side is chosen per day, not from the sun: placed by the sun they
@@ -1000,16 +1286,20 @@ void main(){
     const DRIFT_MAX = 60;   // live only: ms per slice re-render; above it (phones: ~150-320 ms) the clouds hold still once converged while the wind keeps moving. Phones should play baked layers instead (opts.baked)
     const next = f => { let done = false; const go = t => { if (!done) { done = true; f(t); } }; requestAnimationFrame(go); setTimeout(() => go(performance.now()), 120); };   // keep converging when frames are throttled
     const px1 = new Uint8Array(4), sync = () => { gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px1); };   // waits for the GPU
+    function useSlice(i) { pr = PR[i < 2 ? 0 : 1]; gl.useProgram(pr); }   // slices 0, 1: the sky program; 2, 3: the land program
+    function sceneAll(now, kk) {                                         // the scene's uniforms into both programs, with one jitter offset for the frame
+      const off = kk === 0 ? [0, 0] : [Math.random() - .5, Math.random() - .5];
+      (PR[0] === PR[1] ? PR.slice(0, 1) : PR).forEach(q => { pr = q; gl.useProgram(q); setScene(now);
+        gl.uniform2f(U('uMargin'), RT.m, RT.m); gl.uniform1f(U('uSplit'), SPLIT); gl.uniform2f(U('uOff'), off[0], off[1]); gl.uniform1f(U('uFrame'), kk % 97); });
+    }
     function accumulate(now) {
       const timed = k === 4;                                               // once per scene, time a frame on the GPU (the CPU-side time says nothing about GPU load); frames 1-3 still carry driver warm-up
       if (timed) sync();
       const a = performance.now();
-      size(); targets(); gl.useProgram(pr); setScene(now);
-      gl.uniform2f(U('uMargin'), RT.m, RT.m); gl.uniform1f(U('uSplit'), SPLIT);
-      gl.uniform2f(U('uOff'), k === 0 ? 0 : Math.random() - .5, k === 0 ? 0 : Math.random() - .5); gl.uniform1f(U('uFrame'), k % 97);
+      size(); targets(); sceneAll(now, k);
       const alpha = k === 0 ? 1 : Math.max(1 / (k + 1), live ? .25 : 0);
       if (k === 0) gl.disable(gl.BLEND); else { gl.enable(gl.BLEND); gl.blendColor(0, 0, 0, alpha); gl.blendFunc(gl.CONSTANT_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA); }
-      RT.s.forEach((x, i) => { gl.bindFramebuffer(gl.FRAMEBUFFER, x.f); gl.viewport(0, 0, x.w, x.h); gl.uniform1f(U('uSlice'), i); gl.drawArrays(gl.TRIANGLES, 0, 3); });
+      RT.s.forEach((x, i) => { useSlice(i); gl.bindFramebuffer(gl.FRAMEBUFFER, x.f); gl.viewport(0, 0, x.w, x.h); gl.uniform1f(U('uSlice'), i); gl.drawArrays(gl.TRIANGLES, 0, 3); if (G.SCENE_T && G.__lt && k <= 1) { sync(); gl.bindFramebuffer(gl.FRAMEBUFFER, x.f); G.__lt('frame ' + k + ' slice ' + i + (k ? ' (blend)' : ' (no blend)')); } });
       gl.disable(gl.BLEND); k++; dirty = true;
       if (timed) sync();
       cost = performance.now() - a; if (timed) gpu = cost;
@@ -1102,7 +1392,8 @@ void main(){
       else if (k < 24) accumulate(live ? now : t0);
       else if (live && gpu < DRIFT_MAX && now - last > Math.max(120, gpu * 4)) { accumulate(now); last = now; }   // cloud drift re-renders the slices: only where the GPU can afford it
       const ambient = live && now - lastC > 33;                            // wind, birds, baked drift: 30 fps is enough, and spares the battery
-      if ((!baked || ready) && (dirty || moving || ambient)) { compose(now); post(now); dirty = false; lastC = now; }
+      if ((!baked || ready) && (dirty || moving || ambient)) { compose(now); post(now); dirty = false; lastC = now; if (G.SCENE_T && G.__lt && !G.__lt.cp) { sync(); G.__lt('first compose + post, frame ' + k); G.__lt.cp = 1; } }
+      if (G.SCENE_T && G.__lt && k === 24 && !G.__lt.k24) { G.__lt('24 frames accumulated'); G.__lt.k24 = 1; }
       if ((baked ? !ready : k < 24) || live || moving) next(loop); else running = false;
     }
     function kick() { if (!running) { running = true; tilt.t = performance.now(); next(loop); } }
@@ -1124,13 +1415,11 @@ void main(){
       // On-device bake (3.13): converge 24 frames in horizontal bands sized so each takes about budgetMs on the GPU, pausing gapMs
       // between bands so the visible scene and the rest of the phone keep the GPU most of the time. Needs opts.bake and opts.manual.
       async renderSliced({ budgetMs = 8, gapMs = 16, onProgress, signal } = {}) {
-        size(); targets(); k = 0; gl.useProgram(pr); setScene(t0);
-        gl.uniform2f(U('uMargin'), RT.m, RT.m); gl.uniform1f(U('uSplit'), SPLIT);
+        size(); targets(); k = 0;
         const pause = ms => new Promise(r => setTimeout(r, ms));
         let bh = 32, gpuMs = 0;
         for (; k < 24;) {
-          gl.useProgram(pr); setScene(t0);
-          gl.uniform2f(U('uOff'), k === 0 ? 0 : Math.random() - .5, k === 0 ? 0 : Math.random() - .5); gl.uniform1f(U('uFrame'), k % 97);
+          sceneAll(t0, k);
           const alpha = k === 0 ? 1 : 1 / (k + 1);
           for (let i = 0; i < 4; i++) {
             const x = RT.s[i];
@@ -1138,7 +1427,7 @@ void main(){
               if (signal && signal.aborted) throw new Error('aborted');
               const h = Math.min(bh, x.h - y);
               sync(); const t = performance.now();
-              gl.useProgram(pr); gl.bindFramebuffer(gl.FRAMEBUFFER, x.f); gl.viewport(0, 0, x.w, x.h); gl.uniform1f(U('uSlice'), i);
+              useSlice(i); gl.bindFramebuffer(gl.FRAMEBUFFER, x.f); gl.viewport(0, 0, x.w, x.h); gl.uniform1f(U('uSlice'), i);
               gl.enable(gl.SCISSOR_TEST); gl.scissor(0, y, x.w, h);
               if (k === 0) gl.disable(gl.BLEND); else { gl.enable(gl.BLEND); gl.blendColor(0, 0, 0, alpha); gl.blendFunc(gl.CONSTANT_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA); }
               gl.drawArrays(gl.TRIANGLES, 0, 3); gl.disable(gl.BLEND); gl.disable(gl.SCISSOR_TEST);
@@ -1172,5 +1461,5 @@ void main(){
       },
     };
   }
-  G.SceneGL = { mount, PAL, PRESETS, weather, palAt, sunAt, HOURS, regimeOf, KEYFRAMES, bracketHours, cached, SKY_CACHE, _noise: makeNoise, _png: encodePNG };
+  G.SceneGL = { mount, PAL, PRESETS, LAND, dryAt, SPECIES, doyOf, phen, weather, palAt, sunAt, HOURS, regimeOf, KEYFRAMES, bracketHours, cached, SKY_CACHE, _noise: makeNoise, _png: encodePNG, _src: { VERT, GEN, FRAG, BRIGHT, BLUR, COMPOSE, ENCODE, DECODE, RAYS, FINAL } };   // _src: compile-time harness (tools/visual-loop/compileT.js)
 })();

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Health++ · Round T1 · Terrain directions</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:#E9EBEE; color:#14171A; font:400 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding:32px 32px 80px; }
+  header.board { max-width:1180px; margin-bottom:24px; }
+  header.board h1 { font-size:26px; font-weight:600; letter-spacing:-0.01em; margin-bottom:8px; }
+  header.board p { color:#3A424B; max-width:110ch; margin-bottom:8px; }
+  section.dir { display:flex; gap:24px; align-items:flex-start; padding:28px 0; border-top:1px solid #D5DAE0; }
+  .sheet { width:340px; flex:none; background:#fff; border-radius:14px; padding:18px; font-size:12.5px; line-height:1.5; color:#30363D; }
+  .sheet h2 { font-size:19px; font-weight:600; color:#111; margin-bottom:4px; }
+  .sheet .thesis { font-size:13.5px; font-weight:500; color:#1D2125; margin-bottom:10px; }
+  .sheet h3 { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#6A727C; margin:12px 0 4px; }
+  .sheet ul { padding-left:16px; }
+  .sheet dl { display:grid; grid-template-columns:86px 1fr; gap:2px 10px; }
+  .sheet dt { color:#6A727C; }
+  .sw { display:grid; grid-template-columns:18px 70px 70px 1fr; gap:4px 8px; align-items:center; font-variant-numeric:tabular-nums; }
+  .sw i { width:18px; height:18px; border-radius:5px; box-shadow:inset 0 0 0 1px rgba(0,0,0,.14); }
+  code { font:500 11.5px/1 ui-monospace, "Cascadia Mono", Consolas, monospace; }
+  .phones { display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; }
+  figure { margin:0; } figcaption { font-size:12px; color:#3A424B; margin-top:6px; }
+  .phone { position:relative; width:412px; height:915px; overflow:hidden; border-radius:30px; isolation:isolate; zoom:.62;
+           box-shadow:0 1px 2px rgba(20,23,26,.08), 0 16px 40px rgba(20,23,26,.14); font-family:Roboto, "Segoe UI", system-ui, sans-serif; }
+  .phone img.scene { position:absolute; inset:0; width:100%; height:100%; display:block; z-index:0; }
+  .bare { width:206px; height:457px; border-radius:16px; overflow:hidden; box-shadow:0 8px 24px rgba(20,23,26,.12); }
+  .bare img { width:100%; height:100%; display:block; }
+  .abs { position:absolute; z-index:1; }
+  .ico { width:1em; height:1em; vertical-align:-0.12em; display:inline-block; }
+  .btn { display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 18px; white-space:nowrap; }
+  .glass { position:absolute; z-index:1; border-radius:26px; background:rgba(255,255,255,.22);
+           -webkit-backdrop-filter:blur(22px) saturate(1.6); backdrop-filter:blur(22px) saturate(1.6);
+           box-shadow:0 1px 1px rgba(14,42,67,.05), 0 10px 28px rgba(14,42,67,.10); }
+  .nav { position:absolute; left:0; right:0; bottom:0; height:64px; z-index:2; display:grid; grid-template-columns:repeat(4,1fr); align-items:center; text-align:center; font-size:12px;
+         background:rgba(255,255,255,.55); color:#2E4A62; border-top:1px solid rgba(255,255,255,.6); -webkit-backdrop-filter:blur(22px) saturate(1.6); backdrop-filter:blur(22px) saturate(1.6); }
+  .nav span { position:relative; padding-top:10px; } .nav span.on { font-weight:500; }
+  .nav span.on::before { content:""; position:absolute; top:-2px; left:50%; width:24px; height:3px; margin-left:-12px; border-radius:2px; background:#0E2A43; }
+  .meas { font-size:12px; color:#30363D; margin-top:10px; max-width:780px; }
+</style>
+</head>
+<body>
+<header class="board">
+  <h1>Round T1 · Terrain directions (diverge)</h1>
+  <p><b>Brief v1:</b> painterly-real land in the strip from the far ridge tops (y ≥ .30) to the first card (.42); the page under the cards stays a light gradient (≥ L* 71). Three to five overlapping silhouettes, far ridge 8–20 L* under the horizon sky, dark values only above the cards. Weather and hour as now, season by date (Mediterranean year). No buildings, roads or other human marks.</p>
+  <p>Every direction is rendered by the real shader (<code>scene-gl.js</code>, <code>scene.html?terrain=&lt;name&gt;</code>), as numbers in uniforms: one branch-free program, so the same code ports to AGSL as data. Shown at sunny 13:00 under the full Today glass, then sunny, rain and night without UI. Season fixed at spring (<code>dry=0.15</code>) so the directions compare like for like; today's date gives <code>0.40</code>. Swatches are sampled from these renders by this page (hex and L*).</p>
+</header>
+<main id="board"></main>
+
+<script src="data.js"></script>
+<script>
+const HD = window.HEALTH_DATA, days = HD.days, t = HD.today, M = HD.METRICS;
+const n = v => v.toLocaleString('en-US');
+const fmtMin = m => `${Math.floor(m / 60)}h ${String(Math.round(m % 60)).padStart(2, '0')}m`;
+const prev = days.slice(-31, -1), mean = k => prev.reduce((a, d) => a + d[k], 0) / prev.length;
+const D = { time: '15:10', date: t.label, check: '07:12', ready: t.readiness, readyNorm: M.readiness.avg30, daily: t.dailyScore, sleep: fmtMin(t.sleepMin), sleepScore: t.sleepScore,
+  sleepDiff: Math.round(t.sleepMin - mean('sleepMin')), steps: n(t.steps), stepsUsual: n(M.steps.avg30), strain: t.strain, strainNorm: M.strain.avg30, hrv: t.hrv, hrvLo: M.hrv.normalMin, hrvHi: M.hrv.normalMax, rhr: t.rhr,
+  week: days.slice(-7).map((d, i) => ({ day: i === 6 ? 'Today' : d.dowName, v: d.readiness })) };
+const word = r => r >= 80 ? 'Ready' : r >= 65 ? 'Steady' : 'Take it easy';
+const diffTxt = `${Math.abs(D.ready - D.readyNorm)} ${D.ready >= D.readyNorm ? 'above' : 'below'} your normal`;
+const sleepDiffTxt = `${Math.abs(D.sleepDiff)} min ${D.sleepDiff >= 0 ? 'more' : 'less'} than usual`;
+const INK = '#0E2A43';
+const I = { check: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  up: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3.5M4 7.2 8 3.2l4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  moon: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M12.8 10.6A5.6 5.6 0 0 1 5.4 3.2a5.6 5.6 0 1 0 7.4 7.4z" fill="currentColor"/></svg>',
+  scale: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.2" y="2.2" width="11.6" height="11.6" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.6 6.2a3.4 3.4 0 0 1 4.8 0M8 6.6l1-1.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' };
+const glyph = v => { const st = ` stroke="${INK}" stroke-width="1.2"`, sun = `<circle cx="11" cy="9" r="5" fill="#FFC56B"${st}/>`, cloud = (x, s) => `<path transform="translate(${x} 8) scale(${s})" d="M4 12h10a3.5 3.5 0 0 0 0-7 5 5 0 0 0-9.6 1.3A2.9 2.9 0 0 0 4 12z" fill="#FFFFFF"${st}/>`;
+  return `<svg width="26" height="20" viewBox="0 0 26 20" aria-hidden="true">${v >= 75 ? sun : ''}${v < 80 ? cloud(v < 75 ? 2 : 7, v < 75 ? 1.15 : .9) : ''}</svg>`; };
+const hyp = [0, 2, 3, 3, 2, 1, 2, 3, 2, 1, 2, 1, 2, 1, 0, 2];
+// Today, as r3c-board (3.16 proportions), over a rendered scene image
+const today = img => `<div class="phone" style="color:${INK}"><img class="scene" src="${img}" alt="">
+  <div class="abs" style="top:12px;left:20px;font:500 12px Roboto, 'Segoe UI'">${D.time}</div>
+  <div class="abs" style="top:40px;left:20px"><div style="font-size:19px;font-weight:500">${D.date}</div><div style="font-size:12px;margin-top:2px">${I.check} Morning check ${D.check} · synced 15:02</div></div>
+  <div class="abs btn" style="top:40px;right:20px;background:#0B5FA5;color:#fff;border-radius:24px;font-size:15px;font-weight:500">${I.scale}&nbsp;Log weight</div>
+  <div class="abs" style="top:112px;left:22px;right:120px"><div style="font-size:89px;font-weight:300;line-height:1;letter-spacing:-0.035em;margin-left:-4px">${D.ready}</div><div style="font-size:23px;line-height:1.25;margin-top:6px">${word(D.ready)}</div><div style="font-size:15px;line-height:1.35;margin-top:4px">Readiness · ${diffTxt} ${D.readyNorm}</div></div>
+  <div class="glass" style="top:384px;left:12px;right:12px;height:104px;padding:10px 14px"><div style="font-size:12px;color:#2E4A62">Readiness this week</div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-top:4px">${D.week.map(w => `<div><div style="font-size:12px;${w.day === 'Today' ? 'font-weight:500' : 'color:#2E4A62'}">${w.day}</div>${glyph(w.v)}<div style="font-size:15px;font-weight:500;line-height:1.2">${w.v}</div></div>`).join('')}</div></div>
+  <div class="glass" style="top:500px;left:12px;width:188px;height:212px;padding:14px 16px"><div style="font-size:12px;color:#2E4A62">${I.moon} Sleep</div><div style="font-size:29px;font-weight:500;line-height:1.25;margin-top:2px">${D.sleep}</div><div style="font-size:15px">Score ${D.sleepScore}</div><div style="font-size:12px;color:#2E4A62">${sleepDiffTxt}</div>
+    <svg width="150" height="44" viewBox="0 0 150 44" aria-hidden="true" style="margin-top:14px">${hyp.map((v, i) => `<rect x="${i * 9.4}" y="${v * 10}" width="7" height="${44 - v * 10}" rx="2" fill="${INK}" fill-opacity=".55"/>`).join('')}</svg></div>
+  <div class="glass" style="top:500px;left:212px;right:12px;height:100px;padding:14px 16px"><div style="font-size:12px;color:#2E4A62">Steps</div><div style="font-size:29px;font-weight:500;line-height:1.25">${D.steps}</div><div style="font-size:12px;color:#2E4A62">usual full day ${D.stepsUsual}</div></div>
+  <div class="glass" style="top:612px;left:212px;right:12px;height:100px;padding:14px 16px"><div style="font-size:12px;color:#2E4A62">HRV</div><div style="font-size:29px;font-weight:500;line-height:1.25">${D.hrv} ms</div><div style="font-size:12px;color:#2E4A62">${I.up} above normal ${D.hrvLo}–${D.hrvHi}</div></div>
+  <div class="glass" style="top:724px;left:12px;right:12px;height:84px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:12px;color:#2E4A62">Daily score</div><div style="font-size:29px;font-weight:500;line-height:1.2">${D.daily}</div></div><div style="font-size:12px;color:#2E4A62;max-width:170px;text-align:right">Firms up as your day is logged</div></div>
+  <div class="glass" style="top:820px;left:12px;right:12px;height:72px;padding:12px 16px"><div style="font-size:15px">Resting HR ${D.rhr} bpm · normal</div><div style="font-size:12px;color:#2E4A62">Strain ${D.strain}, normal ${D.strainNorm}</div></div>
+  <nav class="nav">${['Today', 'Sleep', 'Trends', 'Coach'].map(l => `<span class="${l === 'Today' ? 'on' : ''}">${l}</span>`).join('')}</nav></div>`;
+
+// Directions. pts: where this page samples the swatches on the sunny render (x, y as fractions of the screen).
+const DIRS = [
+  { id: 'control', name: 'Control · 3.15 land', thesis: 'The current land: two low hill lines, a lake strip, one row of tufts, flowers and stones, then the page gradient.',
+    principles: ['Scene and page as one picture (Samsung).'], axes: { Landform: 'two thin parallel crests', Water: 'lake strip', Vegetation: 'tufts, flowers, stones, shrubs on the lip', Layers: '2 + lip', Colour: 'palette per hour and weather', Motion: 'wind in the lip, lake ripples', Data: 'none' },
+    jobs: ['Hills: horizon line', 'Lip: where the first card lands', 'Page: calm ground for the glass'], pts: { far: [.78, .355], mid: [.30, .362], near: null, water: [.5, .378], turf: [.5, .405] } },
+  { id: 'loch', name: 'Loch', thesis: 'Depth by air: three ridges step back into the haze over a still mirror lake.',
+    principles: ['Aerial perspective: far ridge pale, near ridge dark (CLAUDE.md terrain specs, Smokies ramp).', 'Overlap with alternating highs: far right, mid left, near right.', 'Detail only in the nearest ridge (wooded crowns); far ridges flat planes.', 'Mirror lake doubles the silhouettes at no new shapes.'],
+    axes: { Landform: '3 rolling ridges + low shore', Water: 'lake (mirror)', Vegetation: 'moor and woods, reeds at the shore', Layers: '3 + lake + lip', Colour: 'cool aerial perspective; local green only near', Motion: 'mist pooling at each ridge foot, lake ripples', Data: 'season tints moor and shore' },
+    jobs: ['Far ridge (right): the highest line, sets the depth', 'Mid ridge (left): sits behind the hero number, low contrast', 'Wooded near ridge: the darkest value, above the first card', 'Lake: reflects the sky, so weather reads twice', 'Shore lip: where the first card lands'], pts: { far: [.84, .335], mid: [.12, .352], near: [.64, .362], water: [.40, .386], turf: [.5, .412] } },
+  { id: 'chalk', name: 'Chalk coast', thesis: 'A bright sea horizon and white cliffs that take the colour of the sky.',
+    principles: ['A light-catching material (chalk) reports the weather and the hour: blue shade by day, lilac at dusk, steel in rain.', 'Open sea horizon on the left keeps the hero side calm; mass on the right.', 'Two headlands step toward the viewer: size and value give the depth.'],
+    axes: { Landform: 'cliffs and headlands, a clifftop lip', Water: 'open sea, surf at the cliff feet', Vegetation: 'short downland turf only', Layers: '2 headlands + sea + clifftop', Colour: 'white chalk mirrors the sky colour; saturated sea', Motion: 'surf, glitter on the sea', Data: 'season tints the turf caps' },
+    jobs: ['Far headland: the vanishing point of the coast', 'Near headland: the one bright mass, right of the hero', 'Sea: a flat horizon under the sky', 'Clifftop lip: the card lands on the grass edge'], pts: { far: [.56, .364], mid: [.86, .362], near: null, water: [.20, .380], turf: [.5, .405] } },
+  { id: 'downs', name: 'Downs', thesis: 'Long, slow swells of grass where the light and the season do all the work.',
+    principles: ['Few large planes (Old Man\'s Journey, Firewatch): three swells, no water.', 'Crest light separates overlapping planes without outlines.', 'Season carries the colour: green winter–spring to gold straw in summer.', 'One copse gives scale; nothing else on the skyline.'],
+    axes: { Landform: '3 broad overlapping swells', Water: 'none', Vegetation: 'grass, one copse', Layers: '2 + a large near swell', Colour: 'warm local colour, season-led', Motion: 'wind combing the near swell, cloud shadows sweeping', Data: 'season (strongest of all directions)' },
+    jobs: ['Far swell: a low quiet horizon', 'Big swell (right) with the copse: the main mass, away from the hero', 'Near swell (left, high): carries the texture and the wind; the card lands on its foot'], pts: { far: [.25, .362], mid: [.86, .350], near: [.12, .392], water: null, turf: [.6, .405] } },
+  { id: 'steppe', name: 'Steppe', thesis: 'Almost nothing: one long horizon and a plain of grass; the sky does the talking.',
+    principles: ['Maximum sky, minimum silhouette (steppe reference: flat horizon at L* 63–75).', 'Depth from perspective texture, not from overlaps.', 'Seasonal pools: sky mirrors in winter and spring, dry mud and rust patches in summer.'],
+    axes: { Landform: 'flat plain, a barely visible far rise', Water: 'seasonal pools', Vegetation: 'tussock grass, glasswort patches', Layers: '1 rise + the plane', Colour: 'monochrome sage to straw; the sky colour fills the pools', Motion: 'grass waves rolling across the plain', Data: 'season shows as pools vs dry ground' },
+    jobs: ['Far rise: only a hint, keeps the horizon from being a ruler line', 'The plane: perspective carries the depth; pools repeat the sky', 'No lip: the plain runs straight into the page'], pts: { far: [.30, .367], mid: [.5, .378], near: [.5, .395], water: null, turf: [.5, .408] } },
+  { id: 'bay', name: 'Pine bay', thesis: 'A sheltered Mediterranean bay: turquoise shallows, a pale beach, stone pines on a low headland.',
+    principles: ['High-key Mediterranean palette (Alba): sand, turquoise, umbrella-pine green.', 'Framing: a near headland left, a far one right, the bay opening between them.', 'Water depth as colour: deep blue far, turquoise over sand near the beach.'],
+    axes: { Landform: 'two headlands and a beach crescent', Water: 'shallow bay, sand showing through', Vegetation: 'stone pines, macchia scrub, dune grass', Layers: '2 headlands + bay + beach', Colour: 'high-key turquoise and sand', Motion: 'foam lapping the beach, glitter', Data: 'season tints the macchia' },
+    jobs: ['Near headland with pines (left): frames the hero side, darkest value above the cards', 'Far headland (right): closes the bay', 'Bay: depth gradient from deep to turquoise', 'Beach: the card lands on the sand; the page starts sand-light'], pts: { far: [.95, .358], mid: [.08, .352], near: null, water: [.55, .382], turf: [.5, .412] } },
+];
+
+const hex = (r, g, b) => '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase();
+const Ls = (r, g, b) => { const l = v => (v /= 255) <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; const Y = .2126 * l(r) + .7152 * l(g) + .0722 * l(b); return Math.round(Y > .008856 ? 116 * Math.cbrt(Y) - 16 : 903.3 * Y); };
+async function sample(src, pts) {
+  const im = new Image(); im.src = src; await im.decode();
+  const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const g = c.getContext('2d'); g.drawImage(im, 0, 0);
+  const at = ([x, y]) => { const d = g.getImageData(Math.round(x * im.width) - 2, Math.round(y * im.height) - 1, 5, 3).data; let r = 0, gg = 0, b = 0; for (let i = 0; i < d.length; i += 4) { r += d[i]; gg += d[i + 1]; b += d[i + 2]; } const k = d.length / 4; return [r / k, gg / k, b / k].map(Math.round); };
+  const out = {}; for (const [k, p] of Object.entries(pts)) if (p) out[k] = at(p);
+  out.sky = at([.5, .30]); [.45, .60, .80, .95].forEach((y, i) => out['page' + i] = at([.5, y]));
+  return out;
+}
+(async () => {
+  const B = document.getElementById('board');
+  for (const d of DIRS) {
+    const s = await sample(`t1/${d.id}-sunny.png`, d.pts);
+    const row = (k, label) => s[k] ? `<i style="background:${hex(...s[k])}"></i><code>${hex(...s[k])}</code><span>L* ${Ls(...s[k])}</span><span>${label}</span>` : '';
+    const el = document.createElement('section'); el.className = 'dir';
+    el.innerHTML = `<div class="sheet"><h2>${d.name}</h2><div class="thesis">${d.thesis}</div>
+      <h3>Principles</h3><ul>${d.principles.map(p => `<li>${p}</li>`).join('')}</ul>
+      <h3>Axes</h3><dl>${Object.entries(d.axes).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
+      <h3>Each layer's job</h3><ul>${d.jobs.map(p => `<li>${p}</li>`).join('')}</ul>
+      <h3>Tokens · sampled, sunny 13:00</h3><div class="sw">${row('sky', 'sky above the land (y .30)')}${row('far', 'far')}${row('mid', 'mid')}${row('near', 'near')}${row('water', 'water')}${row('turf', 'turf / lip')}${row('page0', 'page y .45')}${row('page1', 'page y .60')}${row('page2', 'page y .80')}${row('page3', 'page y .95')}</div></div>
+      <div><div class="phones"><figure>${today(`t1/${d.id}-sunny.png`)}<figcaption>Today · full glass · sunny 13:00</figcaption></figure>
+        ${['sunny', 'rain', 'night'].map(st => `<figure><div class="bare"><img src="t1/${d.id}-${st}.png" alt="${d.name}, ${st}"></div><figcaption>${st}${st === 'night' ? ' 23:00' : ' 13:00'} · no UI</figcaption></figure>`).join('')}</div>
+        <div class="meas" id="m-${d.id}"></div></div>`;
+    B.appendChild(el);
+  }
+  try { const m = await (await fetch('t1/measure.json?' + Date.now())).json(); for (const [k, v] of Object.entries(m)) { const e = document.getElementById('m-' + k); if (e) e.textContent = v; } } catch (e) {}
+})();
+</script>
+</body>
+</html>

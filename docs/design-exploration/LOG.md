@@ -370,3 +370,256 @@ Feedback on 3.15: every state approved except fog. Clouds: right style. Night: d
 Tools: `board316.js`; `sample.js` compares fog against `reference/video/patches-of-fog.png`.
 STOP: ready to start the terrain design.
 
+
+## T0 · Terrain discovery (2026-11-20, in progress)
+Brief: `docs/design-exploration/NEXT-SESSION-PROMPT-terrain.md`. Terrain = everything from the horizon (y .37) to where the cards start (.42), plus the page the cards sit on. The 3.15 land is the control.
+
+**Audit: what the land does now** (`design-prototype/scene-gl.js`, FRAG)
+- Slice 0: `hillFar` (≤ 2.0% of screen height) and `hillNear` (≤ 4.2%), both fbm crests on the horizon line; `hillCol` = palette `hill` + sun-facing slope light + haze toward the base + snow on crests; `water` below .37 (sky and hills mirrored, Fresnel, ripples fading to the horizon, streaks, sun/moon path).
+- Slice 2: back row of grass blades on `lipTop` (LIP .398 ± .03). Slice 3: turf under the lip, `shrubs`, `stones`, front `blades`, `flowers`, then `page` (pg0..3 from .42 to 1). Cloud shadows on the turf from one `density()` sample. Wind (MRT) moves the lip only.
+- Weather/hour: palette swaps (`hill`, `water`, `h[4]`, `pg[4]` per hour and per PAL_FOG/RAIN/STORM/SNOW/OVC); `landFinish` adds fog banks and the rain veil to the far band, cools grey weather, adds haze; snow whitens crests, lip and page; overcast removes slope light; night darkens 10%.
+- What the glass sits on: only the page gradient (meadow green → teal → blue), never the hills or lake.
+- Cost (PC, headless 412×915, `contrast.js cost`): full slice render fair 2.7 ms, rain 5.7, snow 5.6, fog 1.9, stratus 5.9 (clouds dominate); compose + post 0.16–0.26 ms. Land cost: the blade loops (5 cells × `lipTop` fbm, two slices) and the shadow `density()` tap.
+- Glass contrast baseline (same run): fair 5.30, rain 5.12, snow 5.75, fog 5.07, stratus 5.38. Sky text ≥ 5.32.
+- Shots: `tools/visual-loop/out/t0/` (all 9 states, `ours-full.png`, `ours-land.png`, `ours-lip.png`, `today-sheet.png`).
+
+**Measured value structure (bands.js, sunny 13:00):** horizon sky L\* 86; hills L\* ~84 (2 under the sky); lip L\* 79–83; page L\* 74–82 down to the nav. The whole lower 60% of the screen spans ~9 L\*. Night: horizon sky L\* 34, land a flat L\* 18–19 slab.
+
+**References:** 36 photos + 26 stylised stills in `reference/terrain/` (gitignored). Rules written to CLAUDE.md "Terrain reference specs". New tools: `tools/visual-loop/montage.js` (contact sheets, band crops), `bands.js` (band ramps with L\*).
+
+**Audit verdict**
+- Works: (1) scene and page read as one picture (Samsung principle: land continues into the page); (2) the high-key page keeps AA with margin (≥ 5.07); (3) SkyState reaches the land (fog banks, rain veil, snow, cool grey); (4) wind lives in compose, cheap.
+- Fails: (1) **No aerial perspective**: far hills sit 2 L\* under the sky (references: 8–20), so depth vanishes. (2) **No massing**: two thin parallel crests at 2–4% height, then a near-flat lip; references show 3–5 overlapping silhouettes. (3) **Clip-art lip**: one row of same-scale tufts, round flowers and brown stones in a 46 px band reads as a sticker strip, and is below legible size on a phone. (4) **Generic page**: "green bump + blue gradient"; nothing below .45 has material or responds to weather except hue. (5) **Water is a line** (~1.5% of height), so its optics (mirror, path) barely show. (6) **Night has no silhouette**: the land is one navy slab; the crest line, the only thing night land should show, is lost. (7) **Snow is flat white**: no form drawn by shading.
+- Constraint found: under the cards the scene must stay ≥ L\* 71 (`#86B9A0`). Deep near values (L\* 25–45) can only live above y .42, so real depth contrast must happen between the horizon and the lip, or by letting land rise above the horizon line into the sky band.
+
+**Interview answers (2026-11-20):** places = lake + layered hills, sea coast / cliffs, open downs / steppe (not mountains/fjord); style = painterly-real; land may also change with the season (date), Mediterranean year; hour of day kept as now; room = stay in the strip, far ridges may rise to ~30%; no-gos = no buildings, roads or other human marks (trees allowed).
+**Terrain brief v1 (approved 2026-11-20):**
+- Places: lake with layered hills, sea coast with cliffs, open downs or steppe (each a T1 direction family).
+- Style: painterly-real. Real light and haze, few flat planes, detail only in the nearest plane, fine grain, no outlines.
+- Room: ridge tops may reach y .30; land lives in .30–.42. Below .42 the page stays a light gradient (≥ L\* 71), no terrain detail under the cards.
+- Depth: 3–5 overlapping silhouettes; far ridge 8–20 L\* under the horizon sky; dark values only above .42.
+- Changes: weather (SkyState) and hour as now, plus season by date on a Mediterranean year (green winter–spring, gold straw summer, amber autumn; snow only as weather). Body data stays in the sky.
+- No-gos: no buildings, roads, fences, boats, figures or other human marks. Trees allowed.
+T0 STOP passed: user said "Yes, brief OK".
+
+## T1 · Terrain directions, diverge (2026-11-20)
+Board: `design-prototype/r4a-board.html` (each direction: token sheet with swatches sampled from the render by the page, Today under the full glass at sunny 13:00, then sunny / rain / night without UI). Renders in `design-prototype/t1/`; single scenes: `scene.html?terrain=<name>&dry=<0..1>`.
+
+**Built (scene-gl.js):** `?terrain=` / `opts.terrain` (control, loch, chalk, downs, steppe, bay) and `opts.dry` (season, 0 green .. 1 straw; default `dryAt(date)` on a Mediterranean year: Nov 20 = .40). Terrains are **numbers in uniforms** (`TERRAIN_P`: per-layer crest shape `uLy`, props `uLz`, lip shape `uLip`, colour tokens `uTk`), one branch-free program. The first version branched per direction inside the grass loops and the D3D compiler stalled (> 5 min); parametric also ports to AGSL as data. Lighting `tLight` (sun or moon on a plane + sky light; overcast trades sun for sky), aerial perspective `tAir` (toward the horizon colour by distance, glowing toward the sun), mist at each layer's foot, crest light, print grain, one cloud-shadow sample per pixel from the volume. Water `tWater` mirrors the far shore about its foot. Steppe ground plane `tPlane` with footprint-filtered texture and seasonal pools. Bay pines `tPines`. Page top colour lifted from the near land (`gPgTop`, L .80). Control path unchanged (lipTop now reads uniforms; control numbers reproduce the 3.15 formula).
+
+**Directions (thesis):**
+1. **Loch:** depth by air, three ridges stepping back into the haze over a mirror lake (alternating highs right/left/right, wooded near ridge, reeds).
+2. **Chalk coast:** a bright sea horizon and white cliffs that take the sky's colour (two headlands right, open sea left, clifftop lip, surf).
+3. **Downs:** long slow swells where light and season do the work (far swell, big swell right with a copse, near swell high left; no water).
+4. **Steppe:** almost nothing, a plain with seasonal sky-mirror pools; the sky does the talking.
+5. **Pine bay:** a sheltered Mediterranean bay, turquoise shallows over sand, a pale beach, stone pines on a low headland.
+Pairwise each differs on ≥ 3 axes (landform, water, vegetation, layer count, colour strategy, motion).
+
+**Visual loop (fixed before showing):** far ridges vanished in haze (D 26 → 42 km); night land glowed olive (moon light × .2); land light ~1.3× albedo flattened the values (now ~1×); chalk cap read as an outline (now a soft shoulder ~⅓ of the cliff, weathered faces, soft surf); steppe was a blurred band (texture frequencies raised, pools made the feature); lip → page fade ran under the first card (now complete by y .419).
+
+**Measured** (`contrastT.js`, one page, 9 day cases each incl. 08/13/17 h, partly, overcast, rain, snow, fog, first run; `floor.js`; `bands`-style sampling on the board):
+- Glass AA: worst 5.06 (control) / 5.07–5.08 (all directions), always fog/nav. Sky text worst 5.32.
+- Floor (≥ L\* 71 under the cards): every direction passes (sunny 74.4, rain 71.5). **Control rain fails: L\* 66.7 at the first card's top edge (pre-existing since 3.15).**
+- Values vs the T0 rule (far 8–20 L\* under the L\* 85 sky): loch 76 / 70 / 55; downs 77 / 75 / 73; bay 72 / 59; chalk inverted by design (faces 81–86); steppe plain 64–70.
+- GPU (PC, RTX 4060, headless 412×915, rain): full slice render 5.5–6.4 ms (≤ 8 ms budget), compose + post 0.20–0.25 ms (≤ 0.3). Fair-sky render 2.65–3.1 ms (3.16: 2.5).
+- **Regression to fix before lock:** cold shader compile in headless D3D11 went 17 s → ~110 s (plus a second ~110 s for the MRT variant). Bisected: slice 0 terrain code ~70 s, slices 2/3 ~40 s (inlining of crest/colour functions in unrolled loops). Phone GLES compile not measured. Shoot tools now compile once per run and switch states with `set()` (`shootT.js`, `contrastT.js`).
+- Season shown at `dry=0.15` (spring) on the board for like-for-like; today's date gives .40 (olive).
+
+**Known weaknesses (for T2/T3):** the lip's grass-tuft rows still read as stickers on loch, chalk and downs; chalk faces still slightly graphic; steppe is the weakest in a 46 px strip; rain lips sit darker just above the cards; motion (mist drift, surf, grass waves) is only partly live (water and surf animate in the slice, not in compose).
+
+Tools added: `tools/visual-loop/shootT.js`, `contrastT.js`, `floor.js`, `probe.js`, `montage.js`, `bands.js`.
+STOP: waiting for the user to pick, kill or mix directions.
+**T1 decision (2026-11-21):** Loch is the only survivor. The baseline (control) and Downs "somewhat compete". The trees from Pine bay are liked, but they need not be pines. Killed: chalk, steppe, bay (as directions). Asked for T2: Loch with less water and a bit more landscape variation; Loch with two small trees; more directions from me.
+
+## T2 · Loch, converge (2026-11-21)
+Board: `design-prototype/r4b-board.html` (each loch: what changed, sampled swatches, Today under the full glass at sunny 13:00, then sunny, partly, overcast, rain, snow, morning fog, dawn, dusk, night, first run, and the season across a Mediterranean year: winter .05, today .40, summer .95). Renders in `design-prototype/t2/`.
+
+**Five lochs** (`?terrain=`):
+1. `loch`: the T1 survivor, reference.
+2. `lochLand` (asked): less water (strip 3.1% → 2.3%, a grassy promontory from the left hides about a third of it) and more land variation (a fell with two summits and a saddle, a mid hill with woodland patches, a smaller wooded knoll).
+3. `lochTrees` (asked): the T1 loch plus two small broadleaf trees (holm oak / olive habit) on the shore at 74% and 86% across, 3.6% and 2.6% of the screen high.
+4. `lochDowns` (mine, for "Downs competes"): a small loch held between grass swells, copse on the big swell, one tree; season strongest here.
+5. `lochOpen` (mine, for "the baseline competes"): the control's layout (wide water, two long low ranges, flat quiet shore) rebuilt with T1 light and air.
+
+**Built (scene-gl.js):** `tTree` (four crown masses per tree with leaf-clump edges, lit toward the sun and darker underneath, short leaning trunk, contact shadow on the turf, sways with the gusts via the wind material), woodland patches per layer (`uLw`), grass rows as numbers (`uGr`: back/front density and height, mask, wind-comb), trees as numbers (`uTr`, `uTrC`). The T1 per-direction grass branches are gone.
+
+**Fixed on the way (visual loop):**
+- Dusk and dawn drew a bright outline along the far ridge tops: the post pass's silver rim (3.16) only excluded the old low hill line. Now it only acts above y .285, over the highest ridge.
+- Near clouds drew in front of the far fell (physically possible, a cloud base below a 2 km summit, but it read as clouds cut into the mountain). The near-cloud march now stops at the terrain (`clouds(..., fd)` with the front layer's distance), so ridges hide what is behind them.
+- Trees first read as dark cut-outs: lighter albedo, stronger sun-side light. Woodland patches were large camouflage blobs: smaller and broken up.
+
+**Measured:**
+- Glass AA: worst 5.07 for all five (always fog, nav), spring and (lochTrees, lochDowns) summer. Sky text worst 5.31.
+- Floor (≥ L\* 71 under the cards): every state shot passes for all five (`floor.js` over 11 states each, incl. summer).
+- Values under an L\* 85 sky (far / mid / near): loch 76/70/55, lochLand 76/65/51, lochTrees as loch, lochDowns 77/76/69, lochOpen 81/69 (far only 4 under: weakest depth).
+- GPU (PC, rain): full render 4.3–6.2 ms, compose + post 0.17–0.26 ms. Cold compile still ~110 s per program variant (headless D3D11), open item.
+
+**Open:** the back grass row still reads as a row of tufts (all variants); lochOpen's far range sits too close to the sky value; motion (mist drift) not shown on stills.
+STOP: waiting for the user to pick the loch (or a mix) for T3.
+
+## T3 · Loch, refine: merge, mountain, near trees, shore (2026-11-21)
+**T2 decision (2026-11-21):** likes Loch · less water (more land), the small trees but much closer to the front and something beautiful (sugar maple, cherry blossom, or other species that fit the place), the closeness of Loch in the downs, a high mountain on the far horizon for depth, the calm of the open loch. Add sand or brown soil. "We can roll back if need be; we haven't landed the landscape yet."
+
+Board: `design-prototype/r4c-board.html` (Decision 1: water A/B, each with Today under the full glass, the land band, ten weather/hour states and the year; Decision 2: six tree species across the year). Renders in `design-prototype/t3/`. Single scenes: `scene.html?terrain=lochHeld|lochCalm&tree=<species>&doy=<day of year>`.
+
+**Two merged lochs (the A/B):** `lochHeld` = the downs' closeness + less water (near swell high left, big swell close right, a small loch between, the mountain framed between them). `lochCalm` = the open loch's wide still mirror, long low ranges, land rising only at the left edge. Shared: mountain, trees, shore.
+
+**Built (scene-gl.js):**
+- Far mountain (`MTN`, layer 0, 46 km, ~7% of screen high, centre-left): a range from two massings + a cosine of summits + ridged detail; rock on steep faces; a snow line that follows the season (`uLm`, table `MSNOW` by day of year: deep in Jan, patches in Jul, first falls late Oct); gullies carry snow down. Mirrored in the lake.
+- Near trees (`tTree` rewritten): trunk flaring at the root, six bowed limbs, twigs, nine leaf clusters on a golden-angle spiral, each lit as a soft sphere toward the sun, darker underneath; autumn colour varies per cluster (sun side first); blossom among the leaves with a little translucency; a thinning crown opens up and a bare crown reads as a soft twig haze. Species and the year are data (`SPECIES`, `phen(species, doy)` → uniforms `uTs`): maple, cherry, Judas tree, almond, oriental sweetgum, oriental plane (holm oak keeps the T2 trees). The large tree is 11.8% of the screen high (3× T2), the second 5.6%, both right of the hero.
+- Shore (`uSd`): sand beaches in coves where the lip meets open water (wet edge), a broken fringe of earth behind them, worn earth patches (more in the dry months), leaf litter or petals under the trees by season; grass tufts thin out on the beaches.
+- Near trees are no longer veiled as "distance" by fog and rain (`gNear` in `landFinish`).
+- `?doy=` / `opts.doy` drives trees, mountain snow and grass dryness together; `?tree=` picks a species. `shootT.js`: `terrain:species` specs, year states (jan … oct), states no longer carry `doy`/`dry`/`tree` over from the previous shot.
+
+**Visual loop (fixed before showing):** the first beach was one continuous band along the lip with a dark edge (read as a path: banned human mark) → coves only, broken earth fringe. First mountain was a lone cone (read as clip-art Fuji) → a range. Trees read as lollipops with antenna twigs → lower, wider crowns, bowed limbs, twigs hidden in full crowns, twig haze when bare. Rain and fog washed the near trees out like the far hills → exempt.
+
+**Measured:**
+- Glass AA worst: lochHeld 4.98, lochCalm 5.05 (overcast, week strip; T2 was 5.07). Still ≥ 4.5. Sky text worst 5.32.
+- Floor under the cards: ≥ L\* 71.5 for both (rain, fog, overcast, snow, summer, spring cherry).
+- GPU (PC, rain): full render 5.9 / 6.4 ms, compose + post 0.23 / 0.24 ms.
+- **Cold compile regression:** headless D3D11 compile + first converge went from ~110 s to ~310 s (the tree loops are unrolled per call site). Must be fixed before lock (phone GLES compile not measured).
+
+**Critique (impeccable, degraded single-context, scene judged under the glass):**
+1. Hierarchy: the near tree is now the only saturated warm mass on the screen and competes with the readiness number for the first read (most in autumn red and Judas magenta).
+2. Crown edges are lumpy at 110 px: painterly, but the leaf-scale texture is missing, so a crown reads as a cut-out on close look.
+3. Bare winter (Dec–Mar for most species) still shows a few straight limb ends through the haze.
+4. The mountain does its depth job best on B (open, mirrored); on A the swell hides most of it.
+5. Unchanged: the land is still a ~5% band; the green lip → page fade under the first card is flat.
+
+STOP: waiting for the user's pick on water (A held / B calm / mix) and tree species.
+**T3 decision (2026-11-21):** water B (open and calm, `lochCalm`), tree: maple. Asked: the mountain more of a range and not the whole horizon; the tree textures are the weakest part ("they look really bad").
+
+## T4 · Mountain range, tree foliage (2026-11-21)
+Board: `design-prototype/r4d-board.html` (one decision: leaf clump size A fine / B medium / C painted, each with Today under the full glass, the tree through the year, and ten weather/hour states). Renders in `design-prototype/t4/`. Single scene: `scene.html?terrain=lochCalm&tree=maple&leaf=fine|medium|painted&doy=`.
+
+**Mountain:** a bounded range (u ~.08–.62, about half the horizon), five or six summits under a cosine of peaks, sharp ridged crests (`1 - |2n - 1|`, two octaves) whose detail is scaled by the massif's own height, so the range ends in open horizon on both sides instead of running along it (T3's ridge detail was added everywhere). 38 km (was 46) so it reads; mirrored in the loch; snow line by season as T3.
+
+**Trees, rebuilt (`tTree`):** three versions this round, two rejected in the loop:
+1. Separate cellular leaf clumps over a dark core → read as orange sprinkles / polka dots.
+2. Overlapping clumps kept by their centre, crevice along each cell border → read as cobblestones / bubble wrap (a visible Voronoi grid).
+3. **Shipped:** painted foliage. The crown is a lobed silhouette lit as one form plus its masses, in four tones (underside, shade, mid, light); the leaf texture lives only in the edges: clump bumps (cellular, two scales) break the silhouette and the borders between tones. Autumn thinning opens rounded gaps from the rim inward; sun through the brightest edge; sparse leaf glints; shade side pulled below sky-light level for a clear light/shadow split. Wood: trunk flaring at the root, five limbs fanning up, side branches; bare months keep the twig haze. `TREE_STYLE` (`?leaf=`): clump cell .040 / .060 / .090 of the tree's height.
+- Big tree moved to u .865, 10.8% high (was .83, 11.8%); small tree .655, 5.2%.
+
+**Measured:**
+- Sky text: **failed at first, 2.31:1** (overcast): the wider crown reached under the end of the readiness detail line. After the move: worst 5.32 (header, fog). Rule kept: the crown top stays below the hero block (y ≥ .29) right of x .66.
+- Glass AA worst 5.02 (overcast, week strip). Floor under the cards ≥ L\* 71.5 (rain, fog, overcast, snow, summer).
+- GPU rain full render 4.2–6.7 ms between runs (noisy under parallel jobs), compose + post 0.15–0.26 ms.
+- Cold compile + converge, headless D3D11: 324–384 s per run. Still the open regression from T3 (was ~110 s in T2); the new tree removed the nested loops but not the cost. Must be fixed before lock; phone compile unmeasured.
+
+**Still differs / open:** the crown edge is slightly ragged on the sun side; the land is still a thin band; the lip → page fade under the first card is flat; compile time.
+STOP: waiting for the user's pick of leaf clump size (A / B / C).
+**T4 decision (2026-11-21):** fine leaves are better but not yet to standard; the bare tree is the worst part (grey blob, branches not real). The range should take twice its share of the screen, run to the left edge and be a little taller.
+
+## T5 · Wider range, grown trees (2026-11-21)
+Board: `design-prototype/r4e-board.html` (T4 → T5 before/after on the land band at 1:1: January bare, today, July; then fine leaves with Today, the year and ten states; medium for comparison). Renders in `design-prototype/t5/`.
+
+**Mountain:** one continuous range from the left edge to ~u .55 (about twice T4's span), main summit ~8% of the screen high (`MTN` broad massing c .25 w .37 + summit .40, cosine summits only .14 deep so saddles stay high, two-octave ridged crest .016). First try (cos .30) read as three separate snow cones. Snow follows gullies (two-octave vertical streak noise, deeper cut), rock ribs stay dark.
+
+**Trees, grown (`treeSkel` in JS → `uTreeTex`):** the branching is grown once on the CPU per tree (seeded): trunk to the fork, four scaffold limbs, then breadth-first: each branch ends in a zigzagging leader (0.74 length) and throws 0–2 laterals on alternate sides along its outer half; widths by da Vinci's rule; a tip that would leave the species' crown envelope is shortened along its own direction. ≤ 400 segments per tree, two RGBA32F texels each (ends; widths + the scaffold limb's mass centre), one row per tree, texture unit 15; regrown only when species or seed changes. Previewed as SVG first (`skelsvg` in the scratchpad) to iterate without the 6-min compile: projecting tips onto the envelope made hoops → shorten instead; depth-first growth starved the right-hand limbs at the cap → breadth-first.
+- Shader (`tTree`): one dynamic loop over the segments with a per-segment box reject; each branch a tapered cylinder lit on its sun side; sub-pixel twigs fade by width and add up (union), so the bare crown is a real twig mesh. **The grey twig haze is gone.** Twigs redder and paler than bark.
+- Foliage hangs on the outer branches (segments thinner than .0105): crown = union of leaf reach around them (reach shrinks as the crown thins), edge broken by the fine clump field; shading = crown form + the limb's own mass + clump; autumn gaps open in a few clusters (first try left salt-like sky specks).
+
+**Measured:** glass AA worst 5.03; sky text worst 5.32; floor ≥ L\* 71.5; GPU rain full render 3.7 ms, compose + post 0.15 ms. Cold compile + converge 375–482 s (open regression since T3).
+
+**Still differs / open:** autumn gap edges are a little pixel-ragged; leaf-out (Apr) crowns patchy; compile time; the land band is still thin and the lip → page fade flat.
+STOP: waiting for the user.
+**T5 decision (2026-11-21):** keep refining the trees.
+
+## T6 · Tree foliage, refined (2026-11-21)
+Board: `design-prototype/r4f-board.html` (T5 → T6 on the land band at 1:1: July, today, April leaf-out; then the maple with Today, the year and ten states). Renders in `design-prototype/t6/`.
+
+**Close-up critique of T5 (5× crops):** the crown read as one smooth blob; inside, hard tone steps on cellular facets read as crumpled paper; autumn gaps were salt specks.
+
+**Changed (`tTree` foliage, `treeSkel`):**
+- Leaf domes: every level-2 branch group carries a mass centre; its twigs hold leaves only inside a dome around that centre (radius .20–.28 of the tree height, shrinking as the crown thins). The crown is a cluster of overlapping lobes with a few deep gaps where limbs show.
+- Shading: dome normal first, then crown form and the leaf clump; soft three-step painted ramp (no hard posterize); each dome's underside and the crown's underside darker; a soft crevice between clumps; sun through the brightest clumps.
+- Texture: round leaf clumps (fine cellular, 4% of tree height) that also scallop the outline.
+- Thinning: whole clumps fall, chosen by a cluster noise at the clump's centre plus a per-clump hash; holes are round with varied, slightly ragged radius.
+- First try (domes .17–.24, reach .066) was too open (an umbrella with a hole): domes .20–.28, leaf reach .082, mass centre closer to the branch.
+
+**Measured:** glass AA worst 5.02; sky text worst 5.32; floor ≥ L\* 71.5; GPU rain 6.2 ms full (shared GPU; T5 3.7), compose + post 0.23 ms; compile 350 s.
+
+**Open:** autumn holes still read a little as pinholes near the crown top; compile time; land band thin, lip → page fade flat.
+STOP: waiting for the user.
+**T6 decision (2026-11-21):** keep refining; the holes are the main problem: a crown that isn't full looks shot with a shotgun, perfectly round holes.
+
+## T7 · Thinning without holes (2026-11-21)
+Board: `design-prototype/r4g-board.html` (T6 → T7 for today and April leaf-out; the fall day by day 21 Nov → 28 Nov → 3 Dec → 15 Jan; leaf-out 14 Apr → 19 Apr → 15 Jul; then Today, the year and ten states). Renders in `design-prototype/t7/`.
+
+**Cause:** T6 thinned a solid crown by removing whole leaf clumps; clumps are round, so the gaps were circles.
+**Changed (`tTree`):** the hole mechanism is gone. Thinning happens in the branch loop: (1) each branch group gets its own fullness (`full` ± up to .8×(1 − full) by a per-group hash), so groups thin and go bare at different times; (2) a group's leaf reach around its twigs shrinks with `fd^1.5` (.082 → .004) and its dome with it (×.55 at bare), so leaves fall back onto the twigs and gaps take the shape of the spaces between branches; (3) along the twigs the reach is cut by a two-octave value noise in tree space (clusters, never circles). Leaf-out uses the same path in reverse. Full crowns and bare winter unchanged. First pass left late crowns solid inside → steeper reach curve.
+**Measured:** glass AA worst 5.04; sky text worst 5.32; floor ≥ L\* 71.5; GPU rain 5.0 ms full, compose + post 0.19 ms; compile 418 s (open).
+**Open:** one or two sky specks remain at the thinnest crown edges; compile time; land band thin, lip → page fade flat.
+STOP: waiting for the user.
+**T7 decision (2026-11-21):** "yes, move on": the thinning is accepted; move to the next open item (the land band and the lip → page seam).
+
+## T8 · The ground under the cards (2026-11-21)
+Board: `design-prototype/r4h-board.html` (per option: Today under the full glass at sunny 13:00 and partly cloudy, then ten states without UI). Renders in `design-prototype/t8/`. Single scene: `scene.html?terrain=lochCalm&tree=maple&leaf=fine&ground=flat|swell|fields`.
+
+**The decision:** what the land does under the glass. Horizon (37%) and first card (42%) are fixed, and everything under the cards stays ≥ L\* 71, so the land can only continue there high-key.
+- **A · Flat** (T7, control): the land stops at the lip; one calm gradient under the cards.
+- **B · Swell:** the ground plane runs on under the cards: a two-octave rolling height field in ground units (near forms large, far ones small and hazed), gentle slopes (~10–15°), lit from the sun's direction with a soft tanh shoulder, crests warm and hollows cool; the clouds' shadows cross it (one low-detail density tap per page pixel). The meadow green holds ~7% lower before the page turns teal. Diffuse light (overcast, rain, fog) flattens the forms.
+- **C · Fields:** B's ground laid out as a patchwork (cellular, wider than deep): one hue per field (green, sage, straw that grows with `dry`, pale), lum-matched to the page; hues and borders only in the meadow zone (y < .70).
+
+**Built (scene-gl.js):** `gForm` / `gH` / `gField`, uniform `uGd` (mode, form strength, cloud shadows), JS table `GROUND`, option `ground` (`scene.html?ground=`, `shootT.js` 4th field, `contrastT.js` now takes `terrain:tree:leaf:ground`). Floor in the shader: by day hollows may darken to L\* 71 (`lift` to luma .715); a page already near the floor (fog) is not darkened; dusk and night keep their own page.
+
+**Visual loop (fixed before showing):**
+1. First pass: the slopes were far too steep, so the light saturated against a hard clamp: flat dark plateaus with hard edges in a repeating camouflage pattern (and the swell read as a water surface in rain). → slopes ×.16, tanh shoulder, two broad octaves (the third made mottling), weather damping.
+2. Fields: one field turned cyan (hue multiplier on the teal page) and big patches read as lakes → hue laid on lum-matched, only in the meadow zone, smaller fields; then thin polygon borders showed across the blue band (cracked tiles) → borders only where the page is still meadow, softer.
+3. Floor failed in fog and rain (L\* 68.8–70.2) → shader floor. A first absolute floor lifted the approved dusk page to pale lavender → floor relative near the threshold, dusk untouched. A fully relative floor left only bright crests (read as lily pads) → day hollows may go to L\* 71.
+
+**Measured:**
+- Glass AA worst: A 5.04, B 5.04, C 5.03 (all overcast, week strip). Sky text worst 5.31–5.32 (header, fog).
+- Floor under the cards (`floor.js`, 10 states each): A, B, C ≥ L\* 71.5 by day (rain lowest); dusk 53–54 for all three (as in every round; dusk is not under the day glass rule).
+- GPU (PC, rain): full render A 6.17, B 6.81, C 6.16 ms; compose + post 0.21–0.23 ms. Cold compile + converge 402–448 s (open since T3).
+
+**Still differs / open:** in B the lit crests on the teal band still line up a little in rows (perspective of one noise field); C's field hues are subtle once blurred by the glass; compile time.
+STOP: waiting for the user's pick (A flat / B swell / C fields, or a mix).
+**T8 decision (2026-11-21):** A · Flat. The cards keep the calm page gradient; the land stops at the lip. `ground` stays `flat` by default; the swell/fields code (`gForm`, `uGd`, `GROUND`) is removed at terrain lock with the other unchosen variants.
+
+## T9 · Compile time (2026-11-21)
+**Asked:** fix the cold compile (open since T3: ~410 s headless from page load to a converged scene; T2 was ~110 s).
+
+**Measured where it goes** (new tools in `tools/visual-loop/`: `compileT.js` compiles one program or a variant with functions stubbed out and times link and first draw; `hlsl.js` dumps ANGLE's HLSL; `loadT.js` times the scene's load phases with `window.SCENE_T`; `pixdiff.js` diffs two folders of shots; `benchT.js` repeats the GPU bench; `bakeT.js` smoke-tests the on-device bake path):
+- Not loop unrolling: ANGLE already emits `SampleLevel` (no gradients in loops), and bounds FXC can't unroll changed nothing (308 s vs 282 s).
+- Stubbing parts: the cloud march −163 s, the terrain layers (`tColor`/`tCover`) −141 s, the trees only −38 s. HLSL inlines every call site, and `clouds()` was inlined 3 times (`skyCol()` from two branches of slice 0, plus slice 1), so the cloud density 19 times.
+- The load paid for the whole scene shader **twice**: D3D's FXC at link (~131 s), then the GPU driver's own compile at the first draw (~130 s). That second compile only shows with the real textures bound (with none bound the driver strips the code, which is why a bare harness missed it).
+
+**Changed (scene-gl.js), the image unchanged:**
+1. One call site of the cloud march for slices 0 and 1 (`skyCol()` takes the march result); one cloud-density sample per pixel for slices 2 and 3 (`cDen`, shared by the mid layer, the turf and `gForm`). Scene shader alone: 214 → 131 s.
+2. The scene is **two programs** from one source (`#define SKY_ONLY` / `LAND_ONLY`): sky (slices 0, 1) and land (slices 2, 3), compiled together (`progs()`: all compiles issued before any status is read, `KHR_parallel_shader_compile`). Uniforms go to both each frame (`sceneAll`, one jitter offset per frame); `useSlice(i)` picks the program. Compile time grows faster than the code, so the halves cost far less than the whole (contended: sky 90 s, land 64 s, both stages).
+3. Slices 0/1 get an unused RGBA8 second target (`pad`) so all four slices share one render-target layout (no extra shader variant); `window.SCENE_ONEPROG = true` keeps the old single program as a test switch.
+
+**Measured:**
+- Page load to converged scene (headless D3D11, `loadT.js` / `shootT.js`): **410 s → 105–114 s** (shaders 46 s, first draws to 103 s).
+- Pixels: 10 states against the T8 renders: max 18–56, mean ~1.0 level, the same as two runs of the old shader (max 18–28, mean ~1.0) and as two runs of the new one (dusk max 54): differences sit in the per-frame random jitter (water glints, crown edges). Crops of dawn and dusk side by side look identical.
+- GPU (PC, rain, same session): full render 4.1 ms one program / 4.2 ms split; compose + post 0.16 ms. (One earlier reading of 10.7–12.9 ms did not reproduce with unchanged code: other load on the GPU.)
+- Glass AA worst 5.05 (overcast, week strip); sky text worst 5.31. On-device bake path (`renderSliced` + `bake()`) runs and writes all eight slice files.
+
+**Open:** phone compile on the S21 not measured (the phone plays bakes; the on-device baker compiles the two live programs); measure at terrain lock.
+
+## Terrain lock (2026-11-22)
+**Asked:** "terrain lock". Locked: the open calm loch (T3 `lochCalm`), maple trees (T3), fine foliage (T4), thinning without holes (T7), a flat page under the cards (T8 A).
+
+**Removed from `scene-gl.js`** (1751 → 1465 lines; the image unchanged):
+- The other eleven terrain directions (control 3.15 land, loch, chalk, downs, steppe, bay, the T2 loch variants, lochHeld), their tokens and shapes; the `terrain` option and `uTerrain`. The land is now one table each: `LAND`, `TK`, `LEAF`.
+- Shader code only they used: the 3.15 hills, lake and lip (`hillFar/Near/Col`, `water`, stones, shrubs, flowers), the steppe plane (`tPlane`), bay pines, foam and wet sand, chalk faces, surf, headland ends, crest copses and crowns, woodland patches, painterly dabs, wind-combed downs grass (`uLw`, `uTrC`, `uHill`, `uWater` gone).
+- Species other than maple (cherry, Judas tree, almond, sweetgum, plane, holm oak), leaf styles medium and painted (`tree`, `leaf` options), and the T8 swell and fields (`gForm`, `gH`, `gField`, `uGd`, `GROUND`, the `ground` option).
+- The `SCENE_ONEPROG` test switch (T9). `scene.html` drops `terrain`, `tree`, `leaf`, `ground`; `?dry=` and `?doy=` still preview a season.
+- The T1–T8 boards are static images and still open; their `scene.html?terrain=…` notes are history.
+
+**Measured:**
+- Pixels, 10 states against the T9 renders (`pixdiff.js`, now with `BANDS=1` and `DIFFDIR=`): mean 0.97–1.09 levels, > 8 levels on 0.09–0.47% of pixels, all on edges (sun spikes, crown rims, the shore line, cloud rims) in the jitter, no area changed; the same order as two runs of one build.
+- Cold load to a converged scene (headless D3D11, `loadT.js`): **~110 s → 24.5 s** (the dead branches were still compiled).
+- GPU (PC, rain): full render 3.8–4.4 ms, compose + post 0.15–0.18 ms.
+- Glass AA worst 5.05 (overcast, week strip); sky text worst 5.32 (header, fog).
+- Re-baked `baked/today` (`bake.html`, headless via new `tools/visual-loop/bakeAll.js`): 14 keyframes (13 fair hours + stratocumulus 13:00) in 48 s, 17.5 MB (1.1–1.9 MB per keyframe; the 3.12 bakes of the old land were 2.5–3.6 MB). Baked vs live (`ab.html`, headless via new `abT.js`): 6:30 47.6 dB, 13:00 48.1, 19:00 46.8, 21:00 48.5 (worst tenth 41.2): identical to the eye.
+
+**Phone test** (Galaxy S21, Mali-G78, Chrome over adb + DevTools, new `tools/visual-loop/phoneT.js`; on USB, 48–49% battery, start 34.1 °C battery / 39.9 °C AP, thermal status 0):
+- Live, cold (cache cleared): noise 1.2 s, **both scene programs compiled by 3.8 s**, first frame 4.8 s, converged 8.8 s after navigation. Warm reload: shaders 0.8 s, converged 4.1–5.0 s. (On the PC headless D3D11 the same load is 24.5 s: the phone's GLES driver compiles far faster than ANGLE's HLSL path.)
+- Full render on the phone (4 slices + compose + post): 225–229 ms, the same order as 3.11 (140–240 ms per slice render then).
+- Baked (`baked/today`, PC bake): ready 1.2–1.9 s after navigation at 13:00, 1.3–1.5 s at 19:30 (a blend of two keyframes). Page **60 fps** idle; a tilt frame (compose + post) 8.7–13.0 ms of GPU; live mode after converging 48 fps.
+- Three minutes of baked playback with wind and birds: 59.8–60.1 fps throughout; battery 35.1 → 36.2 °C, AP 43–45 °C, thermal status 1 (light), 1% battery.
+- First run read ~1 fps: the test drove a background Chrome tab (throttled); `phoneT.js` now brings the test tab to the front. No GL errors; the only 404 is `favicon.ico`.
+
+**Terrain lock done.** Nothing committed yet.

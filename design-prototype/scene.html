@@ -8,7 +8,7 @@
 <script src="glass-check.js"></script>
 <script>
   const q = new URLSearchParams(location.search);
-  window.S = SceneGL.mount(document.getElementById('c'), { time: q.get('time') || 'day', readiness: q.has('r') ? (q.get('r') === 'null' ? null : +q.get('r')) : 86, animate: q.get('anim') !== '0', sky: SceneGL.PRESETS[q.get('sky')], seed: q.has('seed') ? +q.get('seed') : undefined, stepK: q.has('k') ? +q.get('k') : undefined, hour: q.has('h') ? +q.get('h') : undefined, post: q.get('post') !== '0' });
+  window.S = SceneGL.mount(document.getElementById('c'), { time: q.get('time') || 'day', readiness: q.has('r') ? (q.get('r') === 'null' ? null : +q.get('r')) : 86, animate: q.get('anim') !== '0', sky: SceneGL.PRESETS[q.get('sky')], seed: q.has('seed') ? +q.get('seed') : undefined, stepK: q.has('k') ? +q.get('k') : undefined, hour: q.has('h') ? +q.get('h') : undefined, post: q.get('post') !== '0', dry: q.has('dry') ? +q.get('dry') : undefined, doy: q.has('doy') ? +q.get('doy') : undefined });
 </script>
 </body>
 </html>

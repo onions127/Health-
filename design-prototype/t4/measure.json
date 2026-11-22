@@ -1,0 +1,3 @@
+{ "fine": "Same scene for all three (only the clump size differs). Glass AA worst 5.02 (overcast, week strip). Sky text worst 5.32. Floor under the cards ≥ L* 71.5 (rain). GPU rain: full render 4.2–6.7 ms across runs, compose + post 0.15–0.26 ms.",
+  "medium": "Measured on this one: glass AA worst 5.02, sky text 5.32 (after moving the big tree right: its crown had reached under the end of the readiness detail line, 2.31:1). Floor ≥ L* 71.5.",
+  "painted": "Same numbers as A and B; the bigger clumps cost nothing extra." }

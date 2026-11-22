@@ -1,0 +1,7 @@
+{
+  "loch": "Measured (contrastT.js, 9 day cases incl. first run, spring): glass worst 5.07 (fog, nav). Floor ≥ L* 71 under the cards in every state shot (sunny to summer). Values under an L* 85 sky: far 76, mid 70, near 55. Full render (rain) 6.1 ms, compose+post 0.25 ms.",
+  "lochLand": "Measured: glass worst 5.07 (fog, nav). Floor ok in every state. Values: far 76, mid 65, near 51 (the widest range of the five). Full render (rain) 6.2 ms, compose+post 0.25 ms.",
+  "lochTrees": "Measured: glass worst 5.07 spring and summer (fog, nav). Floor ok in every state. Values as Loch; trees L* ~45-55. Full render (rain) 4.8-4.9 ms, compose+post 0.20 ms.",
+  "lochDowns": "Measured: glass worst 5.07 spring and summer (fog, nav). Floor ok in every state. Values: far 77, mid 76, near 69 (compressed, high-key, like Downs). Full render (rain) 4.3 ms, compose+post 0.17 ms.",
+  "lochOpen": "Measured: glass worst 5.07 (fog, nav). Floor ok in every state. Values: far 81 (only 4 under the sky: the quietest, weakest depth), mid 69. Full render (rain) 6.2 ms, compose+post 0.26 ms."
+}
