@@ -680,4 +680,4 @@ Night cards 9.3:1 and the button ≥ 3.32 under every floor. Deep night and day 
 **Board:** `design-prototype/r5c-board.html` (before = G2 scene `g1/` + `g2/measure.json` regenerated on the pre-G3 scene; after = `g3/`).
 
 **Still differs:** twilight clouds are greyer and flatter than before (they lost the set sun's glow); the moon's starburst still shows at 20:30. Baked keyframes (`baked/`) are stale for twilight and night hours: rebake before phone tests.
-**Picked (2026-11-22): keep** the greyer twilight clouds (`AMBN` 1, `TWI` .9). Open: rebake `baked/` for twilight and night before the next phone test.
+**Picked (2026-11-22): keep** the greyer twilight clouds (`AMBN` 1, `TWI` .9). Re-baked `baked/today` (`bakeAll.js`): 17 keyframes, 20.2 MB. The twilight dip is not linear in the hour, so 20:30 read 32.7 dB as a blend of 20:00 + 21:00: keyframes 5.5, 20.25 and 20.5 added (`KEYFRAMES`), Cache Storage bumped to `sky-v4`. Baked vs live (`abT.js`): keyframes 47.5–48.8 dB; between them 5:15 44.9, 5:36 41.9, 20:06 39.1, 20:45 44.1.
