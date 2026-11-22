@@ -1,0 +1,6 @@
+{
+  "name": "visual-loop",
+  "private": true,
+  "description": "Screenshot scene states and pair them with the Samsung references",
+  "dependencies": { "playwright": "^1.65.1" }
+}

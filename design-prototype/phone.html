@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Health++ scene on the phone</title>
+<style>
+  html, body { margin:0; height:100%; background:#000; overflow:hidden; }
+  canvas { position:fixed; inset:0; width:100vw; height:100vh; display:block; }
+  #hud { position:fixed; left:8px; bottom:8px; font:12px/1.4 ui-monospace, monospace; color:#fff; background:rgba(0,0,0,.55); padding:6px 8px; border-radius:8px; white-space:pre; pointer-events:none; }
+  #hud[hidden] { display:none; }
+</style></head>
+<body>
+<canvas id="c" aria-label="Meadow scene with tilt"></canvas>
+<div id="hud" aria-live="off"></div>
+<script>document.write('<script src="' + (new URLSearchParams(location.search).get('src') || 'scene-gl.js') + '?' + Date.now() + '"><\/script>')   // ?src= loads another build, for A/B timing</script>
+<script>
+  // Phone test page: the full scene with tilt on. ?hud=0 hides the readout; ?h= hour; ?r= readiness; ?sky= preset; ?anim=0 freezes drift;
+  // ?seed= day; ?baked=<set> plays PC-baked layers; ?src= another build.
+  // ?device=1 (3.13): play layers baked on this phone if the current hour's two keyframes are cached, else render live; and bake
+  // the rest of today's keyframes in a background worker while charging (?force=1 bakes without the charger; ?budget= ?gap= in ms).
+  const q = new URLSearchParams(location.search), device = q.get('device') === '1';
+  const readiness = q.has('r') ? +q.get('r') : 86, seed = q.has('seed') ? +q.get('seed') : Math.floor(Date.now() / 864e5);
+  const now = new Date(), hour = q.has('h') ? +q.get('h') : device ? now.getHours() + now.getMinutes() / 60 : undefined;
+  const hud = document.getElementById('hud'); hud.hidden = q.get('hud') === '0';
+  const sky = { mode: '', bake: '', cacheMB: 0 };
+  window.PHONE = {};
+  (async () => {
+    let baked = q.get('baked') ? `baked/${q.get('baked')}/` : undefined, prefix = null, need = [];
+    if (device) {
+      const regime = SceneGL.regimeOf(readiness); prefix = `sky-cache/${seed}-${regime}/`;
+      for (const n of await caches.keys()) if (n.startsWith('sky-') && n !== SceneGL.SKY_CACHE) await caches.delete(n);   // skies baked by an older shader
+      const cache = await caches.open(SceneGL.SKY_CACHE);
+      for (const r of await cache.keys()) if (r.url.includes('/sky-cache/') && !r.url.includes(`/sky-cache/${seed}-`)) await cache.delete(r);   // only today's sky is kept
+      const m = await cache.match(new URL(prefix + 'manifest.json', location.href).href), man = m ? await m.json() : { bakes: [] };
+      const have = h => man.bakes.some(e => e.hour === h), [hA, hB] = SceneGL.bracketHours(hour);
+      if (have(hA) && have(hB)) baked = prefix;
+      // still to bake today: the current hour's two keyframes first, then the later ones (hours already past are not needed again today)
+      const later = SceneGL.KEYFRAMES.filter(h => h > hA && h !== hB);
+      need = [hA, hB, ...later].filter((h, i, a) => a.indexOf(h) === i && !have(h));
+      sky.mode = baked ? `baked on this phone (${man.bakes.length}/${SceneGL.KEYFRAMES.length} hours cached)` : 'live (nothing cached for this hour yet)';
+    }
+    const S = SceneGL.mount(document.getElementById('c'), { tilt: true, readiness, hour, sky: SceneGL.PRESETS[q.get('sky')], animate: q.get('anim') !== '0', post: true, seed, baked });
+    Object.assign(window.PHONE, { S, bench: () => ({ tilt: S.bench('tilt', 30), full: S.bench('full', 6) }) });
+    if (device && need.length) startBaker(S, need);
+    if (navigator.storage && navigator.storage.estimate) setInterval(async () => { sky.cacheMB = (await navigator.storage.estimate()).usage / 1048576; }, 2000);
+  })().catch(e => { hud.hidden = false; hud.textContent = 'FAILED ' + e.message; });
+
+  async function startBaker(S, hours) {
+    const battery = navigator.getBattery ? await navigator.getBattery() : null, force = q.get('force') === '1';
+    const w = new Worker('sky-baker.js'); let running = false, done = 0;
+    window.PHONE.baker = { w, log: [] };
+    w.onmessage = ({ data: d }) => {
+      window.PHONE.baker.log.push(d);
+      if (d.type === 'progress') sky.bake = `baking ${String(d.hour).padStart(5)} h: ${Math.round(d.frac * 100)}%  (${done}/${hours.length} done)`;
+      else if (d.type === 'keyframe') { done++; sky.bake = `baked ${d.hour} h in ${(d.renderMs / 1000).toFixed(0)} s (GPU ${(d.gpuMs / 1000).toFixed(1)} s), ${(d.bytes / 1048576).toFixed(1)} MB`; }
+      else if (d.type === 'done') { running = false; sky.bake = `all ${hours.length} keyframes baked in ${(d.ms / 60000).toFixed(1)} min`; }
+      else { running = false; sky.bake = `${d.type}: ${d.message}`; }
+    };
+    const go = () => {
+      const ok = force || (battery && battery.charging);
+      if (ok && !running) { running = true; w.postMessage({ seed, readiness, hours, prefix: `sky-cache/${seed}-${SceneGL.regimeOf(readiness)}/`, budgetMs: +(q.get('budget') || 8), gapMs: +(q.get('gap') || 16) }); }
+      else if (!ok && running) { w.postMessage({ stop: true }); }
+      if (!ok && !running) sky.bake = `${hours.length} hours to bake: waiting for the charger`;
+    };
+    const wait = () => new Promise(r => { const t = setInterval(() => { if (S.ready || document.hidden) { clearInterval(t); r(); } }, 200); });
+    await wait();                                                          // a live first open converges first; with the screen off nothing is shown, so the baker starts at once
+    go(); if (battery) battery.addEventListener('chargingchange', go);
+  }
+
+  let ori = '—', n = 0, fps = 0, t = performance.now();
+  addEventListener('deviceorientation', e => { if (e.gamma != null) ori = `γ ${e.gamma.toFixed(1)}° β ${e.beta.toFixed(1)}°`; });
+  (function tick(now) {
+    n++; if (now - t > 1000) { fps = n * 1000 / (now - t); n = 0; t = now; }
+    const S = window.PHONE.S;
+    if (S) { const c = S.canvas, tl = S.tilt;
+      hud.textContent = `${c.width}×${c.height}  frames ${S.frames}  render ${S.cost.toFixed(1)} ms  page ${fps.toFixed(0)} fps\ntilt x ${tl.x.toFixed(2)} y ${tl.y.toFixed(2)}   ${ori}`
+        + (device ? `\nsky: ${sky.mode}\n${sky.bake}  storage ${sky.cacheMB.toFixed(0)} MB` : ''); }
+    requestAnimationFrame(tick);
+  })(t);
+</script>
+</body>
+</html>

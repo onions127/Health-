@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Health++ · Round 3.9 · Grade and sun glow</title>
+<style>
+  body { margin:0; background:#ECEEF1; font:14px/1.5 system-ui, sans-serif; color:#1F2933; }
+  header, main, #glass { max-width:1000px; margin:0 auto; padding:0 24px; }
+  header { margin-top:32px; margin-bottom:16px; }
+  h1 { font-size:26px; margin:0 0 8px; font-weight:600; }
+  header p { max-width:780px; margin:0 0 12px; color:#3E4C59; }
+  .ctl { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:8px; }
+  label { display:flex; gap:8px; align-items:center; min-height:44px; }
+  input[type=range] { width:260px; min-height:44px; }
+  button { font:inherit; border:1px solid #C5CCD3; background:#fff; border-radius:999px; padding:8px 16px; min-height:44px; cursor:pointer; }
+  button[aria-pressed="true"] { background:#1F2933; color:#fff; border-color:#1F2933; }
+  main { display:grid; grid-template-columns:repeat(2, minmax(0, 340px)); gap:32px; margin-top:16px; }
+  figure { margin:0; }
+  .ph { aspect-ratio:412/915; border-radius:24px; overflow:hidden; background:#000; box-shadow:0 8px 24px rgba(31,41,51,.15); }
+  canvas { width:100%; height:100%; display:block; }
+  figcaption { margin-top:8px; font-size:13px; color:#3E4C59; }
+  figcaption b { color:#1F2933; display:block; }
+  #glass { margin-top:16px; margin-bottom:48px; color:#3E4C59; }
+</style></head>
+<body>
+<header>
+  <h1>Colour grade by hour, sun glow and light shafts</h1>
+  <p>Each hour now has a colour grade (white balance, shadow tint, saturation, a gentle S-curve), and the hours blend smoothly, so the whole scene reads as one picture. A post pass adds bloom around bright light and soft shafts from the sun through gaps in the clouds. Left: the same scene without the post pass. Also fixed: since Round 3.7 the sun was never drawn (its settings sat inside a code comment).</p>
+  <div class="ctl">
+    <label for="hour">Hour <input id="hour" type="range" min="0" max="24" step="0.25" value="13"> <output id="hv">13:00</output></label>
+    <label for="ready">Readiness <input id="ready" type="range" min="30" max="99" step="1" value="86" style="width:160px"> <output id="rv">86</output></label>
+    <span role="group" aria-label="Cloud style"><button id="vol" aria-pressed="true">Volumetric</button> <button id="pnt" aria-pressed="false">Painted</button></span>
+  </div>
+</header>
+<main>
+  <figure><div class="ph"><canvas id="a"></canvas></div><figcaption><b>Before</b>No grade, no bloom, no shafts</figcaption></figure>
+  <figure><div class="ph"><canvas id="b"></canvas></div><figcaption><b>After</b>Grade, bloom and light shafts</figcaption></figure>
+</main>
+<p id="glass" aria-live="polite"></p>
+<script>document.write('<script src="scene-gl.js?' + Date.now() + '"><\/script>')</script>
+<script src="glass-check.js"></script>
+<script>
+  const o = { readiness: 86, animate: false, hour: 13 };
+  const A = SceneGL.mount(document.getElementById('a'), Object.assign({ post: false }, o));
+  const B = SceneGL.mount(document.getElementById('b'), Object.assign({ post: true }, o));
+  const hv = document.getElementById('hv'), rv = document.getElementById('rv'), out = document.getElementById('glass');
+  let sky = null, timer = 0;
+  const fmt = h => `${String(Math.floor(h) % 24).padStart(2, '0')}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`;
+  function measure() {
+    const h = +document.getElementById('hour').value;
+    if (h < 7.5 || h > 17.5) { out.textContent = 'Card contrast is measured for the light glass used in daylight (07:30–17:30). Dawn, dusk and night use dark glass, checked later.'; return; }
+    const r = glassCheck(document.getElementById('b'), GLASS_RECTS), w = r.reduce((x, y) => x.worst < y.worst ? x : y);
+    out.textContent = `After, measured under the light glass (22% white, ink #2E4A62): worst point ${w.worst}:1 on the ${w.name}. ${w.worst >= 4.5 ? 'Passes AA.' : 'Fails AA.'}`;
+  }
+  function update() {
+    const h = +document.getElementById('hour').value, r = +document.getElementById('ready').value;
+    hv.textContent = fmt(h); rv.textContent = r;
+    [A, B].forEach(s => s.set({ hour: h, readiness: r, sky }));
+    clearTimeout(timer); out.textContent = 'Measuring…'; timer = setTimeout(measure, 2500);
+  }
+  document.getElementById('hour').oninput = update; document.getElementById('ready').oninput = update;
+  document.getElementById('vol').onclick = () => { sky = null; vol.setAttribute('aria-pressed', true); pnt.setAttribute('aria-pressed', false); update(); };
+  document.getElementById('pnt').onclick = () => { sky = SceneGL.PRESETS.painted; pnt.setAttribute('aria-pressed', true); vol.setAttribute('aria-pressed', false); update(); };
+  timer = setTimeout(measure, 3000);
+</script>
+</body>
+</html>

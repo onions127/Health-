@@ -1,0 +1,5 @@
+{
+  "flat": "Glass AA worst 5.04 (overcast, week strip). Sky text worst 5.32. Floor under the cards: darkest L* 71.5 (rain). GPU rain: full 6.17 ms, compose + post 0.21 ms.",
+  "swell": "Glass AA worst 5.04 (overcast, week strip). Sky text worst 5.31. Floor under the cards: darkest L* 71.7 (rain), hollows never below L* 71 by day. GPU rain: full 6.81 ms, compose + post 0.23 ms (one cloud-density tap per page pixel, baked, not per frame).",
+  "fields": "Glass AA worst 5.03 (overcast, week strip). Sky text worst 5.32. Floor under the cards: darkest L* 71.7 (rain). GPU rain: full 6.16 ms, compose + post 0.22 ms. Field hues fade out by the teal band; borders only in the meadow zone."
+}

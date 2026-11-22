@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Health++ · bake the sky</title>
+<style>
+  body { margin:24px; font:14px/1.5 system-ui, sans-serif; color:#1F2933; background:#ECEEF1; }
+  #host canvas { width:412px; height:915px; display:block; }
+  #host { width:206px; height:458px; overflow:hidden; border-radius:16px; }
+  #host canvas { transform:scale(.5); transform-origin:0 0; }
+  pre { font:12px/1.4 ui-monospace, monospace; white-space:pre-wrap; }
+</style></head>
+<body>
+<h1>Bake the sky layers</h1>
+<p>Renders each state with the full shader on this computer (24 frames each), packs the four depth layers as PNG (colour as RGBM, plus coverage and wind material) and saves them to <code>baked/&lt;set&gt;/</code> through bake-server.py. Phones then play these layers instead of rendering the sky. Query: <code>?set=today&amp;seed=&lt;day number&gt;</code>.</p>
+<div id="host"></div>
+<pre id="log"></pre>
+<script>document.write('<script src="scene-gl.js?' + Date.now() + '"><\/script>')</script>
+<script>
+const q = new URLSearchParams(location.search), set = q.get('set') || 'today', seed = q.has('seed') ? +q.get('seed') : Math.floor(Date.now() / 864e5);
+// What a day ships: the hour keyframes for each weather regime. Hours blend in between (linear light), the disc is drawn live.
+const STATES = [
+  ...SceneGL.KEYFRAMES.map(h => ({ name: `fair-${String(h).replace('.', '_')}`, readiness: 86, hour: h })),   // densest where the light changes fastest; 21:00 holds the night until 05:00
+  { name: 'stratocumulus-13', readiness: 55, hour: 13 },
+];
+const log = t => { document.getElementById('log').textContent += t + '\n'; };
+const wait = ms => new Promise(r => setTimeout(r, ms));
+(async () => {
+  const man = { fmt: 'rgbm-sqrt8 + aux(a, wind r, wind g); rows top-down', seed, made: new Date().toISOString(), bakes: [] };
+  let total = 0;
+  for (const s of STATES) {
+    const host = document.getElementById('host'), c = document.createElement('canvas'); host.replaceChildren(c);
+    const S = SceneGL.mount(c, { bake: true, dpr: 2, readiness: s.readiness, hour: s.hour, seed, animate: false });
+    const t = performance.now(); while (S.frames < 24) await wait(100);
+    const r = await S.bake(s.name); Object.assign(man, r.frame);
+    let bytes = 0;
+    for (const [f, blob] of Object.entries(r.files)) { const res = await fetch(`baked/${set}/${f}`, { method: 'PUT', body: blob }); if (!res.ok) throw new Error(f + ' ' + res.status); bytes += blob.size; }
+    man.bakes.push(Object.assign(r.entry, { bytes })); total += bytes;
+    log(`${s.name}: ${((performance.now() - t) / 1000).toFixed(1)} s, ${(bytes / 1048576).toFixed(2)} MB`);
+    c.__gl.getExtension('WEBGL_lose_context')?.loseContext();
+  }
+  await fetch(`baked/${set}/manifest.json`, { method: 'PUT', body: JSON.stringify(man, null, 1) });
+  log(`done: ${man.bakes.length} keyframes, ${(total / 1048576).toFixed(1)} MB, frame ${man.W}x${man.H} at ${man.dpr}x`);
+  window.BAKED = man;
+})().catch(e => { log('FAILED: ' + e.message); window.BAKED = { error: e.message }; });
+</script>
+</body>
+</html>

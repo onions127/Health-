@@ -1,0 +1,2 @@
+{ "fine": "Glass AA worst 5.03 (overcast, week strip). Sky text worst 5.32 (the taller range stays under the readiness block). Floor under the cards ≥ L* 71.5 (rain). GPU rain: full render 3.7 ms, compose + post 0.15 ms. Cold compile + converge (headless D3D11): 375–482 s, still the open regression.",
+  "medium": "Same scene and numbers; only the leaf clump size differs." }

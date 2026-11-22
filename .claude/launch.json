@@ -1,0 +1,44 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "design-board",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8765",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "design-prototype"
+      ],
+      "port": 8765
+    },
+    {
+      "name": "design-board-2",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8767",
+        "--bind",
+        "127.0.0.1",
+        "--directory",
+        "design-prototype"
+      ],
+      "port": 8767,
+      "autoPort": false
+    },
+    {
+      "name": "design-bake",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "design-prototype/bake-server.py",
+        "8768"
+      ],
+      "port": 8768,
+      "autoPort": false
+    }
+  ]
+}

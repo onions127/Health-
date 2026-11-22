@@ -1,0 +1,8 @@
+{
+  "control": "Measured (contrastT.js, 9 day cases incl. first run): glass worst 5.06 (fog, nav). Floor rule: rain FAILS, L* 66.7 at the top of the first card (pre-existing in 3.15). Full render (rain) 5.9 ms, compose+post 0.23 ms.",
+  "loch": "Measured: glass worst 5.07 (fog, nav). Values under an L* 85 sky: far 76, mid 70, near 55 (rule: far 8-20 under). Floor under cards: sunny 74.4, rain 71.5. Full render (rain) 5.8 ms, compose+post 0.23 ms.",
+  "chalk": "Measured: glass worst 5.07 (fog, nav). Chalk faces read light-on-sky (L* 81-86) by design; sea L* 73. Floor: sunny 74.4, rain 71.5. Full render (rain) 5.9 ms, compose+post 0.21 ms.",
+  "downs": "Measured: glass worst 5.08 (fog, nav). Values: far 77, mid 75, near 73 (ordered, compressed high-key). Floor: sunny 74.4, rain 71.5. Full render (rain) 5.5 ms, compose+post 0.20 ms.",
+  "steppe": "Measured: glass worst 5.07 (fog, nav). Plain L* 64-70. Floor: sunny 74.4, rain 71.5. Full render (rain) 5.7 ms, compose+post 0.25 ms. Weakest at this size: a 46 px plain reads mostly through its pools.",
+  "bay": "Measured: glass worst 5.07 (fog, nav). Values: far headland 72, pine headland 59, bay 74, sand 84. Floor: sunny 74.4, rain 71.5. Full render (rain) 6.4 ms, compose+post 0.22 ms."
+}

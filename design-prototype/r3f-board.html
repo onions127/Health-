@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Health++ · Round 3.7 · Cirrus, sky-first camera</title>
+<style>
+  body { margin:0; background:#ECEEF1; font:14px/1.5 system-ui, sans-serif; color:#1F2933; }
+  header { max-width:1180px; margin:32px auto 16px; padding:0 24px; }
+  h1 { font-size:26px; margin:0 0 8px; font-weight:600; }
+  header p { max-width:780px; margin:0 0 12px; color:#3E4C59; }
+  .ctl { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  button { font:inherit; border:1px solid #C5CCD3; background:#fff; border-radius:999px; padding:8px 16px; min-height:44px; cursor:pointer; }
+  button[aria-pressed="true"] { background:#1F2933; color:#fff; border-color:#1F2933; }
+  main { max-width:1180px; margin:0 auto 48px; padding:0 24px; display:grid; grid-template-columns:repeat(4, 1fr); gap:24px; }
+  figure { margin:0; }
+  .ph { aspect-ratio:412/915; border-radius:22px; overflow:hidden; background:#000; box-shadow:0 8px 24px rgba(31,41,51,.15); }
+  canvas { width:100%; height:100%; display:block; }
+  figcaption { margin-top:8px; font-size:13px; color:#3E4C59; }
+  figcaption b { color:#1F2933; display:block; }
+</style></head>
+<body>
+<header>
+  <h1>Round 3.7 · Cirrus as the main cloud, sky-first camera</h1>
+  <p>The horizon moves from 40% to 58% down the screen, so the sky is the subject, as in the weather app. Cirrus is now the main cloud: long ice fibres on a plane 9.5 km up, following one upper wind that turns from day to day, so the streaks converge toward the horizon in perspective. Cumulus and the sheet clouds sit beneath when the body calls for them. Captions give the proposed body state for each sky.</p>
+  <div class="ctl" role="group" aria-label="Time of day">
+    <button data-t="dawn" aria-pressed="false">Dawn</button><button data-t="day" aria-pressed="true">Day</button><button data-t="dusk" aria-pressed="false">Dusk</button><button data-t="night" aria-pressed="false">Night</button>
+    <span style="width:16px"></span><button id="anim" aria-pressed="false">Motion</button>
+  </div>
+</header>
+<main id="grid"></main>
+<script>document.write('<script src="scene-gl.js?' + Date.now() + '"><\/script>')</script>
+<script>
+  const CARDS = [
+    ['fair', 'Cirrus with fair cumulus', 'Readiness 80 and up (default sky)'],
+    ['cirrusFibratus', 'Cirrus fibratus', 'Calm fibres: HRV at or above your baseline'],
+    ['cirrusUncinus', "Cirrus uncinus, mares' tails", 'Hooked fibres: HRV a little below baseline'],
+    ['cirrusDense', 'Dense cirrus', 'Thicker cover: HRV well below baseline'],
+    ['cirrostratus', 'Cirrostratus with halo', 'A milky veil and a 22° halo: overnight stress high'],
+    ['stratocumulus', 'Stratocumulus', 'Readiness 50–64'],
+    ['stratus', 'Low stratus', 'Readiness under 50'],
+    ['rain', 'Light rain', 'Likely illness: skin temp and resting HR both up'],
+  ];
+  const grid = document.getElementById('grid');
+  grid.innerHTML = CARDS.map(([k, t, d]) => `<figure><div class="ph"><canvas data-k="${k}"></canvas></div><figcaption><b>${t}</b>${d}</figcaption></figure>`).join('');
+  let time = 'day';
+  const S = [...grid.querySelectorAll('canvas')].map(c => SceneGL.mount(c, { time, readiness: 86, animate: false, sky: SceneGL.PRESETS[c.dataset.k] }));
+  document.querySelectorAll('[data-t]').forEach(b => b.onclick = () => {
+    time = b.dataset.t; document.querySelectorAll('[data-t]').forEach(x => x.setAttribute('aria-pressed', x === b));
+    S.forEach(s => s.set({ time }));
+  });
+</script>
+</body>
+</html>

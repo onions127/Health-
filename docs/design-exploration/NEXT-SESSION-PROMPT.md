@@ -1,0 +1,18 @@
+Round 3.15: Samsung-reference refinement pass on the Health++ sky scene.
+
+Read first, in this order: CLAUDE.md (all of it: decisions, the "Decisions 2026-11-19" block, the Samsung reference specs and the mandatory visual loop), docs/design-exploration/LOG.md (rounds 3.3 to 3.14), docs/design-exploration/PLAN-sky.md. Then load the project skills shader-art-coding, threejs-shaders and threejs-postprocessing (technique only: the renderer stays hand-written WebGL2/GLSL, no Three.js runtime) and frontend-design for the type/layout of the hero. Use the Playwright MCP (playwright) for interactive checks and tools/visual-loop/shoot.js for the batch compare against reference/.
+
+Before changing anything: start design-board (preview_start), run `node tools/visual-loop/shoot.js` and write a short baseline critique per state from out/compare.png.
+
+Do these in order. Each step: change, re-shoot, compare with reference/, critique in writing, iterate until it holds up next to the reference, then go on.
+
+1. Horizon to 37% (scene-gl.js, both `const float HOR`, and anything placed relative to it: land frame, sun/moon paths, birds' lane, palette suns, glass-check card rects). Land becomes: far water/lake strip with low pale-blue distant hills, then a grassy foreground lip with tufts, small flowers and stones just below 37%; the cards start on that lip. The page under the land continues as a scene gradient (meadow green -> teal -> blue) so the glass has something calm to sit on. Original art only: no person or character figure, no tracing.
+2. Today hero (design-prototype/r3c-board.html, the A+D Glass Today; first-run state too): readiness as a large light-weight number on the left of the scene, like the temperature in reference/sunny.jpg (number top-left ~y 0.14-0.24, the word under it, one small detail line). Remove the readiness arc, the normal tick and the sun-on-the-arc link (`sunAt`). No bar, no gauge. The sun stays as weather. Keep the glass exactly as designed (22% / 25% white, dark ink) and keep AA: run glass-check.js and fix any spot under 4.5:1.
+3. Sky colour ramps toward the reference table in CLAUDE.md: saturated azure zenith -> pale horizon haze for clear day; deep ultramarine night brighter at the horizon; violet-grey rain with lilac horizon glow; lavender dusk with a white sun. Sample hex from out/ shots and report the difference per state.
+4. Clouds toward the reference look: soft high-key cumulus masses in the top third, pale blue-grey shade, misty edges, slow drift. Decide with evidence whether that is the volumetric cumulus re-tuned, the painted style, or a blend; cirrus stays (it is our main cloud) but must not read as brush streaks.
+5. Sun: small white disc, wide bloom, 8-12 thin diffraction spikes and 2-3 faint lens ghosts on the line through screen centre, as post passes. Silver rim when the sun is behind cloud.
+6. Missing states, as SkyState presets: snow (2-3 flake depths, near flakes large and blurred = depth of field, far small and sharp, slow drift), thunder only as a visual for review (D2 says no storms in the app mapping), and rain streaks matched to the reference (thin, 15-35% opacity, ~10 deg slant, 2-3 depths). Add them to tools/visual-loop/shoot.js STATES.
+
+Measure each step: glass contrast (all states), GPU frame cost on the PC, and note phone cost risk. Update shoot.js state mapping when presets change. Re-bake is not needed until the look is approved.
+
+End: one board showing every state (ours | reference), a LOG.md section "3.15" with what changed, measurements and what still differs, then STOP for my feedback. Do not edit android-app/ or DESIGN.md. Do not commit reference/ (it is gitignored).
