@@ -841,7 +841,7 @@ void main(){ vec2 uv = gl_FragCoord.xy/uDst;
   const FINAL = `#version 300 es
 precision highp float;
 uniform sampler2D uScene, uB1, uB2, uR; uniform vec2 uRes; uniform float uBloom, uRays, uSat, uCon, uT; uniform vec3 uGain, uLift, uSunCol;
-uniform vec2 uSunUV; uniform float uFlare, uRimK, uGhost;   // 3.15: sun optics (starburst, lens ghosts, silver rim), scaled by how much of the sun is in open sky
+uniform vec2 uSunUV; uniform float uFlare, uRimK, uGhost, uSpk, uSpkS;   // L1: uSpk = spike strength (0 at night: the moon has none), uSpkS = style (1 soft glare, 2 the 3.15 starburst)   // 3.15: sun optics (starburst, lens ghosts, silver rim), scaled by how much of the sun is in open sky
 const float HOR = .37;   // screen horizon (FINAL uv is bottom-up)
 out vec4 o;
 float msk(vec2 q){ return texture(uScene, q).a; }                  // open-sky mask: 1 where the sky is seen, 0 behind cloud or land
@@ -853,7 +853,9 @@ vec3 sunOptics(vec2 uv){
   vec2 d = (uv - uSunUV)*vec2(asp, 1.); float r = length(d) + 1e-5, ang = atan(d.y, d.x + 1e-6);
   // starburst: 10 thin diffraction spikes, long and short in turn, slowly turning with the hour; tapers with distance
   float tw = .02*sin(uT*.05);
-  float sp = pow(abs(cos(ang*5. + tw)), 600.)*exp(-r*24.) + .22*pow(abs(cos(ang*5. + 1.5708 + tw)), 700.)*exp(-r*45.);   // 10 spikes reach ~12% of the screen height; 10 faint short ones between
+  float burst = pow(abs(cos(ang*5. + tw)), 600.)*exp(-r*24.) + .22*pow(abs(cos(ang*5. + 1.5708 + tw)), 700.)*exp(-r*45.);   // 3.15: 10 hairline spikes reach ~12% of the screen height; 10 faint short ones between
+  float soft = (.55*pow(abs(cos(ang*3. + .4 + tw)), 18.) + .45)*exp(-r*38.)*.30;   // L1: an eye's glare, not a lens: a soft round glow with six broad, short petals (~4% of the height), no lines
+  float sp = mix(soft, burst, step(1.5, uSpkS))*uSpk;
   sp *= smoothstep(.004, .02, r);                                   // the disc and bloom own the centre
   vec3 c = vec3(1., .98, .95)*sp*1.1*vis;
   // lens ghosts on the line from the sun through the screen centre: faint, soft, slightly tinted
@@ -908,6 +910,7 @@ void main(){
   // Hour of day: palettes are keyframes, blended in linear light, so the scene moves smoothly through the day.
   const KEYS = [[0, 'night'], [5, 'night'], [6.5, 'dawn'], [9, 'day'], [16.5, 'day'], [19, 'dusk'], [21, 'night'], [24, 'night']];
   const SUN = [[5.5, [.10, .43]], [6.5, [.13, .355]], [8.5, [.22, .20]], [13, [.64, .15]], [16.5, [.80, .17]], [19, [.86, .35]], [20, [.90, .43]]];   // screen x, y from the top; horizon at .37 (3.15: was .58). Midday sun high, right of centre, as in the reference
+  const SPIKES = +(new URLSearchParams(typeof location !== 'undefined' ? location.search : '').get('rays') ?? 1);   // L1: sun spikes. 0 none, 1 soft glare, 2 the 3.15 starburst
   const TWI = +(new URLSearchParams(typeof location !== 'undefined' ? location.search : '').get('twi') ?? .9);   // G3: twilight dip of the key light (0 = the old linear fade)
   const MOON = [.78, .12], HOURS = { dawn: 6.5, day: 13, dusk: 19, night: 23 };
   const sstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -1227,7 +1230,7 @@ void main(){
         gl.uniform1f(Up(pF, 'uBloom'), g.bloom); gl.uniform1f(Up(pF, 'uRays'), rays);
         gl.uniform1f(Up(pF, 'uSat'), g.sat); gl.uniform1f(Up(pF, 'uCon'), g.con); gl.uniform1f(Up(pF, 'uT'), (now / 1000) % 100);
         const flare = st.post && st.showSun && sunUV[1] > 0 && sunUV[1] < 1.2 ? cur.sv * (1 - cur.w.style) * (1 - .9 * Math.min(1, cur.w.sheet)) * (1 - .93 * cur.p.night) : 0;   // no optics through a closed sheet; a faint one for the moon
-        gl.uniform2f(Up(pF, 'uSunUV'), sunUV[0], sunUV[1]); gl.uniform1f(Up(pF, 'uFlare'), flare); gl.uniform1f(Up(pF, 'uRimK'), 1.2); gl.uniform1f(Up(pF, 'uGhost'), 1 - cur.p.night);
+        gl.uniform2f(Up(pF, 'uSunUV'), sunUV[0], sunUV[1]); gl.uniform1f(Up(pF, 'uFlare'), flare); gl.uniform1f(Up(pF, 'uRimK'), 1.2); gl.uniform1f(Up(pF, 'uGhost'), 1 - cur.p.night); gl.uniform1f(Up(pF, 'uSpk'), SPIKES === 2 ? 1 : SPIKES ? 1 - sstep(.25, .5, cur.p.night) : 0); gl.uniform1f(Up(pF, 'uSpkS'), SPIKES);   // L1: the moon gets no spikes
         gl.uniform3fv(Up(pF, 'uGain'), g.gain); gl.uniform3fv(Up(pF, 'uLift'), g.lift); gl.uniform3fv(Up(pF, 'uSunCol'), hex(cur.p.sunC).map(c => c ** 2.2));
       });
     }

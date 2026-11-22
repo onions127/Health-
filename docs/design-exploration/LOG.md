@@ -687,3 +687,19 @@ Night cards 9.3:1 and the button ≥ 3.32 under every floor. Deep night and day 
 - Sky text with **no veil**, measured on the phone's own canvas at 3:1: pass at 19:45 (dark ink 3.18), 20:15 (light 3.11), 20:30 (4.68), 21:00 (4.04), 23:00 (3.99), 05:15 (3.87), 05:30 (3.08). Fail at 20:00 (best 2.07) and 05:45 (2.85): both are ink-swap minutes, where the rule lays its thin veil (on the PC, 20:00 needed 6% and 05:45 none; the phone's 05:45 plays a blend of the 05:30 and 05:45 bakes).
 - Log weight button ≥ 3.23 at every hour.
 - Measures are approximate: the phone's canvas is 100vh (1712 px, 56 CSS px taller than the view), so the horizon sits ~7% lower in the 412-wide frame than on the PC.
+
+## L1 · A still scene, and the sun's and moon's spikes (2026-11-22)
+**Asked:** two problems with the current UI: the scene moving when the phone tilts feels odd, and the rays from the sun and the moon look bad.
+
+**Tilt:** off. `phone.html` mounts with `tilt: false` (`?tilt=1` brings it back for comparison); no board or other page used it. The four depth slices stay: drift and the bakes use them. CLAUDE.md updated.
+
+**Rays:** the 3.15 starburst (`sunOptics` in FINAL) draws 10 hairline spikes (`pow(cos, 600)`), ~12% of the screen long, plus 10 short ones; the moon got the same at `flare × (1 − .93·night)`, clearly visible at twilight (night .75: 30%). New `?rays=` switch (`SPIKES` in JS, `uSpk`/`uSpkS` in FINAL):
+- **2 · Now:** the 3.15 starburst, unchanged (moon included).
+- **1 · A soft glare** (default for now): a round glow with six broad, short petals (`pow(cos 3θ, 18)`, ~4% of the height, × .30). Reads as glare in the eye, not a camera lens.
+- **0 · B none:** disc, bloom and halo only.
+In A and B the moon has no spikes (`uSpk` × (1 − sstep(.25, .5, night))). Lens ghosts, light shafts and the silver rim are unchanged. Post-pass only (no bake change). Cost: two `pow` per pixel near the sun, same as before.
+
+**Board:** `design-prototype/l1-board.html` (renders `l1/`, from `tools/visual-loop/l1.js`): 09:00, 13:00, 19:00, 19:45, 20:30, 23:00 × the three styles.
+
+**Differs from the reference:** Samsung's sun has 8–12 thin spikes (CLAUDE.md "Light"). A or B departs from it on purpose.
+**Picked (2026-11-22): A · soft glare** (`SPIKES` default 1; `?rays=2` keeps the old starburst for comparison, `?rays=0` none). The moon has no spikes. Phone (S21, `phoneG3.js` at 13:00 and 20:30): soft glare renders, no spikes on sun or moon, no GL errors, 54–60 fps, sky text still passes 3:1 with no veil (6.58 / 4.89). Still on the page by day: the two faint round lens ghosts under the cards (3.15).

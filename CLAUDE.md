@@ -59,7 +59,7 @@ Servers (`.claude/launch.json`): `design-board` → http://127.0.0.1:8765 (serve
   - Cirrus is the main cloud (3.7): plane at 9.5 km, one upper-wind direction per day, hooked fibres, cirrostratus veil with 22° halo.
   - Sheet layer for stratocumulus/stratus, valley fog, light rain (3.6). A second "painted" style exists (`style: 1`, 3.8).
   - Camera: horizon 58% down (3.7). **Superseded 2026-11-19:** horizon moves to **37%** down, to fit the app like the reference (see "Decisions 2026-11-19").
-  - Four depth slices (sky / near clouds / mid land / near land) with tilt parallax, AMP `[3, 9, 14, 22]` CSS px (3.10).
+  - Four depth slices (sky / near clouds / mid land / near land) with tilt parallax, AMP `[3, 9, 14, 22]` CSS px (3.10). **Superseded 2026-11-22 (L1):** the scene stays still when the phone tilts (the user found the movement odd); `phone.html` keeps it behind `?tilt=1` only. The slices stay (drift, bakes).
   - Float pipeline: 24 jittered frames accumulated in RGBA16F; post = bright pass, two-level bloom (¼, ¹⁄₁₆), quarter-res light shafts, per-hour colour grade, highlight shoulder, sRGB, dither (3.9, 3.12).
   - Live layer: wind gusts in grass and crowns (MRT material), birds, sun/moon disc, halo, twinkling stars (3.11–3.12).
   - Baked keyframes per weather (`KEYFRAMES`, RGBM PNG in sqrt space); phone plays bakes, PC/phone worker bakes; Cache Storage `sky-v2` (3.12–3.14).
@@ -122,7 +122,7 @@ Rules read off these:
 - Twilight and dusk are lavender/violet with a white sun, not orange.
 
 ### Light
-- **Sun (clear):** small hot white disc (~6–8% of screen width), wide soft bloom (~25% width), 8–12 thin diffraction spikes (starburst), and 2–3 faint round lens ghosts on the line from the sun through screen centre. Shafts are subtle; the starburst does the work.
+- **Sun (clear):** small hot white disc (~6–8% of screen width), wide soft bloom (~25% width), 8–12 thin diffraction spikes (starburst; **ours, L1 2026-11-22: a soft glare with six short broad petals instead, and no spikes on the moon**), and 2–3 faint round lens ghosts on the line from the sun through screen centre. Shafts are subtle; the starburst does the work.
 - **Sun behind cloud (partly):** the cloud edge glows white with a silver rim; no disc.
 - **Dusk sun:** white starburst disc just above the horizon with a lilac halo; light reflects as a soft path on the water.
 - **Night:** sparse 1–2 px stars, low intensity; cloud undersides lit cool blue; moonlit glints on water.
