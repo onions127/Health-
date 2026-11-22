@@ -681,3 +681,9 @@ Night cards 9.3:1 and the button ≥ 3.32 under every floor. Deep night and day 
 
 **Still differs:** twilight clouds are greyer and flatter than before (they lost the set sun's glow); the moon's starburst still shows at 20:30. Baked keyframes (`baked/`) are stale for twilight and night hours: rebake before phone tests.
 **Picked (2026-11-22): keep** the greyer twilight clouds (`AMBN` 1, `TWI` .9). Re-baked `baked/today` (`bakeAll.js`): 17 keyframes, 20.2 MB. The twilight dip is not linear in the hour, so 20:30 read 32.7 dB as a blend of 20:00 + 21:00: keyframes 5.5, 20.25 and 20.5 added (`KEYFRAMES`), Cache Storage bumped to `sky-v4`. Baked vs live (`abT.js`): keyframes 47.5–48.8 dB; between them 5:15 44.9, 5:36 41.9, 20:06 39.1, 20:45 44.1.
+
+**G3 phone test** (Galaxy S21, Chrome 157 over adb + DevTools, new `tools/visual-loop/phoneG3.js`; today's bakes, seed 20779; the page set to the app's full-screen 360×800 @2× through DevTools, since Chrome's address bar leaves 360×691 and moves the sky under the text; battery 36.2–36.7 °C, 58–59%):
+- Bakes play at every hour tested: ready 1.8–1.9 s, no GL errors, page 57–60 fps.
+- Sky text with **no veil**, measured on the phone's own canvas at 3:1: pass at 19:45 (dark ink 3.18), 20:15 (light 3.11), 20:30 (4.68), 21:00 (4.04), 23:00 (3.99), 05:15 (3.87), 05:30 (3.08). Fail at 20:00 (best 2.07) and 05:45 (2.85): both are ink-swap minutes, where the rule lays its thin veil (on the PC, 20:00 needed 6% and 05:45 none; the phone's 05:45 plays a blend of the 05:30 and 05:45 bakes).
+- Log weight button ≥ 3.23 at every hour.
+- Measures are approximate: the phone's canvas is 100vh (1712 px, 56 CSS px taller than the view), so the horizon sits ~7% lower in the 412-wide frame than on the PC.
