@@ -66,7 +66,7 @@ function phone(img, g, kind) {
   const BLUE = g.btn.fill, ON = g.btn.ink;
   const head = `<div class="abs" style="top:12px;left:20px;font:500 12px Roboto, 'Segoe UI';color:${S.sky}">${H().clock}</div>
     <div class="abs" style="top:40px;left:20px;color:${S.sky}"><div style="font-size:19px;font-weight:500">Coach</div><div style="font-size:12px;margin-top:2px">Grounded in your own normal</div></div>`;
-  const hero = `<div class="abs" style="top:108px;left:22px;right:${SKY_RIGHT(32)}px;color:${S.sky}"><div style="font-size:36px;font-weight:300;line-height:1.15;letter-spacing:-0.02em">${read.line}</div><div style="font-size:15px;line-height:1.35;margin-top:10px">${read.detail}</div></div>`;
+  const hero = `<div class="abs" style="top:108px;left:22px;right:${SKY_RIGHT(32)}px;color:${S.sky}"><div style="font-size:36px;font-weight:300;line-height:1.15;letter-spacing:-0.02em;text-wrap:balance">${read.line}</div><div style="font-size:15px;line-height:1.35;margin-top:10px">${read.detail}</div></div>`;
   const input = top => `<div class="glass" style="${glass};top:${top}px;left:12px;right:12px;height:60px;padding:6px 6px 6px 18px;display:flex;align-items:center;justify-content:space-between"><span style="font-size:15px;color:${P.secondary}">Ask about your recovery…</span><span style="width:48px;height:48px;border-radius:24px;background:${BLUE};display:flex;align-items:center;justify-content:center" aria-label="Ask">${send(ON)}</span></div>`;
   const chips = (qs, top, wrap) => `<div class="abs" style="top:${top}px;left:12px;right:12px;display:flex;gap:8px;${wrap ? 'flex-wrap:wrap' : ''}">${qs.map(q => `<span class="pill" style="${glass};position:static;color:${P.primary}">${q}</span>`).join('')}</div>`;
   const handoff = top => `<div class="abs" style="top:${top}px;left:24px;font-size:13px;color:${P.primary};height:48px;display:flex;align-items:center">Ask in the Claude app&nbsp;${out(P.primary)}<span style="color:${P.secondary};margin-left:6px">copies your last 14 days</span></div>`;
@@ -108,6 +108,29 @@ window.CO2_NEW = 1;
   document.getElementById('board').appendChild(el);
   if (POOR) uhSection('PD1 · Coach on a poor day', 'The read eases off all day: an easy day in the morning, keeping it easy in the afternoon, an early night at dusk, an earlier bedtime at night. Every answer still names its sources; none of it is medical advice.',
     Object.keys(HOURS).map(h => { HOUR = +h; window.NIGHT = h === '23.17'; return [phone(HOURS[h].img, G4[h], 'chat'), `${HOURS[h].clock} · ${HOURS[h].line}`]; }));
+  if (BAD) {   // VP1: Coach through a very poor day and through likely illness (rest all day; illness names the signs and when to see a doctor)
+    const L = {
+      vp: { 7.25: { line: 'Rest today.', detail: 'Readiness 46 · HRV 38 ms, well under your normal',
+          q: 'Should I still train?', a: 'Not today. Your HRV is 38 ms, well under your normal 55–63, resting HR is 59, above it, and you slept 4h 40m. A short walk is fine; leave training for a day that reads steady.', foot: 'From HRV, resting HR and sleep, this morning', chips: ['Why is my HRV so low?', 'Can I nap today?'] },
+        15.17: { line: 'Resting so far. Good.', detail: '2,900 steps by 15:10 · strain 24, your usual 75',
+          q: 'Can I nap?', a: 'A short one helps: 20 to 30 minutes, before 16:00, so it does not push back tonight’s sleep. Last night was 4h 40m, so tonight matters most.', foot: 'From last night’s sleep and your usual bedtime', chips: ['How do I catch up on sleep?', 'Why is my HRV so low?'] },
+        19.75: { line: 'A quiet day done. Sleep early.', detail: 'Strain 31, under your usual 75 · readiness was 46',
+          q: 'Will I recover by tomorrow?', a: 'A full night does the most: last night was 4h 40m. Aim for eight hours tonight; HRV usually climbs back over a night or two.', foot: 'From sleep, HRV and strain', chips: ['How should I wind down?', 'When should I sleep?'] },
+        23.17: { line: 'Bed now, if you can.', detail: 'Last night was 4h 40m · you usually fall asleep at 23:10',
+          q: 'How did today go?', a: 'A rest day, as it should be: 4,600 steps and strain 31. Sleep is what moves readiness most now.', foot: 'From steps, strain and last night’s sleep', chips: ['Why does bedtime matter?', 'What about tomorrow?'] } },
+      ill: { 7.25: { line: 'Rest, and see how you feel.', detail: 'Skin +0.8 °C · resting HR 60, 6 above usual',
+          q: 'Am I getting sick?', a: 'Maybe. Your skin temperature is 0.8 °C above your usual and resting HR is 60, 6 above it; together they can be an early sign of illness. Rest, drink water, and skip training today. If you feel unwell or it lasts, talk to a doctor.', foot: 'From skin temperature and resting HR, last night', chips: ['Should I train at all?', 'What does skin temp tell me?'] },
+        15.17: { line: 'Keep it a rest day.', detail: '2,400 steps by 15:10 · strain 20, your usual 75',
+          q: 'Can I go for a walk?', a: 'A gentle one, if you feel fine. Skip anything hard until skin temperature and resting HR are back near your usual.', foot: 'From skin temperature, resting HR and strain', chips: ['When can I train again?', 'What does skin temp tell me?'] },
+        19.75: { line: 'An early night helps most.', detail: 'Strain 26, under your usual 75 · readiness was 49',
+          q: 'Will I be better tomorrow?', a: 'Tomorrow morning will show it: if skin temperature and resting HR come back down, the sky clears with them. If they stay up or you feel worse, rest again and consider seeing a doctor.', foot: 'From skin temperature and resting HR', chips: ['How should I wind down?', 'When should I sleep?'] },
+        23.17: { line: 'Bed early. Rest helps.', detail: 'Last night 6h 05m · you usually fall asleep at 23:10',
+          q: 'How did today go?', a: 'A rest day: 3,300 steps and strain 26. Tonight’s sleep and tomorrow’s numbers will show if your body is settling.', foot: 'From steps, strain and last night’s sleep', chips: ['Why does bedtime matter?', 'What about tomorrow?'] } } };
+    const TT = { vp: ['VP1 · Coach on a very poor day', 'Rest is the whole plan: rest in the morning, resting in the afternoon, sleep early at dusk, bed now at night. Every answer names its sources.'],
+      ill: ['VP1 · Coach with likely illness', 'The morning names the two signs and what they can mean, in the D6 words (can be an early sign of illness, never a diagnosis); the answers say when to talk to a doctor. Rest all day; tomorrow’s numbers decide.'] };
+    ['vp', 'ill'].forEach((day, n) => { VP1_HOURS.forEach(([k, , h]) => Object.assign(HOURS[h], { img: `vp1/${day}-${k}.png` }, L[day][h]));
+      addSection(TT[day][0], TT[day][1], VP1_HOURS.map(([k, clock, h]) => { HOUR = h; window.NIGHT = k === 'night'; return [phone(HOURS[h].img, vp1G(day, k), 'chat'), `${clock} · ${HOURS[h].line}`]; }), !n); });
+    window.NIGHT = TIME === 'night'; }
   if (UH) { window.NIGHT = TIME === 'night'; HOUR = NIGHT ? 23.17 : 15.17; uhSection('UH1 · Coach offline', 'The read on the sky comes from rules on the phone, so it still works. A question with no connection gets the shipped fallback: the numbers it would rest on, from the phone, and Try again. The Claude app hand-off goes, since it needs the connection too.', [[phone(NIGHT ? 'nt1/night.png' : 'tr1/day1510.png', NIGHT ? N : D, 'offline'), 'No connection: your numbers, Try again']]); }
 })();
 </script>

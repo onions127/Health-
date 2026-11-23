@@ -16,8 +16,9 @@ const STATES = process.env.STATES ? JSON.parse(process.env.STATES) : [['day13', 
   await p.waitForFunction(() => window.S && S.ready, null, { timeout: 600000, polling: 1000 });
   if (process.env.RECTS) await p.evaluate(r => { [window.GLASS_RECTS, window.SKY_TEXT_RECTS] = r; }, JSON.parse(process.env.RECTS));   // S1: another screen's layout
   const out = { floors: FLOORS, states: STATES.map(s => ({ id: s[0], label: s[3] })), m: {} };
-  for (const [id, sky, h] of STATES) {
-    await p.evaluate(([sky, h]) => S.set({ sky: SceneGL.PRESETS[sky], hour: +h, readiness: 86 }), [sky, h]);
+  if (STATES.some(s => s[4])) await p.addScriptTag({ url: BASE + '/body-sky.js' });   // VP1: a 5th element is a body (BodySky inputs); the sky is BodySky's for that hour
+  for (const [id, sky, h, , body] of STATES) {
+    await p.evaluate(([sky, h, body]) => S.set({ sky: body ? BodySky.bodySky(body, +h, SceneGL).sky : SceneGL.PRESETS[sky], hour: +h, readiness: 86 }), [sky, h, body]);
     await p.waitForTimeout(100); await p.waitForFunction(() => S.ready, null, { timeout: 120000, polling: 200 }); await p.waitForTimeout(300);
     if (process.env.SHOOT) await p.screenshot({ path: path.join(OUT, id + '.png') });
     const r = await p.evaluate(([FLOORS, SATD, MODE, ALPHA]) => {

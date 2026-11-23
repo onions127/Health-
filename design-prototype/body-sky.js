@@ -54,7 +54,8 @@
       notes.push(`Morning mist in the valley: you slept ${has('sleepMin') ? fmtMin(b.sleepMin) : 'less well'}${less != null && less > 5 ? `, ${Math.round(less)} min less than usual` : ''}. It clears by late morning.`);
     }
 
-    // HRV: the high cloud (the base sky is a clean high sky with a little cirrus)
+    // HRV: the high cloud (the base sky is a clean high sky with a little cirrus). VP1: under stratus's full low sheet it does not show
+    // (veil vs none differs by < 1 level), so there is no note for it then.
     if (has('hrv') && has('hrvMin') && has('hrvMax')) {
       const half = Math.max(1, (b.hrvMax - b.hrvMin) / 2), z = (b.hrv - b.hrvMin) / half;   // 0 at the bottom of normal, 2 at the top
       const low = sstep(T.hrvLow[0], T.hrvLow[1], z);
@@ -62,7 +63,7 @@
       const veil = sstep(.6, 1, low);
       Object.assign(sky, { cirrus: .30 + .62 * low, ciHook: low < .6 ? .9 * sstep(0, .5, low) : .9 * (1 - veil), ciVeil: veil, haze: Math.max(sky.haze, .05 * veil) });
       if (low < .05) sky.ciHook = 0;
-      if (low > .05) notes.push({ hrv: 1, t: `${veil > .5 ? 'A milky veil of high cloud' : 'Streaks of high cloud'}: HRV ${b.hrv} ms, under your normal ${b.hrvMin}-${b.hrvMax}.` });
+      if (low > .05 && regime !== 'stratus') notes.push({ hrv: 1, t: `${veil > .5 ? 'A milky veil of high cloud' : 'Streaks of high cloud'}: HRV ${b.hrv} ms, under your normal ${b.hrvMin}-${b.hrvMax}.` });
     }
 
     // activity: cumulus building through the afternoon (only where there is cumulus to build)

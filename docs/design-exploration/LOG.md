@@ -1211,3 +1211,35 @@ STOP: waiting for review of the mapping (thresholds, the look of each day) and t
 **Approved (2026-11-23):** the reworked sheet (SH1) and the poor day as built (PD1: Today, Coach through the day, Readiness; dusk at 37% with a dark blue button on grey skies).
 
 **Re-baked (2026-11-23, after SH1):** `bakeAll.js` re-baked the day's 17 keyframes (16 fair hours and stratocumulus 13:00, seed 20780 as before) in 78 s; the baked stratocumulus plays back like the live render (`out/bk-cmp.png`). The on-device cache goes to `sky-v5`, so phones drop skies they baked with the old sheet. `md1/nov4.png` (the Calendar's past day) re-rendered with MD1's screen areas (the fair sky reproduces 3.75 / 5.50 / 7.04): past-day glass 3.28 (was 3.29), sky text 4.75 (was 5.07), number 13.29; the boards' inlined values follow.
+
+## VP1 · A very poor day, and likely illness (2026-11-23)
+
+**Asked:** continue (open since PD1: a very poor day under 50, and likely illness, D6).
+
+**The days** (shipped `readinessParts`, normals from `data.js`):
+- **Very poor:** HRV 38 ms (normal 55–63), resting HR 59 (average 54), 4h 40m asleep (score 42), skin +0.1 °C, SpO2 96% → **46**. Not ill (skin under +0.3), so BodySky gives the stratus regime with full valley fog in the morning; HRV's veil is set but hidden.
+- **Likely illness:** 6 Oct's body (HRV 44, resting HR 60, 6h 05m score 56, skin +0.8 °C, SpO2 93%) → **49** (the vitals part drops to 54: skin far from average, SpO2 under 95). Skin ≥ +0.5 and resting HR ≥ +5 → light rain (D6); not under 35, so no storm (D2).
+
+**Sky** (`g2.js` now takes a 5th STATES element, a body, and renders `BodySky.bodySky(body, hour)` instead of a preset; `vp1/<day>-<hour>.png`). Control: PD1's stratocumulus 15:10 reproduces 3.27 / 9.69. Under stratus the HRV veil changes the sky by under one level per channel (veil vs none, top 37%, mean |Δ| 2.3 summed over RGB), so the sky note no longer claims "a milky veil of high cloud" in the stratus regime (`body-sky.js`; it already dropped it under rain).
+
+**Glass** (`vp1/measure.json`, floor 3.0, no veil, all screens' glass y 236–851 + nav, sky text to x 380):
+
+| | 07:15 | 15:10 | 19:45 | 23:10 |
+|---|---|---|---|---|
+| Very poor (stratus) | white 22%, 3.40, sky 7.15 | white 29%, 3.19, 8.38 | **white 41%**, 3.18, 3.19 | land `#11225A` 22%, 8.06, 9.99 |
+| Likely illness (rain) | white 22%, 3.23, 5.21; button `#082F5A` | white 22%, 3.28, 5.65; `#082F5A` | white 29%, 3.20, 3.71; `#082F5A` | land `#1E2739` 22%, 5.76, 6.64 |
+
+Dusk under stratus needs 41% white (34% fair, 37% stratocumulus); dark glass would need 31–33%. Kept white (the dusk rule, DD1/PD1).
+
+**Built** (`?bad=1` on two boards; shots `tools/visual-loop/vp1.js` → `out/vp1-wt1-*.png`, `out/vp1-co2-*.png`, sheets `out/vp1-wt1-sheet.png`, `out/vp1-co2-sheet.png`):
+- **Today** (`wt1-board.html?bad=1`): under 50 the word is **Rest** (Ready ≥ 80, Steady ≥ 65, Take it easy ≥ 50). Four hours per day, then the sky tapped (D4). Illness puts one card on the lip in words, *Your body may be fighting something* · *Skin +0.8 °C · resting HR 6 above usual* · **Why** (opens the same note as the sky), so the rain never carries it alone. Tiles stay plain.
+- **Coach** (`co2-board.html?bad=1`), very poor: *Rest today.* → *Resting so far. Good.* → *A quiet day done. Sleep early.* → *Bed now, if you can.* Illness: *Rest, and see how you feel.* (detail: the two signs) → *Keep it a rest day.* → *An early night helps most.* → *Bed early. Rest helps.* Answers use the D6 words ("can be an early sign of illness"), say when to talk to a doctor, and name their sources.
+- Coach's read now balances its line breaks (`text-wrap: balance`; Compose `LineBreak.Heading`): four reads had a one-word second line. Changes only how existing two-line reads break.
+
+**Found:** with a card on the lip (illness, UH1's sync card), Today's Daily score tile runs under the tab bar (the open "last tile" item). At night the moon shows through the rain sheet's gaps (minor).
+
+**Not done:** the storm (illness and readiness under 35, D2); Readiness, Calendar and Trends on these days; the haze-only day (skin and resting HR up a little, not ill).
+
+**Board:** `wt1-board.html?bad=1`, `co2-board.html?bad=1`. STOP.
+
+**Approved (2026-11-23):** VP1 as built (Rest under 50; the illness card on the lip with Why; Coach through both days; balanced read lines; white glass 41% at dusk under stratus).

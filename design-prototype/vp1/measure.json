@@ -1,0 +1,338 @@
+{
+ "floors": [
+  3
+ ],
+ "states": [
+  {
+   "id": "vp-am0715",
+   "label": "vp 07:15"
+  },
+  {
+   "id": "vp-day1510",
+   "label": "vp 15:10"
+  },
+  {
+   "id": "vp-dusk1945",
+   "label": "vp 19:45"
+  },
+  {
+   "id": "vp-night",
+   "label": "vp 23:10"
+  },
+  {
+   "id": "ill-am0715",
+   "label": "ill 07:15"
+  },
+  {
+   "id": "ill-day1510",
+   "label": "ill 15:10"
+  },
+  {
+   "id": "ill-dusk1945",
+   "label": "ill 19:45"
+  },
+  {
+   "id": "ill-night",
+   "label": "ill 23:10"
+  }
+ ],
+ "m": {
+  "vp-am0715": {
+   "3": {
+    "mode": "light",
+    "tint": "#FFFFFF",
+    "a": 0.22,
+    "needLight": 0.16,
+    "needDark": 0.52,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "skyInk": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "cardP": 5.4,
+    "cardS": 3.4,
+    "navS": 5.48,
+    "skyMode": "light",
+    "scrimT": "#FFFFFF",
+    "scrimA": 0,
+    "sky": 7.15,
+    "hero": null,
+    "btn": {
+     "fill": "#0B5FA5",
+     "ink": "#FFFFFF"
+    },
+    "btnC": 3.24
+   },
+   "pageL": 76.33909785425243,
+   "lightT": "#FFFFFF",
+   "darkT": "#222829",
+   "satD": 1
+  },
+  "vp-day1510": {
+   "3": {
+    "mode": "light",
+    "tint": "#FFFFFF",
+    "a": 0.29,
+    "needLight": 0.27,
+    "needDark": 0.53,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "skyInk": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "cardP": 5.06,
+    "cardS": 3.19,
+    "navS": 5.61,
+    "skyMode": "light",
+    "scrimT": "#FFFFFF",
+    "scrimA": 0,
+    "sky": 8.38,
+    "hero": null,
+    "btn": {
+     "fill": "#0B5FA5",
+     "ink": "#FFFFFF"
+    },
+    "btnC": 4.06
+   },
+   "pageL": 79.12122860953654,
+   "lightT": "#FFFFFF",
+   "darkT": "#1E2929",
+   "satD": 1
+  },
+  "vp-dusk1945": {
+   "3": {
+    "mode": "light",
+    "tint": "#FFFFFF",
+    "a": 0.41,
+    "needLight": 0.39,
+    "needDark": 0.31,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "skyInk": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "cardP": 5.05,
+    "cardS": 3.18,
+    "navS": 3.29,
+    "skyMode": "light",
+    "scrimT": "#FFFFFF",
+    "scrimA": 0,
+    "sky": 3.19,
+    "hero": null,
+    "btn": {
+     "fill": "#FFFFFF",
+     "ink": "#0B3A66"
+    },
+    "btnC": 4.03
+   },
+   "pageL": 54.565771394936505,
+   "lightT": "#FFFFFF",
+   "darkT": "#222732",
+   "satD": 1
+  },
+  "vp-night": {
+   "3": {
+    "mode": "dark",
+    "tint": "#11225A",
+    "a": 0.22,
+    "needLight": 0.53,
+    "needDark": 0,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "skyInk": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "cardP": 11.76,
+    "cardS": 8.06,
+    "navS": 9.93,
+    "skyMode": "dark",
+    "scrimT": "#11225A",
+    "scrimA": 0,
+    "sky": 9.99,
+    "hero": null,
+    "btn": {
+     "fill": "#FFFFFF",
+     "ink": "#0B3A66"
+    },
+    "btnC": 11.66
+   },
+   "pageL": 17.49377538390879,
+   "lightT": "#FFFFFF",
+   "darkT": "#11225A",
+   "satD": 1
+  },
+  "ill-am0715": {
+   "3": {
+    "mode": "light",
+    "tint": "#FFFFFF",
+    "a": 0.22,
+    "needLight": 0.19,
+    "needDark": 0.5,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "skyInk": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "cardP": 5.13,
+    "cardS": 3.23,
+    "navS": 5.52,
+    "skyMode": "light",
+    "scrimT": "#FFFFFF",
+    "scrimA": 0,
+    "sky": 5.21,
+    "hero": null,
+    "btn": {
+     "fill": "#082F5A",
+     "ink": "#FFFFFF"
+    },
+    "btnC": 4.88
+   },
+   "pageL": 76.0727387382419,
+   "lightT": "#FFFFFF",
+   "darkT": "#22282A",
+   "satD": 1
+  },
+  "ill-day1510": {
+   "3": {
+    "mode": "light",
+    "tint": "#FFFFFF",
+    "a": 0.22,
+    "needLight": 0.18,
+    "needDark": 0.5,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "skyInk": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "cardP": 5.21,
+    "cardS": 3.28,
+    "navS": 5.5,
+    "skyMode": "light",
+    "scrimT": "#FFFFFF",
+    "scrimA": 0,
+    "sky": 5.65,
+    "hero": null,
+    "btn": {
+     "fill": "#082F5A",
+     "ink": "#FFFFFF"
+    },
+    "btnC": 5.75
+   },
+   "pageL": 75.80962589056027,
+   "lightT": "#FFFFFF",
+   "darkT": "#22282A",
+   "satD": 1
+  },
+  "ill-dusk1945": {
+   "3": {
+    "mode": "light",
+    "tint": "#FFFFFF",
+    "a": 0.29,
+    "needLight": 0.27,
+    "needDark": 0.44,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "skyInk": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "cardP": 5.08,
+    "cardS": 3.2,
+    "navS": 4.73,
+    "skyMode": "light",
+    "scrimT": "#FFFFFF",
+    "scrimA": 0,
+    "sky": 3.71,
+    "hero": null,
+    "btn": {
+     "fill": "#082F5A",
+     "ink": "#FFFFFF"
+    },
+    "btnC": 3.56
+   },
+   "pageL": 68.56953816002388,
+   "lightT": "#FFFFFF",
+   "darkT": "#22272D",
+   "satD": 1
+  },
+  "ill-night": {
+   "3": {
+    "mode": "dark",
+    "tint": "#1E2739",
+    "a": 0.22,
+    "needLight": 0.47,
+    "needDark": 0,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "skyInk": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "cardP": 8.41,
+    "cardS": 5.76,
+    "navS": 6.44,
+    "skyMode": "dark",
+    "scrimT": "#1E2739",
+    "scrimA": 0,
+    "sky": 6.64,
+    "hero": null,
+    "btn": {
+     "fill": "#FFFFFF",
+     "ink": "#0B3A66"
+    },
+    "btnC": 7.22
+   },
+   "pageL": 36.55036640482301,
+   "lightT": "#FFFFFF",
+   "darkT": "#1E2739",
+   "satD": 1
+  }
+ },
+ "note": "VP1: g2.js FLOORS=3, all screens glass y 236-851 + nav, sky text to x 380; vp-dusk1945 with MODE=light (white glass at dusk, as DD1/PD1). ctl1510 (PD1 stratocumulus 15:10 control) reproduced 3.27 / 9.69."
+}

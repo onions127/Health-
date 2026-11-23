@@ -1,0 +1,2 @@
+{ "vp": { "readiness": 46, "readinessUsual": 79, "sleepScore": 42, "sleepMin": 280, "sleepUsual": 432, "hrv": 38, "hrvMin": 55, "hrvMax": 63, "steps": 2900, "stepsUsual": 8200, "strain": 24, "strainUsual": 75, "skinTemp": 0.1, "rhr": 59, "rhrUsual": 54 },
+  "ill": { "readiness": 49, "readinessUsual": 79, "sleepScore": 56, "sleepMin": 365, "sleepUsual": 432, "hrv": 44, "hrvMin": 55, "hrvMax": 63, "steps": 2400, "stepsUsual": 8200, "strain": 20, "strainUsual": 75, "skinTemp": 0.8, "rhr": 60, "rhrUsual": 54 } }
