@@ -980,3 +980,47 @@ STOP: waiting for review of the mapping (thresholds, the look of each day) and t
 **Board:** `wt1-board.html`. STOP for the pick.
 
 **Picked (2026-11-23):** B · Nudge it (ruler and − / +, tap the number to type), with the solid snackbar and the "✓ 63.9 kg" button after saving.
+
+## MD1 · A metric's page, and the Calendar (2026-11-23)
+
+**Asked:** continue (open items after Log weight: the Trends metric page and Calendar).
+
+**Shipped today (control):** metric detail: back and name; hero card (today's value, Normal chip, insight chip); Week / Month / 3M / Year; chart card (picked day's value and chip, smoothed line, daily dots, outliers, tap to pick); how the score is made (score metrics); 30-day average. Calendar: a 14-day grid with a coloured dot per day; tap opens that day's Today.
+
+**Built:** `md1-board.html`, HRV on today's sky (15:10, `md1/day1510.png`), G2 day glass, TR2 good/bad colours (with arrow and word). Data: last 30 days of `data.js` (today 64 ms, normal 55–63).
+- **A · Chart in a card:** hero = today's value and word; range control in glass; one chart card with a light grid (labels outside the plot), band = your normal, 3-day line, daily dots, days outside ringed in their colour; picking a past day adds "Open 4 Nov". The About card did not fit above the nav and is dropped (the shipped page has none).
+- **B · The line on the sky:** the 30 days drawn under the number on the sky itself (x 22–236, clear of the trees), band and ringed outliers; cards hold the picked day ("lowest in 30 days", Open 4 Nov), the average and About HRV.
+- **Calendar:** a month sheet over Trends; each day carries its sky as the week-strip glyph from its readiness (sun 80+, sun and cloud 65–79, cloud 50–64, grey cloud under 50); shape carries it, not colour. Tapping a day opens it in Today's layout under its own sky (4 Nov = stratocumulus, `md1/nov4.png`) with "Back to today".
+
+**Measured** (`g2.js`, `md1/measure.json`, floor 3.0, no veil): glass text 3.75 (sheet reaching the land), sky text incl. B's line 5.55, number 7.04; past day (stratocumulus) glass 3.29, sky 5.07.
+
+**Found:** `data.js` ends on 12 Nov while the other screens say 23 Nov; the Calendar follows the data.
+
+**Not done:** Week / 3M / Year ranges drawn, other metrics (score metrics' "how it's made", weight with Log), night state, phone check.
+
+**Board:** `md1-board.html`. STOP for the pick (A / B; the Calendar is one proposal).
+
+**Picked (2026-11-23):** A · Chart in a card, with a Today range added to Week / Month / 3M / Year.
+
+## MD2 · A metric's page: Today to Year (2026-11-23)
+
+**Asked:** A (chart in a card), and add a Today range to Week / Month / 3M / Year.
+
+**Found:** the band measures HRV (and HR, SpO2, temperature) on the sync interval (30 min, `buildSetAutoIntervalFrame`); a day's HRV is the mean of that day's readings (`DailySeriesRepository`), the morning check when there is one. So a Today range can show the readings themselves.
+
+**Built:** `md2-board.html`, five phones (one per range), same page and sky (15:10). The range control has five segments (76 px each, ≥ 48 dp); the hero stays today's value in every range, the chart card and the average card change.
+- **Today:** the readings every 30 min from midnight to now (prototype data), asleep shaded (runs higher), the morning check as a marked dot ("check 64", used for readiness), the rest of the day faded after a "now" line; average so far in the header; "Asleep and awake" averages below. No single reading is marked outside normal: the normal is for the day's value (said on the card).
+- **Week:** raw daily values with each day's number over its dot (shipped: no smoothing); 7-day average and how many days were outside normal.
+- **Month:** MD1 A (3-day average).
+- **3M:** 90 days, 7-day average, month labels; only days outside normal get a ring.
+- **Year:** weekly averages placed on the year (J–D), the months before the band started shaded "no data yet"; "Average this year, since 15 Aug".
+
+**Measured:** as MD1 (`md1/measure.json`): glass text 3.75, sky 5.55, number 7.04; green / coral on the card 3.66 / 3.54 (TR2). Shots: `tools/visual-loop/md2.js` → `out/md2-0..4.png`.
+
+**Not done:** other metrics (score metrics' "how it's made", weight with its Log button, skin temperature as a difference), night state, phone check. The Calendar (MD1) is still unanswered.
+
+**Board:** `md2-board.html`. STOP.
+
+**Approved (2026-11-23):** the five ranges as built.
+
+**Calendar (MD1) approved (2026-11-23):** the month sheet over Trends with each day's sky glyph; a tapped day opens under its own sky with "Back to today".
