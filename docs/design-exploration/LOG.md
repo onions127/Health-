@@ -1291,3 +1291,24 @@ Load to converged 20.1 s (`loadT.js`; SH1 26.1 s): compile cost holds.
 **Board:** `wt1-board.html?bad=1`, `co2-board.html?bad=1` (third section). STOP.
 
 **Approved (2026-11-24):** ST1 as built (the bolt fixed and moved to the right sky; storm-day sky text left of x 262; Today and Coach through the storm day).
+
+## BD1 · Readiness, Calendar and Trends on the bad days (2026-11-24)
+
+**Asked:** Readiness, Calendar and Trends on the bad days (open since PD1).
+
+**The days:** VP1's very poor day (46), likely illness (49) and ST1's storm day (34), at 15:10 under each day's own sky and glass (`vp1/`, `st1/` renders and measurements; every card sits inside the glass area measured there).
+
+**Built** (`?bad=1`; shots `BOARDS=md3,tr2 TAG=bd1 node vp1.js` → `out/bd1-md3-*.png`, `out/bd1-tr2-*.png`, sheet `out/bd1-sheet.png`):
+- **Readiness** (`md3-board.html?bad=1`): the MD3 page for a given day (`readinessPage(bd)`). The month chart's scale drops to 30 when a day is under 50 (grid 40 / 60 / 80), so today stays on it, filled coral below your normal. The parts follow the shipped `readinessParts`, vitals included: 12 / 14 / 11 / 9 (46), 17 / 13 / 14 / 5 (49), 11 / 8 / 10 / 5 (34), each summing to the score; on the illness days the vitals line reads "SpO₂ 93% (below 95%) · skin temp far from your average" (it was fixed to "near your average").
+- **Calendar** (`md3-board.html?bad=1`, illness and storm days): each day's glyph is the sky it had, from the body, not readiness alone: rain (grey cloud with three drops) when skin temp and resting HR are both up, a bolt when readiness is also under 35. A second key line says so ("skin temp and resting HR up", "both up, readiness under 35"); the subtitle reads "Each day's sky, from your body". Shape carries it, not colour.
+- **Trends** (`tr2-board.html?bad=1`): the TR2 list with today's values replaced. Very poor: 2 of 8 within your normal, "5 numbers need a look today". Illness days: 0 of 8, and the line names the pattern instead of a count: "Skin temp and resting HR are both up: your body may be fighting something" (as Today's card). Storm-day sky text keeps left of x 262 (ST1).
+
+**Measured:** TR2's colours against each day's glass at its worst page band (floor 3.0): very poor (29%) bad 3.68, good 3.81; illness (22%) bad 3.35, good 3.47; storm (24%) bad 3.30, good 3.42.
+
+**Found:** md3's coral colour constant is also called `BAD`, so the board tests `window.BAD` for the flag.
+
+**Not done:** the haze-only day; past bad days opened from the Calendar (only today is a bad day in the data); night versions of these pages.
+
+**Board:** `md3-board.html?bad=1`, `tr2-board.html?bad=1`. STOP.
+
+**Approved (2026-11-24):** BD1 as built (Readiness with the shipped parts and a scale to 30; the Calendar glyph from the body, rain and storm; Trends naming the illness pattern).

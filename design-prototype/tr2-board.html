@@ -31,7 +31,9 @@
   <p>Two days: today at 15:10 (day glass; three changes, all good) and 4 Nov, a poor day, at 23:10 (night glass; most changes bad). Each glass has its own pair of colours, measured to 3:1 against the card.</p>
 </header>
 <section class="dir"><div class="sheet" id="sheet"></div><div class="phones" id="phones"></div></section>
+<main id="board"></main>
 <script src="data.js"></script>
+<script src="night.js"></script>
 <script>
 const HD = window.HEALTH_DATA, days = HD.days, M = HD.METRICS;
 const rgba = (h, a) => `rgba(${[1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(',')},${a})`;
@@ -41,8 +43,8 @@ const SENSE = { hrv: [1, -1], rhr: [-1, 1], sleep: [1, -1], readiness: [1, -1], 
 const COL = { day: { good: '#17703C', bad: '#B23A2E' }, night: { good: '#7BE3A4', bad: '#FFA095' } };
 const FMT = { hrv: v => `${v} ms`, rhr: v => `${v} bpm`, sleep: v => hmT(v), readiness: v => `${v}`, steps: v => n(v), strain: v => `${v}`, spo2: v => `${v}%`, skinTemp: v => `${v >= 0 ? '+' : ''}${v.toFixed(1)} °C` };
 const LABEL = { hrv: 'HRV', rhr: 'Resting HR', sleep: 'Sleep', readiness: 'Readiness', steps: 'Steps', strain: 'Strain', spo2: 'Blood oxygen', skinTemp: 'Skin temp' };
-function rows(di, hour) {
-  const d = days[di], last30 = days.slice(di - 29, di + 1), pace = Math.min(1, Math.max(.05, (hour - 7) / 14));
+function rows(di, hour, over) {   // BD1: over = today's values on a bad day (replaces the last day of the 30)
+  const d = { ...days[di], ...(over || {}) }, last30 = days.slice(di - 29, di).concat([d]), pace = Math.min(1, Math.max(.05, (hour - 7) / 14));
   return Object.keys(LABEL).map(id => { const m = M[id], key = m.dataKey || id, v = d[key], series = last30.map(x => x[key]);
     let dir = v > m.normalMax ? 1 : v < m.normalMin ? -1 : 0, st = dir > 0 ? 'Above normal' : dir < 0 ? 'Below normal' : '', text = FMT[id](v);
     if (id === 'steps') { const usual = m.avg30 * pace; dir = v > usual * 1.15 ? 1 : v < usual * .85 ? -1 : 0; st = pace < 1 ? (dir > 0 ? 'Ahead of your pace' : dir < 0 ? 'Behind your pace' : '') : (dir > 0 ? 'Above your usual' : dir < 0 ? 'Below your usual' : ''); series[29] = v / pace; if (pace < 1) text += ' so far'; }
@@ -59,17 +61,17 @@ function spark(r, W, H, ink, c) {
 const chev = c => `<svg width="10" height="16" viewBox="0 0 10 16" aria-hidden="true"><path d="M2.5 2.5 8 8l-5.5 5.5" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const cal = '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M2 6.5h12M5.5 1.8v2.6M10.5 1.8v2.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
 const list = a => a.join(', ').replace(/, ([^,]*)$/, ' and $1');
-function phone(img, g, satD, R, time) {
+function phone(img, g, satD, R, time, o = {}) {
   const P = g.ink, S = g.skyInk, dark = g.mode === 'dark', C = COL[dark ? 'night' : 'day'], tc = r => r.tone === 'good' ? C.good : r.tone === 'bad' ? C.bad : P.primary;
   const glass = `background:${rgba(g.tint, g.a)};-webkit-backdrop-filter:blur(22px) saturate(${dark ? satD : 1.6});backdrop-filter:blur(22px) saturate(${dark ? satD : 1.6});box-shadow:${dark ? 'inset 0 0 0 1px rgba(255,255,255,.10), inset 0 1px 0 rgba(255,255,255,.08), 0 10px 28px rgba(0,0,0,.12)' : '0 1px 1px rgba(14,42,67,.05), 0 10px 28px rgba(14,42,67,.10)'}`;
   const outs = R.filter(r => r.dir), good = outs.filter(r => r.tone === 'good'), bad = outs.filter(r => r.tone === 'bad');
   const detail = !outs.length ? 'Everything is where it usually is' : [good.length ? `${list(good.map(r => r.label))} ${good.length > 1 ? 'are' : 'is'} better than usual` : '', bad.length ? (bad.length > 3 ? `${bad.length} numbers need a look today` : `${list(bad.map(r => r.label))} ${bad.length > 1 ? 'need' : 'needs'} a look`) : ''].filter(Boolean).join('. ');
-  const rh = 56;
+  const rh = 56, det = o.detail || detail;
   return `<div class="phone" style="color:${P.primary}"><img class="scene" src="${img}" alt="">
     <div class="abs" style="top:12px;left:20px;font:500 12px Roboto, 'Segoe UI';color:${S.sky}">${time}</div>
     <div class="abs" style="top:40px;left:20px;color:${S.sky}"><div style="font-size:19px;font-weight:500">Trends</div><div style="font-size:12px;margin-top:2px">Last 30 days · against your normal</div></div>
     <div class="abs btn" style="top:40px;right:20px;background:${g.btn.fill};color:${g.btn.ink}">${cal}&nbsp;Calendar</div>
-    <div class="abs" style="top:112px;left:22px;right:30px;color:${S.sky}"><div style="font-size:72px;font-weight:300;line-height:1;letter-spacing:-0.035em;margin-left:-3px">${R.length - outs.length}<span style="font-size:.5em;letter-spacing:0"> of ${R.length}</span></div><div style="font-size:23px;line-height:1.25;margin-top:8px">within your normal</div><div style="font-size:15px;line-height:1.35;margin-top:4px">${detail}</div></div>
+    <div class="abs" style="top:112px;left:22px;right:${o.skyRight || 30}px;color:${S.sky}"><div style="font-size:72px;font-weight:300;line-height:1;letter-spacing:-0.035em;margin-left:-3px">${R.length - outs.length}<span style="font-size:.5em;letter-spacing:0"> of ${R.length}</span></div><div style="font-size:23px;line-height:1.25;margin-top:8px">within your normal</div><div style="font-size:15px;line-height:1.35;margin-top:4px">${det}</div></div>
     <div class="glass" style="${glass};top:384px;left:12px;right:12px;height:${R.length * rh + 8}px;padding:4px 0;overflow:hidden">${R.map((r, k) => `<div style="position:relative;height:${rh}px;display:flex;align-items:center;gap:10px;padding:0 12px 0 16px;${k ? `border-top:1px solid ${rgba(P.primary, .10)}` : ''}">
       ${r.tone === 'good' || r.tone === 'bad' ? `<i style="position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 2px 2px 0;background:${tc(r)}"></i>` : ''}
       <div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:500">${r.label}</div><div style="font-size:12px;color:${P.secondary}">${r.text}${r.dir ? ` · <b style="font-weight:500;color:${tc(r)}">${r.dir > 0 ? '↑' : '↓'} ${r.st}</b>` : ''}</div></div>
@@ -96,6 +98,19 @@ const LAST = 89, NOV4 = 81;
     <h3>Where the colour goes</h3><ul><li>The arrow and word (“↑ Above normal”)</li><li>Today's dot and its ring in the line</li><li>A 3 px bar at the row's left edge, for scanning</li><li>The hero says it in words: “… better than usual”, “… needs a look”</li></ul>
     <h3>Measured: colour against the card (worst page band, floor 3.0)</h3><table class="m"><tr><th>colour</th><th></th><th>contrast</th></tr>${meas.map(([k, c, v]) => `<tr><td><i class="sw" style="background:${c}"></i>${k}</td><td>${c}</td><td class="${v < 3 ? 'bad' : ''}">${v.toFixed(2)}</td></tr>`).join('')}</table>
     <p style="margin-top:8px">Green and coral also differ in lightness, and the arrow and word carry the meaning, so it holds for colour-blind eyes.</p>`;
+  if (BAD) {   // BD1: Trends on the three bad days at 15:10, under each day's sky; colours measured against each day's glass
+    const BODY = { vp: { hrv: 38, rhr: 59, sleepMin: 280, readiness: 46, steps: 2900, strain: 24, spo2: 96, skinTemp: .1 }, ill: { hrv: 44, rhr: 60, sleepMin: 365, readiness: 49, steps: 2400, strain: 20, spo2: 93, skinTemp: .8 },
+      st: { hrv: 36, rhr: 64, sleepMin: 290, readiness: 34, steps: 1100, strain: 9, spo2: 93, skinTemp: 1.1 } };
+    const ILL = 'Skin temp and resting HR are both up: your body may be fighting something';
+    const figs = [], ms = [];
+    for (const [day, name] of [['vp', 'A very poor day (46)'], ['ill', 'Likely illness (49)'], ['st', 'The storm day (34)']]) {
+      const g = vp1G(day, 'day1510'), img = badImg(day, 'day1510'), R = rows(LAST, 15 + 10 / 60, BODY[day]), bands = await bandsOf(img);
+      const outs = R.filter(r => r.dir).length; window.BD1_COUNT = Object.assign(window.BD1_COUNT || {}, { [day]: `${R.length - outs} of ${R.length}` });
+      ms.push([name, Math.round(g.a * 100), worst(g, bands, COL.day.good), worst(g, bands, COL.day.bad)]);
+      figs.push([phone(img, g, 1, R, '15:10', { detail: day === 'vp' ? null : ILL, skyRight: day === 'st' ? 150 : 30 }), `${name} · 15:10`]); }
+    document.querySelector('section.dir').style.display = 'none';
+    addSection('BD1 · Trends on the bad days', `The same list. The hero counts what is within your normal; on the illness days its line names the pattern in words (skin temp and resting HR both up), as Today’s card does, instead of a count of numbers to look at. Coral against each day’s glass: ${ms.map(m => `${m[0]} ${m[1]}% glass, bad ${m[3].toFixed(2)}, good ${m[2].toFixed(2)}`).join('; ')}.`, figs, true);
+    window.BD1_M = ms; }
 })();
 </script>
 </body>
