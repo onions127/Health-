@@ -53,6 +53,8 @@
     "mode": "light",
     "tint": "#FFFFFF",
     "a": 0.22,
+    "needLight": 0.18,
+    "needDark": 0.62,
     "navA": 0.3,
     "ink": {
      "primary": "#0E2A43",
@@ -64,21 +66,21 @@
      "secondary": "#2E4A62",
      "sky": "#0E2A43"
     },
-    "cardP": 5.23,
-    "cardS": 3.29,
+    "cardP": 5.2,
+    "cardS": 3.28,
     "navS": 5.6,
     "skyMode": "light",
     "scrimT": "#FFFFFF",
     "scrimA": 0,
-    "sky": 5.07,
-    "hero": 10.45,
+    "sky": 4.75,
+    "hero": 13.29,
     "btn": {
      "fill": "#0B5FA5",
      "ink": "#FFFFFF"
     },
-    "btnC": 3.59
+    "btnC": 4.34
    },
-   "pageL": 79.09372282846283,
+   "pageL": 79.0710904289023,
    "lightT": "#FFFFFF",
    "darkT": "#1E2929",
    "satD": 1

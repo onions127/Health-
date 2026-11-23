@@ -1140,7 +1140,7 @@ void main(){
   // G3: 5.5, 20.25 and 20.5 hold the twilight dip of the key light (TWI), which a blend of the neighbours misses (20:30 read 32.7 dB from 20 + 21).
   const KEYFRAMES = [5, 5.5, 5.75, 6.5, 7.5, 9, 11, 13, 15, 16.5, 17.75, 19, 20, 20.25, 20.5, 21];
   const bracketHours = (h, list = KEYFRAMES) => { const L = list.slice().sort((a, b) => a - b), i = L.findIndex(x => x > ((h % 24) + 24) % 24); return [L[i <= 0 ? L.length - 1 : i - 1], L[i < 0 ? 0 : i]]; };
-  const SKY_CACHE = 'sky-v4';                                             // Cache Storage for layers baked on this device. Bump it whenever the sky's look changes: bakes from an older shader are then dropped (v2: 3.14 clouds, v3: 3.15 horizon and land, v4: G3 night and twilight light)
+  const SKY_CACHE = 'sky-v5';                                             // Cache Storage for layers baked on this device. Bump it whenever the sky's look changes: bakes from an older shader are then dropped (v2: 3.14 clouds, v3: 3.15 horizon and land, v4: G3 night and twilight light, v5: SH1 low cloud sheet)
   const cached = async url => { if (G.caches) { const r = await (await G.caches.open(SKY_CACHE)).match(new URL(url, G.location.href).href); if (r) return r; } return fetch(url); };
   const regimeOf = r => r == null ? 'firstRun' : r >= 80 ? 'fair' : r >= 65 ? 'partly' : r >= 50 ? 'stratocumulus' : 'stratus';
   const DRIFT_ROOM = 72, DRIFT_V = .8;                                   // baked near clouds: CSS px of extra layer to drift into, CSS px per second (clouds ~10 km away at 10 m/s)

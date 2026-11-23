@@ -1209,3 +1209,5 @@ STOP: waiting for review of the mapping (thresholds, the look of each day) and t
 **Board:** `?poor=1` on Today, Coach and Readiness. STOP.
 
 **Approved (2026-11-23):** the reworked sheet (SH1) and the poor day as built (PD1: Today, Coach through the day, Readiness; dusk at 37% with a dark blue button on grey skies).
+
+**Re-baked (2026-11-23, after SH1):** `bakeAll.js` re-baked the day's 17 keyframes (16 fair hours and stratocumulus 13:00, seed 20780 as before) in 78 s; the baked stratocumulus plays back like the live render (`out/bk-cmp.png`). The on-device cache goes to `sky-v5`, so phones drop skies they baked with the old sheet. `md1/nov4.png` (the Calendar's past day) re-rendered with MD1's screen areas (the fair sky reproduces 3.75 / 5.50 / 7.04): past-day glass 3.28 (was 3.29), sky text 4.75 (was 5.07), number 13.29; the boards' inlined values follow.
