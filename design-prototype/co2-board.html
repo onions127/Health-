@@ -48,6 +48,15 @@ const HOURS = {
     q: 'Will I recover by tomorrow?', a: `Likely. You trained hard (strain ${t.strain}, above your usual ${Mt.strain.avg30}), but your HRV was ${t.hrv} ms this morning, above your normal. Sleep seven hours or more and tomorrow should read steady or better.`, foot: 'From strain, HRV and your usual sleep', chips: ['How should I wind down?', 'When should I sleep?'] },
   23.17: { clock: '23:10', img: 'nt1/night.png', m: 'night', line: 'Bed by 23:30 tonight.', detail: 'Keeps your sleep on track · you usually fall asleep at 23:10',
     q: 'How did today go?', a: `A strong day: readiness ${t.readiness}, ${t.steps.toLocaleString('en-US')} steps and strain ${t.strain}. Your heart rate is settling toward your resting ${t.rhr} bpm.`, foot: 'From readiness, steps, strain and heart rate today', chips: ['Why does bedtime matter?', 'What about tomorrow?'] } };
+// PD1: a poor day (readiness 58; HRV 46 below your normal, resting HR 58 above it, 6h 05m asleep, skin +0.4): the read eases off all day
+if (POOR) Object.assign(HOURS[7.25], { img: 'pd1/am0715.png', line: 'An easy day will pay off tomorrow.', detail: 'Readiness 58 · HRV 46 ms, below your normal',
+    q: 'Should I still train?', a: 'Keep it light. Your HRV is 46 ms, below your normal 55–63, and resting HR is 58, above it. A walk or an easy spin is fine; save hard sessions for a day that reads steady or better.', foot: 'From HRV, resting HR and sleep, this morning', chips: ['Why is my HRV low?', 'What helps most today?'] }),
+  Object.assign(HOURS[15.17], { img: 'pd1/day1510.png', line: 'Easy so far. Keep it that way.', detail: '3,240 steps by 15:10 · strain 31, your usual 75',
+    q: 'Can I go for a run later?', a: 'A short, easy one, if you feel like it: keep it conversational. Your body read 58 this morning, so today is for recovery, not fitness.', foot: 'From readiness and strain so far', chips: ['How easy is easy?', 'Why is my HRV low?'] }),
+  Object.assign(HOURS[19.75], { img: 'pd1/dusk1945.png', line: 'An easy day done. An early night next.', detail: 'Strain 49, under your usual 75 · readiness was 58',
+    q: 'Will I recover by tomorrow?', a: 'An easy day and a full night usually lift HRV. If skin temperature and resting HR are still up tomorrow, take another easy day.', foot: 'From strain, HRV, resting HR and skin temperature', chips: ['How should I wind down?', 'When should I sleep?'] }),
+  Object.assign(HOURS[23.17], { img: 'pd1/night.png', line: 'Bed by 23:00 tonight.', detail: 'Half an hour early: last night was short, 6h 05m',
+    q: 'How did today go?', a: 'Easy, as planned: 4,820 steps and strain 49. Tonight matters most: aim for seven hours or more.', foot: 'From steps, strain and last night’s sleep', chips: ['Why does bedtime matter?', 'What about tomorrow?'] });
 const H = () => HOURS[HOUR], read = { get line() { return HOUR === 15.17 && !window.CO2_NEW ? read0.line : H().line; }, get detail() { return H().detail; } };
 const points = [['Readiness', `${t.readiness}`, `${Math.abs(t.readiness - Mt.readiness.avg30)} above your usual ${Mt.readiness.avg30}`], ['HRV', `${t.hrv} ms`, `above your normal ${Mt.hrv.normalMin}–${Mt.hrv.normalMax}`], ['Sleep', HD.formatSleep(t.sleepMin), `score ${t.sleepScore}, deep sleep 1h 35m`]];
 const send = c => `<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6" fill="none" stroke="${c}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
@@ -89,7 +98,7 @@ window.CO2_NEW = 1;
 (async () => {
   const j = async p => (await (await fetch(p + '?' + Date.now())).json()).m;
   const C2 = await j('co2/measure.json'), D = (await j('tr1/measure.json')).day1510['3'], N = NIGHT_G;
-  const G4 = { 7.25: C2.am0715['3'], 15.17: D, 19.75: { ...C2.dusk1945['3'], a: .34, cardP: 5.06, cardS: 3.19 }, 23.17: N };   // CO3: dusk glass 34% like every screen at that hour (DD1); g2.js MODE=light ALPHA=.34 over the whole chat glass
+  const G4 = POOR ? { 7.25: POOR_G.am0715, 15.17: POOR_G.day1510, 19.75: POOR_G.dusk1945, 23.17: POOR_G.night } : { 7.25: C2.am0715['3'], 15.17: D, 19.75: { ...C2.dusk1945['3'], a: .34, cardP: 5.06, cardS: 3.19 }, 23.17: N };   // CO3: dusk glass 34% like every screen at that hour (DD1); g2.js MODE=light ALPHA=.34 over the whole chat glass
   const el = document.createElement('section'); el.className = 'dir';
   const rows = Object.keys(HOURS).map(h => { const g = G4[h]; return `<tr><td>${HOURS[h].clock}</td><td>${g.mode === 'dark' ? 'land' : 'white'} ${Math.round(g.a * 100)}%</td><td>${g.cardS.toFixed(2)}</td><td>${(g.sky).toFixed(2)}</td></tr>`; }).join('');
   el.innerHTML = `<div class="sheet"><h2>A · The read follows the hour</h2><div class="thesis">Morning: the plan from this morning’s body. Afternoon: progress against your usual day. Dusk: how hard the day was and what recovery needs. Night: bedtime against your usual. The opening exchange and the two chips change with it; every answer still names its sources.</div>
@@ -97,6 +106,8 @@ window.CO2_NEW = 1;
     <h3>Measured (floor 3.0, no veil)</h3><table class="m"><tr><th>hour</th><th>glass</th><th>glass text</th><th>sky text</th></tr>${rows}</table></div>
     <div class="phones">${Object.keys(HOURS).map(h => { HOUR = +h; window.NIGHT = h === '23.17'; return `<figure>${phone(HOURS[h].img, G4[h], 'chat')}<figcaption>${HOURS[h].clock} · ${HOURS[h].line}</figcaption></figure>`; }).join('')}</div>`;
   document.getElementById('board').appendChild(el);
+  if (POOR) uhSection('PD1 · Coach on a poor day', 'The read eases off all day: an easy day in the morning, keeping it easy in the afternoon, an early night at dusk, an earlier bedtime at night. Every answer still names its sources; none of it is medical advice.',
+    Object.keys(HOURS).map(h => { HOUR = +h; window.NIGHT = h === '23.17'; return [phone(HOURS[h].img, G4[h], 'chat'), `${HOURS[h].clock} · ${HOURS[h].line}`]; }));
   if (UH) { window.NIGHT = TIME === 'night'; HOUR = NIGHT ? 23.17 : 15.17; uhSection('UH1 · Coach offline', 'The read on the sky comes from rules on the phone, so it still works. A question with no connection gets the shipped fallback: the numbers it would rest on, from the phone, and Try again. The Claude app hand-off goes, since it needs the connection too.', [[phone(NIGHT ? 'nt1/night.png' : 'tr1/day1510.png', NIGHT ? N : D, 'offline'), 'No connection: your numbers, Try again']]); }
 })();
 </script>

@@ -141,16 +141,24 @@ float cumulusD(vec3 p, bool full){
 float sheetD(vec3 p, bool full){
   if (uSheet <= 0. || p.y < uSB - .2 || p.y > uST + .2) return 0.;
   vec3 q = p + wind()*.6;
-  vec4 n = textureLod(uShape, q*vec3(1./4.5, 1./1.6, 1./4.5), 0.);     // cells flattened into a layer
-  float pw = clamp((n.r - .62)/.26, 0., 1.), wf = clamp(((n.g*.40 + n.b*.35 + n.a*.25) - .30)/.36, 0., 1.);
+  // SH1: the sheet's own large-scale order from the weather map (34 km): rows bend and patches run thicker and thinner;
+  // the cells are turned off the texture axes, so the 4.5 km tile never repeats in lines toward the horizon
+  vec4 w = textureLod(uWeather, (q.xz + uSeed*1.31 + vec2(17., 5.))/34., 0.);
+  float wr = clamp((w.r - .51)*3.3 + .5, 0., 1.);
+  vec2 xz = q.xz + (w.gr - .51)*3.;
+  vec2 xa = mat2(.8, .6, -.6, .8)*xz;
+  vec4 n = textureLod(uShape, vec3(xa.x/4.5, q.y/1.6, xa.y/4.5), 0.);   // cells flattened into a layer
+  float pw = clamp((n.r - .62)/.26, 0., 1.), wf = clamp(((n.g*.40 + n.b*.35 + n.a*.25) - .30)/.36, 0., 1.), cov = uSheet;
   float und = (pw - .5)*.22;                                            // base and top undulate
   float hf = (p.y - uSB - und)/(uST - uSB);
   float prof = smoothstep(0., .2, hf)*(1. - smoothstep(.5, 1., hf));
   if (prof <= 0.) return 0.;
-  float cells = remap((wf*.65 + pw*.35)*prof, 1. - uSheet*.9, 1., 0., 1.);
-  float sheet = (.45 + .55*pw)*prof*uSheet;
+  float cells = remap((wf*.65 + pw*.35)*prof, 1. - cov*.9, 1., 0., 1.);
+  float sheet = (.45 + .55*pw)*prof*uSheet*mix(.85, 1.05, wr);
   float b = mix(cells, sheet, smoothstep(.45, 1., uSType));
-  if (full && b > 0.) { float dn = textureLod(uDetail, q/1.6, 0.).r; b = remap(b, (1. - dn)*.30*(1. - uSType*.7), 1., 0., 1.); }
+  float far = smoothstep(6., 22., p.z);                                  // SH1: seen edge-on the gaps close up: far off the sheet merges into one soft band (the 4.5 km cells glittered there in rows)
+  b = mix(b, prof*uSheet*(.62 + .2*pw), far);
+  if (full && b > 0.) { float dn = textureLod(uDetail, q/1.6, 0.).r; b = remap(b, (1. - dn)*.30*(1. - uSType*.7)*(1. - far), 1., 0., 1.); }
   return clamp(b*1.25, 0., 1.);
 }
 float density(vec3 p, bool full){ float c = cumulusD(p, full); return uSheet > 0. ? max(c, sheetD(p, full)) : c; }

@@ -1169,3 +1169,43 @@ STOP: waiting for review of the mapping (thresholds, the look of each day) and t
 **Board:** `?uh=1` on the four boards. STOP.
 
 **Approved (2026-11-23):** the unhappy states as built (Settings hero states, Today sync card, weight range and save errors, Coach offline, a new band's metric).
+
+## PD1 · A poor day (2026-11-23)
+
+**Asked:** a poor day (open since CO2: a poor day's lines and how the screens read when readiness is low).
+
+**The day:** today with 4 Nov's body (`data.js`): HRV 46 ms (normal 55–63), resting HR 58 (normal 51–56), 6h 05m asleep (score 58), skin +0.4 °C, SpO2 96%. The shipped `readinessParts` give **58** (HRV 19, resting HR 15, sleep 15, vitals 9; the data's hand-set 54 for 4 Nov does not follow the formula), *Take it easy*, so the sky is the stratocumulus regime (50–64, D1).
+
+**Sky and glass** (`g2.js`, stratocumulus at 07:15 / 15:10 / 19:45 / 23:10, all screens' glass from y 236 and sky text to x 380, floor 3.0, no veil; `pd1/*.png`, `pd1/measure.json`): 07:15 white 22%, glass text 3.15, sky 8.24; 15:10 white 22%, 3.29, sky 8.08; 19:45 white **37%** (34% on a fair dusk), 3.19, sky 3.55, the white button falls under 3.1 against the grey dusk so the button is dark blue `#082F5A` (3.24); 23:10 land glass `#11225A` 22%, 5.73, sky 3.26.
+
+**Built:** `?poor=1` on three boards (also `&t=night`), shots `tools/visual-loop/pd1.js` → `out/pd1-*.png`, sheet `out/pd1-sheet.png`:
+- **Today** (`wt1-board.html?poor=1`): 58, *Take it easy*, "18 below your normal 76"; the tiles hold the day plainly (6h 05m · score 58 · 1h 07m less than usual; 3,240 steps · an easy day; HRV 46 ms · morning check), no colour, as on a good day.
+- **Coach** (`co2-board.html?poor=1`), the read eases off all day: 07:15 "An easy day will pay off tomorrow." (Should I still train? → keep it light, with the numbers); 15:10 "Easy so far. Keep it that way."; 19:45 "An easy day done. An early night next." (if skin temp and resting HR are still up tomorrow, another easy day); 23:10 "Bed by 23:00 tonight." (half an hour early: last night was short).
+- **Readiness** (`md3-board.html?poor=1`): 58, ↓ Below normal in coral, the 30 days to today, and the parts by the shipped formula (19 / 15 / 15 / 9).
+
+**Found:** the glass at dusk depends on the weather (34% fair, 37% stratocumulus) and so does the dusk button (white on fair, dark blue on grey). One rule for the hour would take the worst weather: 37% and a dark blue button at dusk. Not changed here.
+
+**Not done:** a very poor day (under 50, low stratus) and likely illness (haze, light rain, D6); the Calendar and Trends on a poor day.
+
+**Board:** `?poor=1` on Today, Coach and Readiness. STOP.
+
+## SH1 · The low cloud sheet repeated (2026-11-23)
+
+**Asked:** on the PD1 board "the clouds look way too repetitive".
+
+**Found:** the stratocumulus/stratus sheet (`sheetD`) took its cells from one 4.5 km tile of the 128³ shape noise, the same everywhere: overhead every lump had the same size, and toward the horizon the tile, seen edge-on and at full resolution, turned into a glittering band of identical tiny cells in rows. Nothing in the sheet used the weather map (the cumulus layer does).
+
+**Changed (`scene-gl.js`, `sheetD` only):**
+- The weather map at 34 km bends the cells by up to ±0.75 km and the cells are turned off the texture axes (36.9°), so the tile no longer lines up toward the horizon.
+- Seen edge-on the gaps close up: from 6 km out to 22 km the sheet merges into one soft band (`far`), and the fine detail erosion fades with it. This is what real stratocumulus does at the horizon, and it removes the glitter.
+- Tried and dropped: a second, larger cell scale blended in by region (made the sheet one flat white mass overhead) and patches of thicker/thinner cover from the weather map (same, and fewer lumps).
+
+**Checked:** fair, partly, night and the other cumulus skies are unchanged (sunny differs from the old shader by less than two runs of the new one differ from each other); stratus, rain, thunder and fog change in their sheet only. Load to converged 26.1 s (was ~25 s): compile cost holds (`loadT.js`). Shots `out/sh1-*.png`; renders before / after for the PD1 hours in `out/sh1-crop.png`.
+
+**Re-measured** (`pd1/measure.json`, floor 3.0, no veil): 07:15 white 23%, glass 3.18, sky 8.72; 15:10 22%, 3.27, 9.72; 19:45 37%, 3.18, 3.85, dark blue button; 23:10 land glass 22%, 6.29, sky 3.26. PD1 screens re-shot (`out/pd1-sheet.png`).
+
+**Not done:** the baked keyframes for the sheet weathers (stratocumulus, stratus, rain, thunder, fog) and `md1/nov4.png` (the Calendar's past day) still hold the old sheet: re-bake (`bakeAll.js`) and re-render before the phone sees them.
+
+**Board:** `?poor=1` on Today, Coach and Readiness. STOP.
+
+**Approved (2026-11-23):** the reworked sheet (SH1) and the poor day as built (PD1: Today, Coach through the day, Readiness; dusk at 37% with a dark blue button on grey skies).
