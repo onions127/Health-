@@ -1115,3 +1115,17 @@ STOP: waiting for review of the mapping (thresholds, the look of each day) and t
 **Board:** `dd1-board.html`. STOP.
 
 **Approved (2026-11-23):** dawn and dusk as built (white day glass with dark ink at both hours; dusk 34%, white buttons over the sky, darker green and coral).
+
+## CO3 · Coach's dusk glass (2026-11-23)
+
+**Asked:** Coach dusk glass (open item from DD1: Coach at 19:45 used 26% white, the other screens 34%).
+
+**Changed:** `co2-board.html` draws Coach at 19:45 on 34% white glass, as every other screen at that hour (DD1); dark ink, white send button and your white bubbles as before. Other hours unchanged.
+
+**Measured** (`g2.js` now takes `ALPHA=` to measure a set strength; `MODE=light ALPHA=.34`, dusk 19:45, the whole chat glass x 12–400, y 236–839, and the nav, floor 3.0): glass text 3.19 (was 3.16 at 26% over CO2's smaller areas; over the whole chat glass it needs 32%), primary 5.06, nav 3.29, sky text 3.37 (unchanged), white send button vs sky 3.13.
+
+**Shots:** `tools/visual-loop/co2.js` → `out/co2-2.png` (before / after with Settings and HRV at dusk: `out/co3-sheet.png`).
+
+**Board:** `co2-board.html`. STOP.
+
+**Approved (2026-11-23):** Coach at dusk on 34% white glass, one strength for every screen at that hour.

@@ -86,7 +86,7 @@ window.CO2_NEW = 1;
 (async () => {
   const j = async p => (await (await fetch(p + '?' + Date.now())).json()).m;
   const C2 = await j('co2/measure.json'), D = (await j('tr1/measure.json')).day1510['3'], N = NIGHT_G;
-  const G4 = { 7.25: C2.am0715['3'], 15.17: D, 19.75: C2.dusk1945['3'], 23.17: N };
+  const G4 = { 7.25: C2.am0715['3'], 15.17: D, 19.75: { ...C2.dusk1945['3'], a: .34, cardP: 5.06, cardS: 3.19 }, 23.17: N };   // CO3: dusk glass 34% like every screen at that hour (DD1); g2.js MODE=light ALPHA=.34 over the whole chat glass
   const el = document.createElement('section'); el.className = 'dir';
   const rows = Object.keys(HOURS).map(h => { const g = G4[h]; return `<tr><td>${HOURS[h].clock}</td><td>${g.mode === 'dark' ? 'land' : 'white'} ${Math.round(g.a * 100)}%</td><td>${g.cardS.toFixed(2)}</td><td>${(g.sky).toFixed(2)}</td></tr>`; }).join('');
   el.innerHTML = `<div class="sheet"><h2>A · The read follows the hour</h2><div class="thesis">Morning: the plan from this morning’s body. Afternoon: progress against your usual day. Dusk: how hard the day was and what recovery needs. Night: bedtime against your usual. The opening exchange and the two chips change with it; every answer still names its sources.</div>
