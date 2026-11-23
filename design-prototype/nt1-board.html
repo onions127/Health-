@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Health++ · Round NT1 · The new screens at night</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:#E9EBEE; color:#14171A; font:400 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding:32px 32px 80px; }
+  header.board { max-width:1180px; margin-bottom:24px; } header.board h1 { font-size:26px; font-weight:600; margin-bottom:8px; } header.board p { color:#3A424B; max-width:110ch; margin-bottom:8px; }
+  table.m { border-collapse:collapse; font-size:12.5px; font-variant-numeric:tabular-nums; margin:8px 0 20px; background:#fff; border-radius:10px; } table.m td, table.m th { padding:5px 10px; border-bottom:1px solid #E6E9ED; text-align:right; } table.m td:first-child, table.m th:first-child { text-align:left; } table.m th { color:#6A727C; font-weight:500; }
+  .phones { display:flex; gap:16px; flex-wrap:wrap; } figure { margin:0; } figure img { width:297px; border-radius:22px; display:block; box-shadow:0 1px 2px rgba(20,23,26,.08), 0 16px 40px rgba(20,23,26,.14); }
+  figcaption { font-size:12px; color:#3A424B; margin-top:6px; max-width:297px; } figcaption a { color:#0B5FA5; }
+</style>
+</head>
+<body>
+<header class="board">
+  <h1>Round NT1 · The new screens at night</h1>
+  <p>Coach, Settings, Log weight and a metric's page were drawn by day only. Here each picked design at 23:10 (fair), on the night glass of G2: the land's own hue under the cards (#152256 at 22%), light ink, white buttons with dark ink, TR2's night green and coral. Nothing new in the layout; each board now takes <code>?night=1</code> (shared <code>night.js</code>), so the night is the same page, not a copy.</p>
+  <p><b>One rule found:</b> at night, sky text must stay left of the moon (x ≤ 262, as in S1). Coach's sentence box reached x 380 and needed a 37% veil; kept to x 262 it wraps to two lines and needs none. Settings' detail line was shortened at night for the same reason.</p>
+  <table class="m"><tr><th>Measured at 23:10 (g2.js, nt1/measure.json, floor 3.0)</th><th>contrast</th></tr>
+    <tr><td>Glass text, weakest (cards, sheets and nav areas of all four screens)</td><td>6.96</td></tr><tr><td>Sky text and numbers, light ink, no veil</td><td>4.11</td></tr><tr><td>White button vs the sky (Log weight, Sync now)</td><td>8.62</td></tr><tr><td>Night green / coral on the card (TR2)</td><td>8.78 / 7.04</td></tr></table>
+</header>
+<div class="phones">
+  <figure><img src="nt1/coach.png" alt="Coach at night"><figcaption>Coach · chat on the sky (CO1 A) · <a href="co1-board.html?night=1">live</a></figcaption></figure>
+  <figure><img src="nt1/settings.png" alt="Settings at night"><figcaption>Settings · band as the hero (SE1 A); toggles a lighter blue · <a href="se1-board.html?night=1">live</a></figcaption></figure>
+  <figure><img src="nt1/weight.png" alt="Log weight at night"><figcaption>Log weight · nudge it (WT1 B) · <a href="wt1-board.html?night=1">live</a></figcaption></figure>
+  <figure><img src="nt1/weight-saved.png" alt="Weight saved at night"><figcaption>After saving: the snackbar turns light at night · <a href="wt1-board.html?night=1">live</a></figcaption></figure>
+  <figure><img src="nt1/metric-today.png" alt="HRV Today at night"><figcaption>HRV · Today range (MD2) · <a href="md2-board.html?night=1">live</a></figcaption></figure>
+  <figure><img src="nt1/metric-month.png" alt="HRV Month at night"><figcaption>HRV · Month range (MD2) · <a href="md2-board.html?night=1">live</a></figcaption></figure>
+</div>
+</body>
+</html>

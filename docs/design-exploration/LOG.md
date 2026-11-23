@@ -1024,3 +1024,19 @@ STOP: waiting for review of the mapping (thresholds, the look of each day) and t
 **Approved (2026-11-23):** the five ranges as built.
 
 **Calendar (MD1) approved (2026-11-23):** the month sheet over Trends with each day's sky glyph; a tapped day opens under its own sky with "Back to today".
+
+## NT1 · The new screens at night (2026-11-23)
+
+**Asked:** continue (open item: night versions of the screens drawn by day only).
+
+**Built:** `night.js` (shared): any of `co1`, `se1`, `wt1`, `md2` boards opened with `?night=1` draws its screen at 23:10 (fair, `nt1/night.png`) on G2 night glass: land hue #152256 at 22%, saturate 1, faint light edge, light ink, white buttons with dark ink, TR2 night green/coral. Day versions are unchanged (shots byte-identical). `nt1-board.html` shows the picked designs at night: Coach (CO1 A), Settings (SE1 A), Log weight (WT1 B) and after saving, HRV Today and Month (MD2). Shots: `tools/visual-loop/nt1.js` → `design-prototype/nt1/*.png`.
+- Settings' on-toggles take a lighter blue (#5B8FD6) at night (the button colour is white there); the weight snackbar turns light; the metric page's "after now" slab darkens instead of lightening.
+
+**Measured** (`g2.js`, `nt1/measure.json`, floor 3.0; rects = all four screens' cards, sheets and nav): glass text 6.96, sky text and numbers 4.11 with no veil, white button 8.62.
+- **Found:** with Coach's sentence box out to x 380 the moon falls inside it and the sky text needs a 37% veil (3.36). Sky text kept left of the moon (x ≤ 262, as S1) needs none. Rule: at night all sky text boxes end at x 262 (`SKY_RIGHT`); Coach's sentence wraps to two lines, Settings' detail line is shortened.
+
+**Not done:** Coach's line at night still reads as a day plan ("A good day to train hard"); dusk and dawn states of these screens; phone check.
+
+**Board:** `nt1-board.html`. STOP.
+
+**Approved (2026-11-23):** the night versions as built, with the x 262 rule for sky text at night.
