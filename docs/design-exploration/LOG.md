@@ -1243,3 +1243,20 @@ Dusk under stratus needs 41% white (34% fair, 37% stratocumulus); dark glass wou
 **Board:** `wt1-board.html?bad=1`, `co2-board.html?bad=1`. STOP.
 
 **Approved (2026-11-23):** VP1 as built (Rest under 50; the illness card on the lip with Why; Coach through both days; balanced read lines; white glass 41% at dusk under stratus).
+
+## LT1 · Today's last tile with a card on the lip (2026-11-23)
+
+**Asked:** continue (open since UH1 and VP1: with a card on the lip, Today's Daily score tile runs under the tab bar).
+
+**Found:** a card on the lip (the morning check, E1; a failed sync, UH1; likely illness, VP1) moves the tiles down 76 px; Daily score then spans y 800–884 and the tab bar starts at 851. With the standard 12 px gap above the bar it needs 45 px back.
+
+**Built** (`wt1-board.html?fit=1`; `tilesFor()` in the Today phone, `o.fit`; shots `Q=fit=1 TAG=lt1 node vp1.js wt1` → `out/lt1-wt1-*.png`, sheet `out/lt1-sheet.png`). Four situations (illness 15:10 and 23:10, the sync failed 07:15, morning check not done 07:15), three fits each, applied only while a card sits on the lip:
+- **A · as built:** Today scrolls; the first screen loses Daily score under the bar.
+- **B · compact:** Steps and HRV 76 px high (was 100) with their note on the label line, Sleep 164 (was 212); Daily score ends at 836. Nothing dropped.
+- **C · grid:** two rows of two, Sleep · Steps / HRV · Daily score ("so far today"), all 100 high; ends at 788. Sleep drops "less than usual".
+
+**Checked:** the as-built tiles came from the same new code byte-identical (VP1's ten Today shots). Every card stays inside the glass area VP1/WT1 measured (y 236–851) at the same text sizes, so those contrasts hold.
+
+**Board:** `wt1-board.html?fit=1`. STOP for the pick (A / B / C).
+
+**Picked (2026-11-23):** B · compact. Today now draws the compact tiles whenever a card sits on the lip (every board: MC2's E1 card, UH1's sync card, VP1's illness card); the LT1 board still shows A and C for comparison.

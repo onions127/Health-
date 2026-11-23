@@ -53,6 +53,21 @@ function trace(w, h, c, until = 1) {
   return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><path d="${d}" fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${(w * until).toFixed(1)}" cy="${(h * 0.62).toFixed(1)}" r="3.5" fill="${c}"/></svg>`;
 }
 // one phone: Today (header, hero, cards, nav) and, optionally, the check's sheet over it
+// Round LT1: Today's tiles when a card sits on the lip (off = 76): 'scroll' (as built: the Daily score tile ends at 884, under the tab bar at 851),
+// 'compact' (Steps and HRV 76 high, their note on the label line; Sleep 164; nothing dropped), 'grid' (two rows of two: Sleep, Steps / HRV, Daily score; Sleep drops its note).
+function tilesFor(fit, off, tl, glass, P) {
+  const lbl = (t, r) => `<div style="display:flex;justify-content:space-between;font-size:12px;color:${P.secondary}"><span>${t}</span>${r ? `<span>${r}</span>` : ''}</div>`;
+  const big = (v, mt = 0) => `<div style="font-size:29px;font-weight:500;line-height:1.25${mt ? ';margin-top:' + mt + 'px' : ''}">${v}</div>`, small = t => `<div style="font-size:12px;color:${P.secondary}">${t}</div>`;
+  const card = (top, pos, h, inner, pad = '14px 16px') => `<div class="glass" style="${glass};top:${top}px;${pos};height:${h}px;padding:${pad}">${inner}</div>`;
+  const L = 'left:12px;width:188px', R = 'left:212px;right:12px', W = 'left:12px;right:12px', y = 500 + off;
+  if (fit === 'compact') return card(y, L, 164, lbl('Sleep') + big(tl.sleep, 2) + `<div style="font-size:15px">${tl.score}</div>` + small(tl.sleepSub))
+    + card(y, R, 76, lbl('Steps', tl.stepsSub) + big(tl.steps), '12px 16px') + card(y + 88, R, 76, lbl('HRV', tl.hrvSub) + big(tl.hrv), '12px 16px')
+    + card(y + 176, W, 84, lbl('Daily score') + `<div style="font-size:29px;font-weight:500;line-height:1.2">—</div>`, '12px 16px');
+  if (fit === 'grid') return card(y, L, 100, lbl('Sleep') + big(tl.sleep) + small(tl.score)) + card(y, R, 100, lbl('Steps') + big(tl.steps) + small(tl.stepsSub))
+    + card(y + 112, L, 100, lbl('HRV') + big(tl.hrv) + small(tl.hrvSub)) + card(y + 112, R, 100, lbl('Daily score') + big('—') + small('so far today'));
+  return card(y, L, 212, lbl('Sleep') + big(tl.sleep, 2) + `<div style="font-size:15px">${tl.score}</div>` + small(tl.sleepSub)) + card(y, R, 100, lbl('Steps') + big(tl.steps) + small(tl.stepsSub))
+    + card(y + 112, R, 100, lbl('HRV') + big(tl.hrv) + small(tl.hrvSub)) + card(y + 224, W, 84, lbl('Daily score') + `<div style="font-size:29px;font-weight:500;line-height:1.2">—</div>`, '12px 16px');
+}
 function phone(img, g, o) {
   const P = g.ink, S = g.skyInk, dark = g.mode === 'dark', BLUE = dark ? '#FFFFFF' : '#0B5FA5', ON = dark ? '#0B3A66' : '#FFFFFF', line = rgba(P.primary, dark ? .16 : .10);
   const glass = `background:${rgba(g.tint, g.a)};` + (dark ? '-webkit-backdrop-filter:blur(22px) saturate(1);backdrop-filter:blur(22px) saturate(1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.10), inset 0 1px 0 rgba(255,255,255,.08), 0 10px 28px rgba(0,0,0,.12)'
@@ -69,10 +84,7 @@ function phone(img, g, o) {
   if (o.alert) h += `<div class="glass" style="${glass};top:384px;left:12px;right:12px;height:64px;padding:0 8px 0 16px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:15px;font-weight:500">${o.alert[0]}</div><div style="font-size:12px;color:${P.secondary}">${o.alert[1]}</div></div><div class="btn" style="background:${BLUE};color:${ON};height:48px">${o.alert[2]}</div></div>`;   // UH1: the sync failed (shipped: Band not found · Retry)
   const week = [74, 81, 69, 77, 83, 72, o.ready], days = ['Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Today'];
   h += `<div class="glass" style="${glass};top:${384 + off}px;left:12px;right:12px;height:104px;padding:10px 14px"><div style="font-size:12px;color:${P.secondary}">Readiness this week</div><div style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-top:10px">${week.map((v, i) => `<div><div style="font-size:12px;${i === 6 ? 'font-weight:500' : 'color:' + P.secondary}">${days[i]}</div><div style="font-size:15px;font-weight:500;line-height:1.2;margin-top:14px">${v}</div></div>`).join('')}</div></div>
-    <div class="glass" style="${glass};top:${500 + off}px;left:12px;width:188px;height:212px;padding:14px 16px"><div style="font-size:12px;color:${P.secondary}">Sleep</div><div style="font-size:29px;font-weight:500;line-height:1.25;margin-top:2px">${tl.sleep}</div><div style="font-size:15px">${tl.score}</div><div style="font-size:12px;color:${P.secondary}">${tl.sleepSub}</div></div>
-    <div class="glass" style="${glass};top:${500 + off}px;left:212px;right:12px;height:100px;padding:14px 16px"><div style="font-size:12px;color:${P.secondary}">Steps</div><div style="font-size:29px;font-weight:500;line-height:1.25">${tl.steps}</div><div style="font-size:12px;color:${P.secondary}">${tl.stepsSub}</div></div>
-    <div class="glass" style="${glass};top:${612 + off}px;left:212px;right:12px;height:100px;padding:14px 16px"><div style="font-size:12px;color:${P.secondary}">HRV</div><div style="font-size:29px;font-weight:500;line-height:1.25">${tl.hrv}</div><div style="font-size:12px;color:${P.secondary}">${tl.hrvSub}</div></div>
-    <div class="glass" style="${glass};top:${724 + off}px;left:12px;right:12px;height:84px;padding:12px 16px"><div style="font-size:12px;color:${P.secondary}">Daily score</div><div style="font-size:29px;font-weight:500;line-height:1.2">—</div></div>
+    ${tilesFor(off ? o.fit || 'compact' : 'scroll', off, tl, glass, P)}
     <nav class="nav" style="${glass.replace(rgba(g.tint, g.a), rgba(g.tint, g.navA))};border-radius:0;color:${P.secondary};border-top-color:${rgba('#FFFFFF', dark ? .14 : .6)}">${['Today', 'Sleep', 'Trends', 'Coach'].map(l => `<span class="${l === 'Today' ? 'on' : ''}" style="${l === 'Today' ? 'color:' + P.primary : ''}">${l}</span>`).join('')}</nav>`;
   if (o.sheet || o.custom) {
     const btn = (t, solid) => `<div class="btn" style="width:100%;height:56px;border-radius:28px;font-size:16px;margin-top:10px;${solid ? `background:${BLUE};color:${ON}` : `color:${P.primary};box-shadow:inset 0 0 0 1.5px ${rgba(P.primary, .45)}`}">${t}</div>`;
@@ -160,6 +172,16 @@ const SECTIONS = [
     const note = day => ({ title, para, P }) => [DAYS[day].alert ? 560 : 520, title('The sky today') + DAYS[day].note.map(para).join('') + `<div style="font-size:12.5px;color:${P.secondary};margin-top:12px">Each part of the sky follows one of your numbers.</div>`];
     ['vp', 'ill'].forEach((day, n) => { const D = DAYS[day];
       addSection(D.title, D.thesis, [0, 1, 2, 3].map(i => fig(day, i)).concat([[fig(day, D.noteAt, { custom: note(day) })[0], `${VP1_HOURS[D.noteAt][1]} · the sky tapped`]]), !n); });
+    window.NIGHT = TIME === 'night'; }
+  if (/[?&]fit=1/.test(location.search)) {   // LT1: the last tile with a card on the lip; three fits per situation
+    const FITS = [['scroll', 'A · as built: scrolls, Daily score under the tab bar'], ['compact', 'B · compact: Steps and HRV 76 high'], ['grid', 'C · grid: two rows of two']];
+    const ill = { ready: 49, done: 1, detail: '27 below your normal 76', alert: ['Your body may be fighting something', 'Skin +0.8 °C · resting HR 6 above usual', 'Why'] }, illTl = i => ({ sleep: '6h 05m', score: 'Score 56', sleepSub: '1h 09m less than usual', steps: ['120', '2,400', '3,050', '3,300'][i], stepsSub: 'a rest day', hrv: '44 ms', hrvSub: 'morning check' });
+    const illPh = (i, fit) => { const [k, clock] = VP1_HOURS[i], g0 = vp1G('ill', k); window.NIGHT = k === 'night'; return phone(`vp1/ill-${k}.png`, { ...g0, skyInk: g0.skyInk.sky }, { ...T, time: clock, ...ill, tiles: illTl(i), fit }); };
+    const SIT = [['Likely illness, 15:10', fit => illPh(1, fit)], ['Likely illness, 23:10', fit => illPh(3, fit)],
+      ['The sync failed, 07:15', fit => { window.NIGHT = false; return phone(IMG, MEAS.am0715f, { ...T, alert: ['Band not found', `Last synced ${LAST} · keep it near the phone`, 'Retry'], fit }); }],
+      ['Morning check not done, 07:15', fit => { window.NIGHT = false; return phone(IMG, MEAS.am0715f, { ...T, ready: 78, entry: 'card', fit }); }]];
+    SIT.forEach(([t, f], n) => addSection('LT1 · ' + t, n ? '' : 'A card on the lip (illness, a failed sync, the morning check) moves the tiles down 76 px and the Daily score tile ends at 884, under the tab bar at 851. A: leave it, Today scrolls. B: Steps and HRV lose 24 px each and carry their note on the label line; nothing is dropped. C: two rows of two, Daily score beside HRV; Sleep drops “less than usual”. B and C apply only while a card sits on the lip.',
+      FITS.map(([fit, cap]) => [f(fit), cap]), !n));
     window.NIGHT = TIME === 'night'; }
   if (UH) { const g = MEAS.am0715f;
     uhSection('UH1 · Today and Log weight when something fails', 'A failed sync puts one card on the lip, in the shipped words with Retry, above the tiles; the numbers under it stay the last good ones. A typed weight out of range says the range in words (coral with a mark, not colour alone) and offers the likely decimal; Save waits. A failed save keeps the snackbar, with Retry instead of Undo.',
