@@ -1129,3 +1129,23 @@ STOP: waiting for review of the mapping (thresholds, the look of each day) and t
 **Board:** `co2-board.html`. STOP.
 
 **Approved (2026-11-23):** Coach at dusk on 34% white glass, one strength for every screen at that hour.
+
+## PH1 · The new screens on the phone (2026-11-23)
+
+**Asked:** phone check (open since CO1: none of the new screens had been seen on the Galaxy S21).
+
+**How:** `night.js` takes `?solo=N`: only that board's Nth phone, fitted to the device (`min(width/412, height/915)`; Chrome's address bar stays, so the screen shows at about 85% of the size the app would have full screen). `tools/visual-loop/ph1.js` opens each view in Chrome over adb (`adb reverse tcp:8765`) and takes a device screenshot: Coach at 07:15 / 19:45 / 23:10, Settings day / dusk / night, Log weight day / dawn, Readiness, Steps day / dusk, Blood oxygen at night → `out/ph1-*.png`, sheet `out/ph1-sheet.png`.
+
+**Seen on the device:** the glass blur, the white frost by day, the lilac glass at dusk and the land-hued glass at night render as on the PC; text over the sky and on the glass reads at every hour; the white buttons at dusk and night hold against the sky. The scene here is the saved render (static), not the live renderer, so this says nothing new about frame cost.
+
+**Fixed:** Steps at dusk: "now" sat under "about 9,600" at the top of the chart; after 17:00 "now" goes left of its line (day shot unchanged).
+
+**Found for lock:** chart legends and card footnotes are 11–11.5 px on a 412 px mock, about 10 dp on the S21 and below 9 dp in this check; they read, but only just. At lock, no text under 12 sp.
+
+**Note:** each view opened a new Chrome tab on the phone (13 tabs).
+
+**Board:** `out/ph1-sheet.png`. STOP.
+
+**Approved (2026-11-23):** the phone check as done; at lock, no text under 12 sp.
+
+**Gaps (2026-11-23, after the phone check):** the last card on Steps sat 3 px *under* the chart card and on Blood oxygen 9 px under it; the other metric pages ran 7–23 px apart. The cards under the range control now stack at the standard 12 px on every metric page (`stackCards()` in `night.js`, MD2–MD4 boards, the app's Column spacedBy 12 dp); all end above the nav (lowest 835). Re-shot: MD2–MD4, `nt1/metric-*.png`, `dd1/*-{metric-month,readiness,steps,spo2}.png`, phone Steps and Blood oxygen.

@@ -249,6 +249,7 @@ sec.innerHTML = `<div class="sheet"><h2>A · Three more metrics</h2><div class="
   <div class="phones">${[[readinessPage(), 'Readiness: how today’s score is made'], [weightPage(29), 'Weight: today’s entry, Edit · Delete'], [weightPage(26), 'Weight: a day without an entry, Log'], [skinPage(), 'Skin temperature: the difference, night by night']].map(([h, c]) => `<figure>${h}<figcaption>${c}</figcaption></figure>`).join('')}</div>`;
 document.getElementById('board').appendChild(sec);
 
+stackCards(); addEventListener('load', () => stackCards());
 </script>
 </body>
 </html>

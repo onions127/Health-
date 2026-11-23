@@ -199,6 +199,7 @@ el.innerHTML = `<div class="sheet"><h2>A · Chart in a card, five ranges</h2><di
   <div class="phones">${Object.keys(RANGES).map(r => `<figure>${pageA5(r)}<figcaption>${r}</figcaption></figure>`).join('')}</div>`;
 document.getElementById('board').appendChild(el);
 
+stackCards(); addEventListener('load', () => stackCards());
 </script>
 </body>
 </html>

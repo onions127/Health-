@@ -268,7 +268,7 @@ function stepsToday(w, h) { const top = 11000, X = t => 4 + (w - 8) * t / 24, Y 
   let s = `<path d="${path(hi)}L${lo.slice().reverse().map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join('L')}Z" fill="${rgba(P.primary, .10)}"/>`;
   s += [2500, 5000, 7500, 10000].map(v => `<line x1="0" x2="${w}" y1="${Y(v)}" y2="${Y(v)}" stroke="${rgba(P.primary, .10)}"/><text x="${w + 6}" y="${Y(v) + 3.5}" font-size="10" fill="${P.secondary}">${v / 1000}k</text>`).join('');
   s += `<path d="${path(usual)}" fill="none" stroke="${P.primary}" stroke-opacity=".55" stroke-width="1.4" stroke-dasharray="1 3" stroke-linecap="round"/>`;
-  s += `<rect x="${X(NOW)}" y="0" width="${X(24) - X(NOW)}" height="${h}" fill="${rgba(NIGHT ? '#000000' : '#FFFFFF', NIGHT ? .18 : .22)}"/><line x1="${X(NOW)}" x2="${X(NOW)}" y1="0" y2="${h}" stroke="${P.primary}" stroke-width="1.2"/><text x="${X(NOW) + 5}" y="12" font-size="10.5" fill="${P.secondary}">now</text>`;
+  s += `<rect x="${X(NOW)}" y="0" width="${X(24) - X(NOW)}" height="${h}" fill="${rgba(NIGHT ? '#000000' : '#FFFFFF', NIGHT ? .18 : .22)}"/><line x1="${X(NOW)}" x2="${X(NOW)}" y1="0" y2="${h}" stroke="${P.primary}" stroke-width="1.2"/><text x="${X(NOW) + (NOW > 17 ? -5 : 5)}" y="12" font-size="10.5" fill="${P.secondary}" text-anchor="${NOW > 17 ? 'end' : 'start'}">now</text>`;   // PH1: late in the day "now" sits left of its line, clear of the "about" label
   s += `<path d="${path(ahead)}" fill="none" stroke="${P.primary}" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round"/><path d="${path(today)}" fill="none" stroke="${GOOD}" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>`;
   s += `<circle cx="${X(NOW)}" cy="${Y(SO_FAR)}" r="5" fill="${GOOD}" stroke="${NIGHT ? '#152256' : '#fff'}" stroke-width="2"/><circle cx="${X(NOW)}" cy="${Y(BY_NOW)}" r="3.6" fill="none" stroke="${P.primary}" stroke-width="1.6"/>`;
   if (NOW < 21) s += `<text x="${X(24) - 2}" y="${Y(PACE) - 7}" font-size="11" font-weight="500" fill="${P.primary}" text-anchor="end">about ${k(PACE)}</text>`;
@@ -320,6 +320,7 @@ sec.innerHTML = `<div class="sheet"><h2>A · The last metrics</h2><div class="th
   <div class="phones">${[[dailyPage(), 'Daily score: how today’s is made'], [recoveryPage(), 'Recovery: two parts, and why it differs from Readiness'], [sleepPage(), 'Sleep score: five parts, last night'], [stepsPageToday(), 'Steps, Today: against your usual pace'], [stepsPageMonth(), 'Steps, Month: full days, today so far'], [spo2Page(), 'Blood oxygen, 3M: the one low night picked']].map(([h, c]) => `<figure>${h}<figcaption>${c}</figcaption></figure>`).join('')}</div>`;
 document.getElementById('board').appendChild(sec);
 console.log('MD4', JSON.stringify({ daily: T0.dailyScore, rec: T0.recovery, sleep: T0.sleepScore, hrv: T0.hrv, rhr: T0.rhr, strain: T0.strain, readiness: T0.readiness, SO_FAR, BY_NOW, PACE, USUAL }));
+stackCards(); addEventListener('load', () => stackCards());
 </script>
 </body>
 </html>

@@ -21,3 +21,15 @@ window.SKY_RIGHT = r => window.NIGHT ? 150 : r;   // right inset for sky text: 4
 window.glassFx = g => g.mode === 'dark' ? '-webkit-backdrop-filter:blur(22px) saturate(1);backdrop-filter:blur(22px) saturate(1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.10), inset 0 1px 0 rgba(255,255,255,.08), 0 10px 28px rgba(0,0,0,.12)'
   : '-webkit-backdrop-filter:blur(22px) saturate(1.6);backdrop-filter:blur(22px) saturate(1.6);box-shadow:0 1px 1px rgba(14,42,67,.05), 0 10px 28px rgba(14,42,67,.10)';
 window.navEdge = g => g.mode === 'dark' ? 'rgba(255,255,255,.14)' : 'rgba(255,255,255,.6)';
+// Phone check (PH1): ?solo=N shows only the Nth phone of a board, scaled to the device's width, for a real-screen look.
+(() => { const m = location.search.match(/[?&]solo=(\d+)/); if (!m) return;
+  const go = () => { const ph = document.querySelectorAll('.phone')[+m[1]]; if (!ph) return setTimeout(go, 150);
+    const c = ph.cloneNode(true); document.body.innerHTML = ''; document.body.style.cssText = 'margin:0;padding:0;background:#000;height:300vh';   // tall, so a swipe hides Chrome's address bar
+    const fit = () => { const z = Math.min(innerWidth / 412, innerHeight / 915); c.style.cssText += `;position:fixed;top:0;left:${(innerWidth - 412 * z) / 2 / z}px;zoom:${z};border-radius:0;box-shadow:none`; };
+    document.body.appendChild(c); fit(); addEventListener('resize', fit); document.title = 'solo ready'; };
+  addEventListener('load', () => setTimeout(go, 500)); })();
+// Metric pages (MD1-MD4): the cards under the range control stack at the standard 12 px gap (Samsung proportions, 3.16),
+// whatever their content's height; a stand-in for the app's Column(spacedBy(12.dp)).
+window.stackCards = (from = 440, gap = 12) => document.querySelectorAll('.phone').forEach(ph => {
+  const cs = [...ph.querySelectorAll(':scope > .glass')].filter(g => g.offsetTop >= from).sort((a, b) => a.offsetTop - b.offsetTop);
+  cs.forEach((g, i) => { if (i) g.style.top = cs[i - 1].offsetTop + cs[i - 1].offsetHeight + gap + 'px'; }); });
