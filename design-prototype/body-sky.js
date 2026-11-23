@@ -20,7 +20,7 @@
     fogDeficitMin: [20, 100],       // minutes under the usual: no fog at 20, full fog at 100
     fogHours: [5, 7, 10.5, 12],     // fog appears from first light (5-7) and is gone by noon, thinning from 10:30
     hrvLow: [0, -1.6],              // HRV against the normal band, in half-band units (0 = at the bottom of normal): streaks from 0, veil by -1.6
-    activity: [1.0, 1.6],           // activity pace (steps or strain against the usual for this time of day): building from 1.0, full at 1.6
+    activity: [1.15, 1.6],          // activity pace (steps or strain against the usual for this time of day): building from 1.15 (BD4: where Trends says "ahead of your pace"), full at 1.6
     buildHours: [10, 15, 19, 21],   // cumulus build from late morning, held through the afternoon, settling after sunset
     hazeSkin: .3, hazeRhr: 3,       // haze: skin temp >= +0.3 C and resting HR >= 3 bpm over the usual
     illSkin: .5, illRhr: 5,         // likely illness (D6): skin temp >= +0.5 C and resting HR >= 5 bpm over the usual

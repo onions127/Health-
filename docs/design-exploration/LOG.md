@@ -1353,3 +1353,27 @@ Load to converged 20.1 s (`loadT.js`; SH1 26.1 s): compile cost holds.
 **Board:** `wt1-board.html?bad=1`, `co2-board.html?bad=1` (first section). STOP.
 
 **Approved (2026-11-24):** BD3 as built (the haze day on Today and Coach; the sky veil drawn where g2 asks for one).
+
+## BD4 · One pace threshold, and a past bad day from the Calendar (2026-11-24)
+
+**Asked:** continue (open since BD3: one pace threshold; past bad days opened from the Calendar).
+
+**One threshold** (`body-sky.js`): BodySky now builds afternoon cumulus from **1.15 ×** your usual pace for the hour (was 1.0), where Trends starts saying "Ahead of your pace", so the sky note and the Steps tile cannot disagree. No committed render changes: every body-driven sky so far is under 1.0 or over 1.15.
+
+**The data's past bad days** (BodySky's rules against each day's 30 days before): **6 Oct** likely illness (skin +0.8 °C, resting HR 60 against 54); **4 Nov** haze (skin +0.4 °C, 58 against 53). No other day qualifies.
+
+**Built** (`md3-board.html?bad=1`, last section; shots `BOARDS=md3 TAG=bd4 node vp1.js` → `out/bd4-md3-7…9.png`, sheet `out/bd4-sheet.png`), browsing from an ordinary today (15:10, fair):
+- **The Calendar for any month** (`calendar(sel, { month, body })`): October 2026 (lead 3, 31 days), back and forward arrows live. With `body`, every day's glyph comes from its body, as the sky does: 6 Oct rain, 4 Nov haze. The haze glyph is now the day's own readiness glyph, smaller, with two haze lines under it (BD2's sun-and-lines ignored the cloud).
+- **A past bad day** (`pastBad()`): Today's layout under that day's sky (6 Oct = the illness body, so VP1's `ill-day1510` render and glass), "Looking back · 37 days ago", Back to today. The card on the lip states the fact in the past: *Skin temp and resting HR were up* · *Skin +0.8 °C · resting HR 6 above usual* · Why; LT1's compact tiles under it; "That week" uses the body glyphs too.
+
+**Found:**
+- `data.js` sets readiness by hand: on **74 of 90 days** it is more than 3 off the shipped formula (6 Oct: 63 against 49). The past day shows the formula's 49 (`READY_FIX`). The prototype data should be regenerated from the formula before lock.
+- **PD1's poor day and MD1's 4 Nov are haze days by their body** (skin +0.4, resting HR +4 / +5) but were rendered from the plain stratocumulus preset, so their skies miss the haze. Not re-rendered here.
+- "Your normal" is 79 on the metric pages and the past day (data.js `avg30`) and 76 on Today and Coach (hand-written).
+- `stackCards()` (the metric pages' 12 px stacking) also re-stacked Today's grid; a past day's phone is marked `.nostack`.
+
+**Not done:** the PD1 / 4 Nov haze re-render; one source for "your normal"; regenerated prototype data.
+
+**Board:** `md3-board.html?bad=1` (BD4, last section). STOP.
+
+**Approved (2026-11-24):** BD4 as built (one pace threshold at 1.15; Calendar glyphs from the body for any month; a past bad day under its own sky).

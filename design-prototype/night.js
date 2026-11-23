@@ -30,7 +30,7 @@ window.navEdge = g => g.mode === 'dark' ? 'rgba(255,255,255,.14)' : 'rgba(255,25
   addEventListener('load', () => setTimeout(go, 500)); })();
 // Metric pages (MD1-MD4): the cards under the range control stack at the standard 12 px gap (Samsung proportions, 3.16),
 // whatever their content's height; a stand-in for the app's Column(spacedBy(12.dp)).
-window.stackCards = (from = 440, gap = 12) => document.querySelectorAll('.phone').forEach(ph => {
+window.stackCards = (from = 440, gap = 12) => document.querySelectorAll('.phone:not(.nostack)').forEach(ph => {   // BD4: .nostack = Today's grid (a past day), not a page of stacked cards
   const cs = [...ph.querySelectorAll(':scope > .glass')].filter(g => g.offsetTop >= from).sort((a, b) => a.offsetTop - b.offsetTop);
   cs.forEach((g, i) => { if (i) g.style.top = cs[i - 1].offsetTop + cs[i - 1].offsetHeight + gap + 'px'; }); });
 // Round UH1: ?uh=1 draws a board's unhappy states only (band not found, Bluetooth off, low battery, offline, errors). LAST = the last good sync.
