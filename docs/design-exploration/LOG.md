@@ -908,3 +908,21 @@ STOP: waiting for review of the mapping (thresholds, the look of each day) and t
 **Board:** `co1-board.html`. STOP for the pick.
 
 **Picked (2026-11-23):** A · Chat on the sky.
+
+## SE1 · Settings on the scene (2026-11-23)
+
+**Asked:** commit Coach, then Settings.
+
+**Shipped today (control):** a long graphite page: Profile (name, height, weight), Band (status, battery, background sync, Pair as companion, Sync now, Forget band), Backup to home server, Recent syncs, Units, Data (export), Morning summary, Bedtime reminder, About.
+
+**Built:** `se1-board.html`, same sky (15:10) and G2 day glass. Every setting kept, grouped (Band, You, Reminders, Data; About follows), rows ≥ 48 dp, Forget band last in its group and asks first. **Placement:** the new nav has four tabs (Today, Sleep, Trends, Coach), so Settings is no longer a tab; proposed: a gear at the top of Today opens it as a page with a back arrow (drawn here, no tab lit). The prototype uses a placeholder name.
+- **A · Band as the hero:** battery "61%", "Band connected", last and next sync; Sync now as the top-right button; groups under the horizon, scrolling.
+- **B · List over the sky:** no hero; the grouped list starts under the header over the sky, the band row holding battery and Sync now; four groups on the first screen.
+
+**Measured** (`g2.js`, `se1/measure.json`, floor 3.0, no veil): glass text 3.75 at its weakest (B's cards over the sky and the tree crown, 22% glass), sky text 6.83, number 7.04, Sync now vs sky 3.54. Shots: `tools/visual-loop/se1.js` → `out/se1-0.png`, `se1-1.png`.
+
+**Not done:** band disconnected / low battery hero states (A), the gear on Today, night state, phone check.
+
+**Board:** `se1-board.html`. STOP for the pick.
+
+**Picked (2026-11-23):** A · Band as the hero (Settings opened from a gear on Today).
