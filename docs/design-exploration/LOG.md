@@ -1075,3 +1075,25 @@ STOP: waiting for review of the mapping (thresholds, the look of each day) and t
 **Board:** `co2-board.html`. STOP.
 
 **Approved (2026-11-23):** the read following the hour, as built.
+
+## MD4 · The last metrics (2026-11-23)
+
+**Asked:** continue (open item: Daily score, Recovery, Sleep score, steps against your pace, blood oxygen).
+
+**Found (shipped):** Daily score = readiness 42% + sleep score 36% + strain 22% (`dailyParts`); Recovery = HRV × 0.92 + (90 − resting HR) × 0.72, today's values only (`recoveryParts`), not against your averages; Sleep score = duration 40% (full at 7h 30m), deep + REM share 20% (full at 38%), efficiency 10%, regular timing 15%, asleep by 02:00 15% (`sleepScoreParts`, staged night; capped at 70 when asleep after 03:00). A metric's normal is the 30 days before today, mean ± max(sd, floor): scores ± 3, SpO2 ± 1, steps ± 10% of the mean (`MetricInsights.baseline`). No step goal or pace exists in the app; the band stores step records with times, so "usual by this hour" can be built from them.
+
+**Built:** `md4-board.html` (also `?night=1`), six phones on the MD2 page:
+- **Daily score, Recovery, Sleep score:** Readiness's pattern (MD3): month with your normal, then "How today's N is made", one bar split by points (shipped `shownPoints` rounding) and a row per part with its reading. Daily score notes that strain still adds through the day. Recovery says why it can differ from Readiness. Sleep score's chart is shorter (60 px) so its five parts fit above the nav.
+- **Steps, Today** (opens here): the running total against your usual day by the hour (dotted, with a band for most of your days), "now", and the rest of today drawn as usual: "about 9,600". Hero "5,370 steps · ↑ Ahead of usual · Usually 4,100 by 15:10 · 1,270 ahead". At night the clock is 23:10 and the projection label is dropped (the day is done).
+- **Steps, Month:** full days as bars with your normal; today as a solid "so far" bar inside a dashed outline to the projection.
+- **Blood oxygen, 3M** (low nights are rare; none in the last 30 days): 7-day average, your normal as the band, the 95% line Today's alert uses; only nights under 95% are ringed (the ± 1 band alone ringed 15 nights at 96%, noise). The 93% night is picked with "Open 6 Oct" and that skin temp and resting HR were up too.
+
+**Measured:** same layout and screen areas as MD1/MD3, so the MD1 and NT1 measures hold (not re-run): day glass 3.75, sky 5.55, number 7.04; night glass 6.96, sky 4.11 (sky text kept left of the moon). Green today line and coral 95% line are non-text and always named in words.
+
+**Found:** `data.js` sets today's Daily score to 84 by hand; the shipped parts give 83 (86 × .42 + 82 × .36 + 78 × .22), so the page shows 83. Last night's sleep parts (27% deep + REM, 85% efficiency, midpoint 2h 06m late, asleep 00:40) are made up to give the data's 82.
+
+**Not done:** dusk/dawn versions of these and the earlier new screens; the steps-by-hour curve from real step records; phone check (no device on adb).
+
+**Board:** `md4-board.html`. STOP.
+
+**Approved (2026-11-23):** the five pages as built (Daily score, Recovery, Sleep score with their parts; Steps against your usual pace, Today and Month; Blood oxygen on 3M with the 95% line).
