@@ -857,3 +857,36 @@ STOP: waiting for review of the mapping (thresholds, the look of each day) and t
 **Board:** `s4-board.html`. STOP for the pick (A two lines / B bars).
 
 **Picked (2026-11-23):** B · Bars for bedtime and wake (S3 bars, late nights hollow), with sleep as the S4 line. Score and stages by week as S3. The Sleep tab is: last night (S2) + these trends (`s4-board.html`, phone B).
+
+## TR1 · Trends on the scene (2026-11-23)
+
+**Asked:** push, then continue to the Trends tab.
+
+**Shipped today (control):** graphite list, one row per metric (HRV, resting HR, sleep, readiness, steps, strain, blood oxygen, skin temp, then weight) with a 30-day sparkline; today's value in red when outside normal; Calendar button; each row opens the metric detail.
+
+**Built:** `tr1-board.html`, three layouts on the same sky as Today at this hour (15:10, fair), G2 day glass. Common: header "Trends · Last 30 days · against your normal", Calendar as Today's top-right button, and in the hero's place a **count**: "5 of 8 within your normal", then which are outside. Outside normal is a word ("Above normal", "Ahead of your pace") plus a ring round today's dot, never colour alone. Steps are judged against the usual pace for the hour (brief rule), so 8,420 at 15:10 is "ahead of your pace". The Sleep row opens the Sleep tab (its charts are not drawn twice).
+- **A · List:** the shipped list on one glass panel, 56 dp rows: name, value (+ the word when outside), 30-day line with the normal band, chevron.
+- **B · Tiles:** a 2-column grid of 8 tiles (value large, line under it, a short tag when outside); everything above the nav.
+- **C · Outside first:** each metric outside normal as a card with its normal written out and a full 30-day line (days outside the band as hollow dots); the rest in a compact "Within your normal" list below (below the fold with three outside).
+
+**Measured** (`g2.js` on `tr1/day1510.png`, floor 3.0): card text 5.57, sky text 6.85, number 7.04, Calendar button from the G2 rule, no veil; marks over the glass on the worst page band: lines, dots and rings 6.18, hollow dots 8.75; dividers and the band 1.19 (decoration). Shots: `tools/visual-loop/tr1.js` → `out/tr1-0..2.png`.
+
+**Not done:** weight (no prototype data yet), the metric detail and Calendar, night state, phone check.
+
+**Board:** `tr1-board.html`. STOP for the pick.
+
+**Picked (2026-11-23):** A · List, with colour added for good or bad when a metric strays from your normal (the word stays: colour never alone).
+
+## TR2 · Trends list with good and bad (2026-11-23)
+
+**Asked:** the list (A), with some colour to show good or bad when a metric strays from baseline.
+
+**Built:** `tr2-board.html`. Per metric, a direction sense: good = HRV up, resting HR down, more sleep, readiness up, steps ahead of pace; bad = the opposite, skin temperature up, blood oxygen down; neither = strain (stays in ink, word only). When a metric is outside its normal, the colour goes on the arrow + word ("↑ Above normal"), today's dot and its ring, and a 3 px bar at the row's left edge. The hero says it in words ("… better than usual", "… need a look"; past three, "6 numbers need a look today"). Colour is never alone: the arrow and word carry the meaning.
+- Colours per glass: day green `#17703C`, coral `#B23A2E`; night green `#7BE3A4`, coral `#FFA095`.
+- Shown on today at 15:10 (three changes, all good) and on 4 Nov, a poor day, at 23:10 on night glass (six bad, strain neither).
+
+**Measured** (colour against the card on the worst page band, floor 3.0): day good 3.66, day bad 3.54, night good 8.78, night bad 7.04. Shots: `tools/visual-loop/tr2.js` → `out/tr2-0.png`, `tr2-1.png`.
+
+**Board:** `tr2-board.html`. STOP.
+
+**Approved (2026-11-23):** the good/bad colour as built.
