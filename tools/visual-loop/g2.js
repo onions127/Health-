@@ -1,11 +1,11 @@
 // Round G2: scene glass at lower contrast floors. Same states and scene renders as G1 (design-prototype/g1/*.png).
 // The glass takes the colour of the land under it (pale by day, dark at night) and is only as strong as the floor needs:
 // per state and floor, the smallest alpha that keeps the weakest card text (secondary) at the floor, for light and for dark ink;
-// the state takes whichever needs less. Sky text the same, with a veil in the same tint. Writes design-prototype/g2/measure.json.   node g2.js
+// the state takes whichever needs less. Sky text the same, with a veil in the same tint. Writes design-prototype/g2/measure.json.   node g2.js   (S1: STATES='[[id, preset, hour, label]]' RECTS='[[cards...], [sky text...]]')
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
 const BASE = process.env.BASE || 'http://127.0.0.1:8765', OUT = path.join(__dirname, '..', '..', 'design-prototype', process.env.OUT || 'g2');   // G3: OUT=g3 SHOOT=1 also saves the scene renders
 const FLOORS = process.env.FLOORS ? process.env.FLOORS.split(',').map(Number) : [4.5, 4.0, 3.5, 3.0], SATD = +(process.env.SATD || 1.0);   // the night glass's saturate(): 1.6 lifted the blue land above the page around the cards
-const STATES = [['day13', 'fair', 13, 'Day 13:00 (control)'], ['dusk1830', 'fair', 18.5, 'Dusk 18:30'], ['dusk1945', 'fair', 19.75, 'Dusk 19:45'], ['dusk2030', 'fair', 20.5, 'Twilight 20:30'],
+const STATES = process.env.STATES ? JSON.parse(process.env.STATES) : [['day13', 'fair', 13, 'Day 13:00 (control)'], ['dusk1830', 'fair', 18.5, 'Dusk 18:30'], ['dusk1945', 'fair', 19.75, 'Dusk 19:45'], ['dusk2030', 'fair', 20.5, 'Twilight 20:30'],
   ['night', 'fair', 23, 'Night 23:00'], ['nightPartly', 'partly', 23, 'Night, partly cloudy'], ['nightRain', 'rain', 23, 'Night, rain'], ['nightSnow', 'snow', 23, 'Night, snow'], ['dawn0530', 'fair', 5.5, 'Dawn 05:30']];
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
@@ -14,6 +14,7 @@ const STATES = [['day13', 'fair', 13, 'Day 13:00 (control)'], ['dusk1830', 'fair
   p.on('pageerror', e => console.log('page error:', e.message.slice(0, 800)));
   await p.goto(`${BASE}/scene.html?sky=fair&h=13&anim=0&seed=${process.env.SEED || 20411}`, { waitUntil: 'commit' });
   await p.waitForFunction(() => window.S && S.ready, null, { timeout: 600000, polling: 1000 });
+  if (process.env.RECTS) await p.evaluate(r => { [window.GLASS_RECTS, window.SKY_TEXT_RECTS] = r; }, JSON.parse(process.env.RECTS));   // S1: another screen's layout
   const out = { floors: FLOORS, states: STATES.map(s => ({ id: s[0], label: s[3] })), m: {} };
   for (const [id, sky, h] of STATES) {
     await p.evaluate(([sky, h]) => S.set({ sky: SceneGL.PRESETS[sky], hour: +h, readiness: 86 }), [sky, h]);

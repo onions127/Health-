@@ -785,3 +785,40 @@ STOP: waiting for review of the mapping (thresholds, the look of each day) and t
 **Board:** `x1-board.html` (play each case in each style, frame strips). STOP for the pick.
 
 **Picked (2026-11-23):** A · Fade (1.8 s, eased) for data syncs; the hour tick already uses it. Front and patches stay in `XF` for comparison only.
+
+## S1 · Sleep on the scene (2026-11-23)
+
+**Asked:** continue the redesign with the Sleep screen (second by importance in the brief).
+
+**Shipped today (control):** a graphite Sleep Detail (one night: "You slept", score gauge, stages chart, time in each stage vs normal, "Is this right? Looks right / Edit") and Sleep Trends (duration, bedtime → wake, score, stage mix by week).
+
+**Built:** `s1-board.html`, three directions on the same scene, glass (G2) and type as Today. Same content in all three: duration as the hero (number, word from the sleep score, detail vs usual), the night's stages, time in each stage vs normal, and the times check. Trends continue below the fold (not drawn this round).
+- **A · Last night:** the sky at bedtime (23:10), moon and stars, dark land glass, light ink. Stages as labelled rows (position carries the stage, not colour) with a faint step line.
+- **B · This morning:** the sky at the wake time (06:30). After a short night the valley mist of the body mapping is there too (shown with the `valleyFog` preset), so Sleep and Today show the same morning. Day glass, dark ink.
+- **C · The night drawn:** the night sky with the whole night as one light line across it (low = deep sleep, high = awake), the number smaller; the first screen also holds the last 7 nights.
+
+**Measured** (`g2.js` now takes `STATES` and `RECTS`; renders and values in `s1/`, `s1c/`), floor 3.0, no veil anywhere: bedtime cards 9.21, sky text 4.59, number 4.06; wake 06:30 cards 5.32, sky 7.47; wake with mist cards 5.36, sky 5.43; C's night line over the sky 4.11, its smaller number 4.89.
+- **Found:** with the number as wide as "7h 20m" at 89 px, its box reaches the moon (x ≈ 300) and needs a 37% veil at night. The hero is 72 px here (box to x 260). Also seen: at 02:30 the moonlit cloud is as bright as at 23:00 in this seed; the narrow box clears it.
+
+**Not done:** trends below the fold, the Today ↔ Sleep tab change, very early wake times in B (night sky), phone check (not connected).
+
+**Board:** `s1-board.html`. STOP for the pick.
+
+**Picked (2026-11-23):** A · Last night. Asked for next: an indication of the time in the stages chart (non-intrusive, e.g. hour lines), and switching between nights with back/forward buttons (from C's idea of other nights).
+
+## S2 · Sleep: hours in the night, and other nights (2026-11-23)
+
+**Asked:** A, with a non-intrusive indication of the time in the stages chart (e.g. hour lines), and back/forward buttons to switch nights.
+
+**Built:** `s2-board.html` (A only, the phone is live: tap the buttons).
+- **Hours:** a 1 px line at each full hour (ink at 16%, behind the stage bars) and the hour under it as two digits (00 … 06, 10.5 px, secondary ink). Bedtime and wake stay in the card's corner. The stages card grew 20 px; the stage list below it is 20 px shorter.
+- **Other nights:** back and forward, 48 dp circles at the top right (the slot Today uses for Log weight), ink at 12% with a 28% ring. Forward is dimmed (not hidden) on last night, back on the oldest of 30. An older night takes its date as the title and "N nights ago" in the detail line; every number, the stages, the stage totals vs normal and the times follow it. TalkBack: "Earlier night", "Later night".
+- Prototype data: only last night has stages; older nights are made from it, scaled to each night's real sleep time with a varied bedtime. Last night's wake time now follows its stages (23:10 – 06:52: 7 h 20 m asleep + 22 m awake), not the 06:30 of S1.
+
+**Measured** (floor 3.0, no veil): back/forward icons over the sky 7.93, cards 9.21 (weakest text, the hour labels use it), sky text 4.59, number 4.07. Shots: `tools/visual-loop/s2.js` → `out/s2-last.png`, `s2-back1.png`, `s2-nov4.png`.
+
+**Not done:** the sky does not change between nights (a night's own bedtime sky and seed would come from the renderer), swipe between nights, trends below the fold, phone check.
+
+**Board:** `s2-board.html`. STOP.
+
+**Feedback (2026-11-23):** hour lines and night buttons approved; the faint line joining the stage bars removed (bars only).
