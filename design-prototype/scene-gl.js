@@ -62,7 +62,7 @@ uniform float uCirrus, uCiHook, uCiVeil, uCiAng;
 uniform float uStyle, uPaintCov;   // 0 = volumetric sky, 1 = painted sky (soft airbrushed layer, after the weather-app reference)   // cirrus cover, hooked heads (mares' tails), milky veil with halo, streak direction   // sheet cloud amount, type (0 stratocumulus .. 1 stratus), base/top km; fog density, fog height; rain
 uniform vec3 uZen, uMid, uHor, uSunC, uCLit, uCDark, uFog, uH0, uH1, uH2, uH3, uTree, uPath, uKey;
 uniform vec3 uPg0, uPg1, uPg2, uPg3; uniform float uSnow;   // 3.15: far hills, lake, the page meadow under the cards (top .. bottom), snow on the ground
-uniform float uDry; uniform vec3 uTk[8]; uniform vec4 uLy[18], uLz[9], uLip[3]; uniform float uNL; uniform vec4 uGr[2], uTr[2]; uniform vec4 uLm[3], uTs[8], uSd, uTst; uniform highp sampler2D uTreeTex; uniform ivec2 uTreeN;   // T5: the trees' grown branching (2 texels per segment, one row per tree)   // T3: per-layer mountain (peak height, snow 0..1, rock, -); per-tree species and season (shape; leaf rgb + fullness; leaf2 rgb + bark red; bloom rgb + amount); shore (beach width, earth patches, litter, -)   // T2: per-layer woodland patches; grass rows (back dens, height, front dens, height; mask u0, u1, comb); two small trees (u, height, seed, on) and their colour
+uniform float uDry; uniform vec3 uTk[8]; uniform vec4 uLy[18], uLz[9], uLip[3]; uniform float uNL; uniform vec4 uGr[2], uTr[2]; uniform vec4 uLm[3], uPk[5], uTs[8], uSd, uTst; uniform highp sampler2D uTreeTex; uniform ivec2 uTreeN;   // T5: the trees' grown branching (2 texels per segment, one row per tree)   // T3: per-layer mountain (peak height, snow 0..1, rock, -); per-tree species and season (shape; leaf rgb + fullness; leaf2 rgb + bark red; bloom rgb + amount); shore (beach width, earth patches, litter, -)   // T2: per-layer woodland patches; grass rows (back dens, height, front dens, height; mask u0, u1, comb); two small trees (u, height, seed, on) and their colour
    // + per-layer crest shape (6 vec4 each), layer props (3 vec4 each), the lip's shape   // T1: terrain direction (0 = the 3.15 land, the control), season dryness (0 green .. 1 straw), the direction's colour tokens (sRGB albedo)
 uniform vec2 uSun; uniform float uSunR, uShowSun, uStepK, uFrame, uSlice, uSplit; uniform vec2 uOff, uMargin;   // depth slice to render (0 sky+far clouds+far ridge, 1 near clouds, 2 mid land, 3 near land), overscan margin (px)
 uniform vec2 uSeed; uniform vec4 uHero1, uHero2;   // day seed offset (km); hero clouds: x, z, radius (km), height
@@ -221,16 +221,22 @@ int tSlice(int i){ return int(uLz[i*3].z + .5); }                          // de
 float tMass(int i, float x){                                              // the designed massing only (height above y0): smooth, for slope light
   int k = i*6; float u = x/gAsp;
   vec4 a = uLy[k], b = uLy[k + 1], c = uLy[k + 2], d = uLy[k + 3];
-  return (a.y + a.z*bump(u, a.w, b.x) + b.y*bump(u, b.z, b.w) + c.x*smoothstep(c.y, c.z, u))*(1. - c.w + c.w*cos(u*d.x + d.y))*smoothstep(d.z, d.w, u);
+  float env = (a.y + a.z*bump(u, a.w, b.x) + b.y*bump(u, b.z, b.w) + c.x*smoothstep(c.y, c.z, u))*(1. - c.w + c.w*cos(u*d.x + d.y))*smoothstep(d.z, d.w, u);
+  if (uLm[i].x > 0.) {                                                      // M6: the mountain is a few designed peaks (photo reference): straight flanks, V notches,
+    float h = .55*env;                                                      // joined by a ridge at half the envelope, so it reads as one range
+    for (int p = 0; p < 5; p++) { vec4 q = uPk[p]; h = max(h, q.y - (u < q.x ? q.z : q.w)*abs(u - q.x)); }   // q: u, height, left slope, right slope
+    return h;
+  }
+  return env;
 }
 float tCrest(int i, float x){
   int k = i*6; float u = x/gAsp;
   vec4 a = uLy[k], e = uLy[k + 4], f = uLy[k + 5];
   float h = tMass(i, x);
   float pk = uLm[i].x;
-  if (pk > 0.) {                                                            // T4: a mountain range: sharp ridged detail that lives only on the massif, so the range ends and open horizon stays open
-    float m = clamp(h/(pk*.30), 0., 1.), r1 = 1. - abs(2.*noise(vec2(x*e.y, e.z)) - 1.), r2 = 1. - abs(2.*noise(vec2(x*e.y*2.3, e.z + 4.)) - 1.);
-    return a.x - h - m*(e.x*(r1*r1 - .35) + e.x*.45*(r2*r2 - .35) + e.w*(noise(vec2(x*f.x, e.z)) - .5));
+  if (pk > 0.) {                                                            // M6: the designed peaks plus fine rocky teeth along the crest (the photo's jagged edge), none at the foot
+    float j0 = 1. - abs(2.*noise(vec2(x*e.y*.33, e.z + 2.)) - 1.), j1 = 1. - abs(2.*noise(vec2(x*e.y, e.z)) - 1.), j2 = 1. - abs(2.*noise(vec2(x*e.y*2.3, e.z + 4.)) - 1.);
+    return a.x - h - smoothstep(.0, .012, h)*(e.x*(j1*j1 - .4) + e.x*.5*(j2*j2 - .4)) - h*.24*(j0 - .5);   // teeth on the crest; shoulders (j0) break the straight flanks
   }
   h += e.x*rdg(x, e.y, e.z) + e.w*noise(vec2(x*f.x, e.z));                 // ridge detail, fine break-up of the line
   return a.x - h;
@@ -357,23 +363,25 @@ float tShadow(float x, float d){                                            // t
   if (uCover + uSheet <= 0.) return 0.;
   return smoothstep(.0, .25, cDen(x, d));
 }
-float tCover(int i, float x, float y){
-  float c = tCrest(i, x), b = tBase(i), px = .8/uRes.y;
+float tCoverC(int i, float c, float y){                                     // M1: cover from a crest the caller already has (the crest is
+  float b = tBase(i), px = .8/uRes.y;                                       // computed once per layer per pixel: every call is an inlined copy, T9)
   return smoothstep(c - px, c + px, y)*(1. - smoothstep(b - px, b + px, y))*smoothstep(.0004, .0025, b - c);
 }
-vec3 tColor(int i, float x, float y, float shadow){                         // a far layer's colour (linear) at (x, y); shadow: cloud shadow, sampled once per pixel by the caller
+vec3 tColor(int i, float x, float y, float shadow, float c){                         // a far layer's colour (linear) at (x, y); shadow: cloud shadow, sampled once per pixel by the caller
   vec4 z0 = uLz[i*3], z1 = uLz[i*3 + 1], z2 = uLz[i*3 + 2];
   float d = z0.x, b = z0.y;
-  float c = tCrest(i, x), e = .004, sl = (tMass(i, x - e) - tMass(i, x + e))/(2.*e), t = max(y - c, 0.);   // slope from the smooth massing (y = y0 - h)
+  float e = .004, sl = (tMass(i, x - e) - tMass(i, x + e))/(2.*e), t = max(y - c, 0.);   // slope from the smooth massing (y = y0 - h)
   float lam = tLam(sl, x, y);
   vec3 a = mix(uTk[int(z1.w + .5)], grassAlb(), z2.x);                    // local colour: a token, part grass (the season)
   float rock = z2.w*step(b - .0045 - .0015*noise(vec2(x*120., 2.)), y);    // limestone at the waterline
   a = mix(a, mix(uTk[7], vec3(.55, .52, .48), .35), rock);
   vec4 mt = uLm[i];                                                         // T3: a high mountain far off: rock faces, snow above a line that follows the season, gullies carry it down
   if (mt.x > 0.) {
-    float hg = b - y, gq = noise(vec2(x*520., y*30.))*.7 + noise(vec2(x*1300., y*60.))*.3, gl2 = noise(vec2(x*95., 1.3));
+    float gq = noise(vec2(x*210., y*55.))*.7 + noise(vec2(x*640., y*110.))*.3, gl2 = noise(vec2(x*40., 1.3));
     a = mix(a, vec3(.50, .50, .52), mt.z*smoothstep(.2, 1.4, abs(sl)));      // steep faces: bare rock
-    float line = mt.x*(1. - .58*mt.y) + .012*(gl2 - .5) - .020*(gq - .45)*mt.y;   // snow runs down the gullies, rock ribs stay dark
+    // M1: an altitude snow line (the season moves it). The peaks now differ in height, so the tall ones wear caps and the low ones
+    // stay bare; the line wanders along the range and runs down the gullies, rock ribs stay dark
+    float hg = b - y, line = mt.x*(1. - .40*mt.y) + .020*(gl2 - .5) - .016*(gq - .45)*mt.y;
     float sn = mt.y*smoothstep(line - .0015, line + .0025, hg);
     a = mix(a, vec3(.95, .96, .99), sn);
     lam = clamp(lam + (gq - .5)*.45, 0., 1.);                               // ribs and gullies catch the light
@@ -392,14 +400,14 @@ vec3 tWater(vec3 rd, vec2 P, float aspect){                                 // l
   float n = (fbm3(wp*vec2(2.5, 16.) + vec2(uT*.02, uT*.06)) - .45)*fade;
   vec3 refl = skyBase(normalize(vec3(rd.x + n*.02, max(-rd.y + n*.012, .002), rd.z)));
   float mx = P.x + n*.003;
-  int ri = -1; float rcv = 0., ry = 0.;
+  int ri = -1; float rcv = 0., ry = 0., rc = 0.;
   for (int i = 2; i >= 0; i--) {                                            // the far shore mirrored about its foot, nearest layer first
     if (ri >= 0 || i >= tN()) continue;
     float b = tBase(i); if (b > 1. || P.y <= b) continue;
-    float cv = tCover(i, mx, 2.*b - P.y + n*.004);
-    if (cv > .01) { ri = i; rcv = cv; ry = 2.*b - P.y + n*.004; }
+    float c = tCrest(i, mx), cv = tCoverC(i, c, 2.*b - P.y + n*.004);
+    if (cv > .01) { ri = i; rcv = cv; ry = 2.*b - P.y + n*.004; rc = c; }
   }
-  if (ri >= 0) refl = mix(refl, tColor(ri, mx, ry, 0.)*.86, rcv*.85);
+  if (ri >= 0) refl = mix(refl, tColor(ri, mx, ry, 0., rc)*.86, rcv*.85);
   float ov = ovcF(), nr = smoothstep(.0, .035, dy);
   vec3 amb = toL(mix(uHor, uMid, .5))*.80 + toL(uSunC)*(uSunI/1.25)*.30*(1. - ov);
   vec3 body = toL(mix(uTk[5], uTk[6], nr))*amb;
@@ -524,20 +532,22 @@ void main(){
     // Slices 0 and 1 share ONE call of the cloud march: every call site of clouds() is a full inlined copy of the march (and of the
     // cloud density inside it) for the shader compiler, and three copies took the D3D11 compile to ~6 min.
     vec3 C = vec3(0.), col = vec3(0.); float A = 0., tLo = uSplit, tHi = 70.; bool need = true;
+    float crs[3], cva[3];                                                   // M1: each layer's crest and cover, once per pixel for both slices
+    for (int i = 0; i < 3; i++) { crs[i] = i < tN() ? tCrest(i, x) : 0.; cva[i] = i < tN() ? tCoverC(i, crs[i], y) : 0.; }
     if (uSlice < .5) {
       // ---- slice 0: sky, cirrus, far clouds, far hills, the lake (opaque; alpha carries the open-sky mask for light shafts)
       // far layers over the water, then the sky where they leave it open
       float cvs[3]; float fd = y > HOR ? .03/max(y - HOR, 1e-4) : 0.;  // coverage per layer; the front surface's distance
-      for (int i = 0; i < 3; i++) { cvs[i] = i < tN() && tSlice(i) == 0 ? tCover(i, x, y) : 0.; if (cvs[i] > .001) fd = tDist(i); }
+      for (int i = 0; i < 3; i++) { cvs[i] = tSlice(i) == 0 ? cva[i] : 0.; if (cvs[i] > .001) fd = tDist(i); }
       float sh = fd > 0. ? tShadow(x, fd) : 0.;                        // one cloud-shadow sample per pixel, at the front surface's distance
       if (y > HOR - 1./uRes.y) over(C, A, toS(tWater(rd, P, aspect)), smoothstep(HOR - .7/uRes.y, HOR + .7/uRes.y, y));
-      for (int i = 0; i < 3; i++) if (cvs[i] > .001) over(C, A, toS(tColor(i, x, y, sh)), cvs[i]);
+      for (int i = 0; i < 3; i++) if (cvs[i] > .001) over(C, A, toS(tColor(i, x, y, sh, crs[i])), cvs[i]);
       need = A < .999;
     } else {
       // ---- slice 1: near clouds, premultiplied (they may sit in front of the far hills)
       if (rd.y <= .004 || uStyle > .5) { o = vec4(0.); return; }
       tLo = 0.; tHi = uSplit;                                            // T2: the march stops at the terrain, so a ridge hides the clouds behind it
-      for (int i = 0; i < 3; i++) if (i < tN() && tCover(i, x, y) > .5) tHi = min(tHi, tDist(i));
+      for (int i = 0; i < 3; i++) if (cva[i] > .5) tHi = min(tHi, tDist(i));
     }
     vec4 cl = vec4(0., 0., 0., 1.);
     if (need) cl = clouds(rd, sd, sky(normalize(vec3(rd.x, .015, rd.z)), sd), jit, tLo, tHi);
@@ -569,12 +579,12 @@ void main(){
   float u = x/aspect;
   // one cloud-density sample per pixel for slices 2 and 3, at one call site (each call site is an inlined copy of the density for the compiler):
   // slice 2 at the mid layer's distance, slice 3 on the ground under the lip and the page
-  int mi = tN() - 1; float cv = uSlice < 2.5 && mi >= 0 && tSlice(mi) == 2 ? tCover(mi, x, y) : 0.;   // the one mid layer
+  int mi = tN() - 1; float mc = mi >= 0 ? tCrest(mi, x) : 0., cv = uSlice < 2.5 && mi >= 0 && tSlice(mi) == 2 ? tCoverC(mi, mc, y) : 0.;   // the one mid layer
   float gd = .03/max(y - HOR, .002), cloudy = uCover + uSheet;
   float shd = uSlice < 2.5 ? (cv > .001 && cloudy > 0. ? tDist(mi) : -1.) : (near > 0. ? gd : -1.);
   float dn = shd > 0. ? cDen(x, shd) : 0.;
   if (uSlice < 2.5) {
-    if (cv > .001) { over(C, A, toS(tColor(mi, x, y, smoothstep(.0, .25, dn))), cv); overM(M, vec2(0.), cv); }
+    if (cv > .001) { over(C, A, toS(tColor(mi, x, y, smoothstep(.0, .25, dn), mc)), cv); overM(M, vec2(0.), cv); }
     if (near > 0. && uGr[0].x > 0.) {
       vec3 b = blades(P, .0026, uGr[0].y, 3., uGr[0].x*smoothstep(uGr[1].x, uGr[1].y, u)*(1. - .8*bK));
       if (b.x > .01) { vec3 bc = mix(gS*.70, tip, b.y)*(.92 + .16*b.z); over(C, A, toS(tAir(toL(bc), 1.2, x)), b.x); overM(M, vec2(1., 0.), b.x); }
@@ -963,9 +973,12 @@ void main(){
   // lip: [y0, rise, s0, s1,  bumpAmp, bumpU, bumpW, swellAmp,  swellF, swellSeed, fineK, ground (0 none, 1 water, 2 plane)]
   const H = .37, NO = [0, 0, -10, -9];                                      // HOR; NO: no headland end (smoothstep(-10, -9, u) = 1)
   // T3: the high mountain far off (55 km, ~7% of the screen high, centre-left between the swells); mtn: [peak height, -, rock on steep faces, -] (snow comes from the season)
-  const MTN = { crest: [H, 0, .046, .25, .37, .018, .40, .07, 0, 0, 1, .14, 34, .9, ...NO.slice(2), .016, 26, 2.7, .0014, 240, 0, 0, 0], props: [38, H + .0004, 0, .15, 0, -10, 0, 0, 0, 0, 0, 0], mtn: [.074, 0, .6, 0] };   // T5: a range from the left edge to ~u .66 (twice the T4 span), a little taller
-  const LAND = { lip: [.404, 0, 0, 1, -.014, 0, .16, .006, 2.0, 4, 1, 1], gr: [.40, .008, .50, .014], trees: [[.865, .108, 3, 1], [.655, .052, 7, 1]], species: 'maple', shore: [.0055, .20, 1, 0], layers: [   // the open loch: wide still water, long low ranges, the mountain beyond, land rising at the left
-    MTN,
+  // M1 (2026-11-22): a range of peaks on one long envelope (M4: 20% narrower, u 0 .. ~.69 where it is a quarter of its height), the T4/T5 second peak and the cos ripple gone; e = [saddle floor, ridge freq, seed, fine amp]
+  // M6: the shape after a photo of an alpine range: five peaks [u, height, left slope, right slope] (slope .36 ~ 39 deg on this screen),
+  // the main one centre-left, deep V notches between; the M4 footprint (u 0 .. ~.67, top .064). e = [teeth amp, teeth freq, seed, -]
+  const PEAKS = [[.02, .029, .30, .46], [.15, .042, .44, .27], [.30, .054, .28, .50], [.42, .039, .46, .30], [.56, .026, .34, .24]];   // M7: 15% lower
+  const MTN = { crest: [H, 0, .064, .26, .368, 0, 0, 1, 0, 0, 1, 0, 0, 0, ...NO.slice(2), .0035, 70, 2.7, 0, 0, 0, 0, 0], peaks: PEAKS, props: [38, H + .0004, 0, .15, 0, -10, 0, 0, 0, 0, 0, 0], mtn: [.061, 0, .6, 0] };   // T5: a range from the left edge to ~u .66 (twice the T4 span), a little taller
+  const LAND = { lip: [.404, 0, 0, 1, -.014, 0, .16, .006, 2.0, 4, 1, 1], gr: [.40, .008, .50, .014], trees: [[.865, .108, 3, 1], [.655, .052, 7, 1]], species: 'maple', shore: [.0055, .20, 1, 0], layers: [   // the open loch: wide still water, long low ranges, land rising at the left (M8, 2026-11-23: mountain removed; MTN kept unused for comparison)
     { crest: [H, .004, .018, .72, .42, .006, .22, .12, 0, 0, 1, 0, ...NO, .004, 6, 1.3, .0008, 150, 0, 0, 0], props: [26, H + .0004, 0, .18, 0, -10, 0, 1, .2, 0, 0, 0] },
     { crest: [H, .0015, .012, .12, .22, 0, 0, 1, 0, 0, 1, 0, ...NO, .003, 9, 4.1, .0008, 170, 0, 0, 0], props: [11, H + .0004, 0, .18, 0, -10, 0, 1, .35, 0, 0, 1] }] };
 
@@ -1138,7 +1151,8 @@ void main(){
     const pB = prog(gl, BRIGHT), pBl = prog(gl, BLUR), pF = prog(gl, FINAL), pC = prog(gl, COMPOSE), pR = prog(gl, RAYS), Up = (q, n) => gl.getUniformLocation(q, n);
     // Parallax: each slice slides by its own amount (CSS px at full tilt). Nearer slices slide further, as when the eye moves sideways;
     // the cards stay put, so the scene reads as a world behind the glass. Slices are rendered past the screen edge by MARGIN.
-    const AMP = [3, 9, 14, 22], MARGIN = 28, SPLIT = 30;                 // SPLIT: clouds nearer than this (km) go in the near-cloud slice. 30, not 14 (3.12): hero clouds reach ~24 km, and a cloud cut by the split tears apart when the near layer drifts or tilts; beyond 30 km clouds sit low enough to stay behind the far ridge
+    const AMP = [1, 3, 5, 7], MARGIN = 28,   // M2 (2026-11-22): about a third of the 3.10 shift [3, 9, 14, 22]: a faint depth, not a moving picture
+    SPLIT = 30;                 // SPLIT: clouds nearer than this (km) go in the near-cloud slice. 30, not 14 (3.12): hero clouds reach ~24 km, and a cloud cut by the split tears apart when the near layer drifts or tilts; beyond 30 km clouds sit low enough to stay behind the far ridge
     const cssDpr = () => st.dpr || Math.min(2, G.devicePixelRatio || 1);
     let RT = null, man = null;
     function target(w, h, mat, fmt) {
@@ -1269,7 +1283,7 @@ void main(){
           trs.forEach((t, i) => { const sg = treeSkel(spp[Math.min(i, spp.length - 1)], t[2] * 7 + 1); ns[i] = sg.length; sg.forEach((g, j) => buf.set(g, (i * SEG_MAX * 2 + j * 2) * 4)); });
           gl.activeTexture(gl.TEXTURE15); gl.bindTexture(gl.TEXTURE_2D, treeTex); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, SEG_MAX * 2, 2, gl.RGBA, gl.FLOAT, buf); treeN = ns; }
         gl.uniform2i(U('uTreeN'), treeN[0], treeN[1]); }   // every call: each program needs it
-      gl.uniform4fv(U('uLm'), L3.flatMap(l => l && l.mtn ? [l.mtn[0], lerpT(MSNOW, doy), l.mtn[2], 0] : [0, 0, 0, 0]));
+      gl.uniform4fv(U('uPk'), (L3[0] && L3[0].peaks || []).concat(Array(5).fill([0, -1, 1, 1])).slice(0, 5).flat()); gl.uniform4fv(U('uLm'), L3.flatMap(l => l && l.mtn ? [l.mtn[0], lerpT(MSNOW, doy), l.mtn[2], 0] : [0, 0, 0, 0]));
       gl.uniform4fv(U('uSd'), tp.shore);
       gl.uniform4fv(U('uTst'), LEAF);
       const day = st.seed != null ? st.seed : Math.floor(Date.now() / 864e5), rnd = k => { const x = Math.sin(day * 127.1 + k * 311.7) * 43758.5453; return x - Math.floor(x); };

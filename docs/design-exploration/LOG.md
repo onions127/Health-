@@ -703,3 +703,64 @@ In A and B the moon has no spikes (`uSpk` × (1 − sstep(.25, .5, night))). Len
 
 **Differs from the reference:** Samsung's sun has 8–12 thin spikes (CLAUDE.md "Light"). A or B departs from it on purpose.
 **Picked (2026-11-22): A · soft glare** (`SPIKES` default 1; `?rays=2` keeps the old starburst for comparison, `?rays=0` none). The moon has no spikes. Phone (S21, `phoneG3.js` at 13:00 and 20:30): soft glare renders, no spikes on sun or moon, no GL errors, 54–60 fps, sky text still passes 3:1 with no veil (6.58 / 4.89). Still on the page by day: the two faint round lens ghosts under the cards (3.15).
+
+## B1 · The weather of the body, and M1 · the mountain range (2026-11-22)
+**Asked:** the body → sky mapping (PLAN-sky section 4, rounds 3.8 sky lab), and "work a bit on the mountains": the shape is wrong, it should be a range rather than two mountains, and the spikes on the right do not look organic.
+
+**B1, mapping** (`design-prototype/body-sky.js`, `BodySky.bodySky(body, hour, SceneGL)`; pure, no state, ports to Kotlin): one layer per signal, thresholds against the person's own normal. Readiness → regime (`SceneGL.weather`, unchanged). Sleep score 78 → 50 or 20 → 100 min under the usual → morning valley fog (05–07 in, thinning from 10:30, gone by noon). HRV under the normal band → cirrus streaks, then a milky veil with a halo. Activity pace (steps against the usual for the hour, or strain) → cumulus build 10–19 h. Skin temp + RHR both up: +0.3 °C / +3 bpm haze; +0.5 °C / +5 bpm likely illness → light rain (D6); likely illness and readiness < 35 → storm (D2). No data → neutral fair. Returns the SkyState, the layer weights, the tap note (D4) and TalkBack text; notes only describe what the sky shows (under rain the HRV note is dropped).
+- Example days (`b1-days.js`, rendered by `tools/visual-loop/b1.js` into `b1/`): good day, short sleep 07:30 and noon, HRV under / well under normal, heavy training 16:00, body under load, likely illness, likely illness with readiness 30, first run. Sky text with no veil 4.06–9.62 (storm lowest).
+- Board `design-prototype/b1-board.html`: mapping table, live sky lab (sliders for hour, readiness, sleep, HRV, steps, skin temp, RHR; example-day buttons; tap the sky for the note; TalkBack text and SkyState readout), the gallery, the mountain before/after.
+
+**M1, mountains** (`tCrest`, `MTN`): the T4/T5 massing (a broad bump plus a narrow second peak, a cos ripple) and its high-frequency ridged detail (`r1²` at 26) made two mountains with needle spikes. Now one long envelope (u 0 → ~.7) carved by a ridged multifractal at 15 (three octaves, each weighted by the coarser one, finer octaves `pow 1.5` so they make shoulders, not needles), warped and varied in height by one slow noise. Snow: an altitude line again (the peaks now differ in height, so the tall ones wear caps and the low ones stay bare), wandering along the range and down the gullies with softer streaks.
+- Compile: the new crest first doubled the load to converged (29 → 57 s). Each layer's crest is now computed once per pixel and passed down (`tCoverC`, `tColor(…, c)`; the two slice loops share one cover pass): ~13 inlined crest copies → 7. One slow noise does warp and height; the fine-noise term is gone. Load **36.6 s** (G3 29.3 s).
+- Re-baked `baked/today` (17 keyframes, 20.5 MB); baked vs live 47.9–48.7 dB. Phone (S21): ready 1.8 s, 60 fps, no GL errors, sky text passes 3:1 with no veil at 13:00 (6.66) and 20:30 (4.83).
+
+**Still differs:** the snow on the main peak keeps a fine vertical streak texture; the storm's bolt is hard to see on stills; "body under load" (haze) is the subtlest state. Thresholds are proposals.
+STOP: waiting for review of the mapping (thresholds, the look of each day) and the range.
+
+## M2 · Rounder summits, a faint tilt (2026-11-22)
+**Asked:** the mountains a little more round; the tilt is still too much (keep it, much smaller).
+- **Summits:** the ridged octaves use a soft |.| (`sqrt(v² + k²) − k`, k .12 / .14 / .11) instead of `abs`, so each summit comes to a soft top rather than a point (a first try at k .17 on the big peaks read as a dome). Shape and snow otherwise as M1. Board `b1-board.html` shows `m1/i-*.png`.
+- **Tilt:** back on in `phone.html` (`?tilt=0` holds it still), AMP `[3, 9, 14, 22]` → **`[1, 3, 5, 7]`** CSS px at full tilt (about a third). CLAUDE.md updated.
+- Re-baked `baked/today` (17 keyframes, 20.6 MB); baked vs live 47.6–48.7 dB. Load to converged 40.6 s (M1 36.6 s; the four `sqrt` and run-to-run spread).
+
+## M3 · A lower, rounder range (2026-11-22)
+**Asked:** still adjust: the range a bit shorter and rounder still.
+- Lower: envelope .078 → **.064** of the screen height; snow line scaled with it (`mtn` .074 → .061), so the caps stay on the tall peaks.
+- Rounder: soft |.| k on the three ridged octaves .12 / .14 / .11 → **.19 / .17 / .15** (`sqrt(v² + k²) − k`).
+- Board `b1-board.html`: the mountain section now shows M2 against M3 (`m1/i-*` vs `m1/k-*`); the gallery re-rendered.
+- Re-baked `baked/today` (17 keyframes, 20.5 MB); baked vs live 47.0–48.7 dB. Phone not re-checked: the S21 disconnected from adb.
+
+## M4 · A narrower range (2026-11-22)
+**Asked:** the range is way too wide; make it 20 percent less wide.
+- Envelope width .46 → **.368** (−20%), centre .32 → .26 so it still starts at the left edge: where the range is a quarter of its height it now ends at u ≈ .69 (was ≈ .86). Peak size and rounding as M3; fewer peaks.
+- Board `b1-board.html`: M3 against M4 (`m1/k-*` vs `m1/l-*`); gallery re-rendered.
+- Re-baked `baked/today` (17 keyframes, 20.3 MB); baked vs live 45.8–48.7 dB. Phone not re-checked (not connected).
+
+## M5 · Layered ridges, after a photo reference (2026-11-22)
+**Asked:** redesign the mountain simply, after a photo of layered blue alpine ridges (far ridges pale into the haze, nearer ones darker, the detail on the crest lines); keep the footprint.
+- Same outline (M4 footprint and crest). Inside it, two lower ridges stand in front (`tColor`, mountain branch): heights .70 and .50 of the massing, soft-ridged with two octaves each, clamped under the outline. Each takes its own distance through the existing `tAir` (far 38 km, mid × .55, near × .35), so the tone steps come from the haze, at every hour and weather, with no new colours. Foot mist and crest light per ridge (crest light on the far ridge only). Snow on the far ridge only; no far sliver under 3 px where a front ridge reaches the outline.
+- Board `b1-board.html`: M4 against M5 (`m1/l-*` vs `m1/p-*`); gallery re-rendered. Load to converged 19.0 s (one run; earlier runs today 36–57 s, so treat as noisy). Re-baked `baked/today` (17 keyframes, 20.3 MB); baked vs live 47.1–48.8 dB. Phone not re-checked (not connected).
+
+## M6 · The range shaped after the photo, no layering (2026-11-22)
+**Asked:** M5 looked very bad: use the reference photo for the shape, discard the layering.
+- M5's front ridges removed. The mountain's massing (`tMass` for the mountain layer) is now five designed peaks, `PEAKS` = [u, height, left slope, right slope] (slopes .24–.50, ~30–48° on this screen), joined by a ridge at half the envelope so it reads as one range: straight flanks, V notches, an uneven main peak centre-left, M4 footprint (u 0 → ~.67, top .064). New uniform `uPk[5]`.
+- `tCrest` adds the photo's broken edge: fine ridged teeth on the crest (amp .0035, freq 70 and 161, none at the foot) and a slow ridged octave that puts shoulders on the flanks (± 12% of the height). Slope light now follows the peaks (lit and shaded flanks). Snow: the altitude line, on the three tall peaks.
+- Board `b1-board.html`: M4 against M6 (`m1/l-*` vs `m1/s-*`). Load to converged 17.1 s. Re-baked `baked/today` (17 keyframes, 20.2 MB); baked vs live 47.8–48.7 dB. Phone not re-checked (not connected). CLAUDE.md terrain note updated.
+
+## M7 · Lower peaks, higher snow line (2026-11-22)
+**Asked:** the peaks a bit too high, the snow line too low.
+- `PEAKS` heights × .85 (main .064 → .054). Snow line `mt.x·(1 − .55·snow)` → `(1 − .40·snow)`: in late November only the main peak's top keeps snow; the season still moves it (deep in winter, gone in summer).
+- Board `b1-board.html`: M6 against M7 (`m1/s-*` vs `m1/t-*`); gallery re-rendered. Re-baked `baked/today`; phone not re-checked (not connected).
+
+## M8 · Mountain removed (2026-11-23)
+
+**Asked:** remove the mountains altogether.
+
+**Changed:** `MTN` dropped from `LAND.layers` in `scene-gl.js` (the shader already loops over `uNL` layers, so the two low ranges become layers 0 and 1; `uLm` is all zero, the peak branch never runs). `MTN` and `PEAKS` are kept in the file, unused, so the M7 range can come back with one line. CLAUDE.md terrain note updated.
+
+**Measured:** shots `m1/u-*.png` (13:00, 18:30, 23:00): only the two long low ranges on the horizon, no seam where the mountain was. Rebaked `baked/today` (17 keyframes, 21.5 MB); baked vs live 47.3–48.3 dB PSNR. B1 gallery re-rendered. Board: `b1-board.html` mountain section shows M7 vs M8.
+
+**Not checked:** phone (not connected), load time.
+
+**Picked (2026-11-23):** keep the horizon without the mountain.

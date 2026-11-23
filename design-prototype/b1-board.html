@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Health++ · Round B1 · The weather of the body</title>
+<style>
+  * { box-sizing:border-box; }
+  body { background:#E9EBEE; color:#14171A; font:400 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; margin:0; padding:28px 28px 80px; }
+  h1 { font-size:24px; font-weight:600; margin:0 0 8px; } h2 { font-size:18px; font-weight:600; margin:28px 0 8px; }
+  p { max-width:112ch; color:#3A424B; margin:0 0 8px; }
+  table.map { border-collapse:collapse; font-size:13px; margin:8px 0 4px; background:#fff; border-radius:12px; overflow:hidden; }
+  table.map td, table.map th { padding:6px 10px; border-bottom:1px solid #E6E9ED; text-align:left; vertical-align:top; } table.map th { color:#6A727C; font-weight:500; }
+  .lab { display:flex; gap:24px; align-items:flex-start; margin-top:12px; }
+  .phone { position:relative; width:412px; height:915px; border-radius:30px; overflow:hidden; flex:none; zoom:.72; box-shadow:0 16px 40px rgba(20,23,26,.16); font-family:Roboto, "Segoe UI", system-ui, sans-serif; cursor:pointer; }
+  .phone canvas { position:absolute; inset:0; width:412px; height:915px; display:block; }
+  .hero { position:absolute; top:112px; left:22px; color:#0E2A43; pointer-events:none; }
+  .hero .n { font-size:89px; font-weight:300; line-height:1; letter-spacing:-.035em; margin-left:-4px; } .hero .w { font-size:23px; margin-top:6px; } .hero .d { font-size:15px; margin-top:4px; }
+  .note { position:absolute; left:12px; right:12px; top:384px; padding:14px 16px; border-radius:26px; background:rgba(255,255,255,.62); color:#0E2A43; font-size:15px; line-height:1.4;
+          -webkit-backdrop-filter:blur(22px) saturate(1.6); backdrop-filter:blur(22px) saturate(1.6); box-shadow:0 10px 28px rgba(14,42,67,.12); display:none; }
+  .note.on { display:block; } .note p { color:#0E2A43; margin:0 0 6px; } .note .k { font-size:12px; color:#2E4A62; margin-top:8px; }
+  .hint { position:absolute; left:0; right:0; bottom:18px; text-align:center; font-size:13px; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.4); pointer-events:none; }
+  .ctl { width:420px; background:#fff; border-radius:14px; padding:16px 18px; font-size:13px; }
+  .ctl label { display:grid; grid-template-columns:132px 1fr 78px; gap:8px; align-items:center; margin:6px 0; }
+  .ctl output { font-variant-numeric:tabular-nums; text-align:right; color:#30363D; }
+  .ctl .days { display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 12px; } .ctl button { font:inherit; font-size:12px; padding:5px 9px; border-radius:16px; border:1px solid #C9D0D8; background:#F4F6F8; cursor:pointer; }
+  .ctl button.on { background:#0E2A43; color:#fff; border-color:#0E2A43; }
+  .ctl pre { font:11.5px/1.45 ui-monospace, Consolas, monospace; background:#F4F6F8; border-radius:10px; padding:10px; white-space:pre-wrap; word-break:break-all; margin:10px 0 0; }
+  .ctl .tb { margin-top:10px; padding:10px; border-radius:10px; background:#EEF3F8; color:#1D2125; }
+  .gallery { display:grid; grid-template-columns:repeat(5, 236px); gap:16px 14px; margin-top:8px; }
+  .gallery figure { margin:0; } .gallery .img { width:236px; height:330px; overflow:hidden; border-radius:16px; box-shadow:0 8px 24px rgba(20,23,26,.12); }
+  .gallery img { width:236px; display:block; } .gallery figcaption { font-size:12px; color:#30363D; margin-top:6px; } .gallery figcaption b { font-size:13px; color:#14171A; }
+  .mtn { display:grid; grid-template-columns:repeat(2, 560px); gap:12px 16px; margin-top:8px; } .mtn .c { width:560px; height:200px; overflow:hidden; border-radius:12px; position:relative; box-shadow:0 8px 24px rgba(20,23,26,.12); }
+  .mtn .c img { position:absolute; width:1120px; left:0; top:-680px; } .mtn figure { margin:0; } .mtn figcaption { font-size:12px; color:#30363D; margin-top:4px; }
+</style>
+</head>
+<body>
+<h1>Round B1 · The weather of the body, and the mountain range</h1>
+<p>Each body signal owns one layer of the sky (PLAN-sky D1), so the sky never says something the numbers do not. All thresholds are against <b>your own normal</b>. The mapping is one pure function, <code>BodySky.bodySky(body, hour)</code> in <code>body-sky.js</code>: SkyState out, plus the note you get when you tap the sky (D4) and the same text for TalkBack.</p>
+<table class="map">
+  <tr><th>Signal</th><th>Layer</th><th>Rule (B1 proposal)</th></tr>
+  <tr><td>Readiness</td><td>Low cloud</td><td>≥ 80 mostly clear, 65–79 partly cloudy, 50–64 broken cloud, &lt; 50 low grey cloud</td></tr>
+  <tr><td>Sleep</td><td>Morning valley mist</td><td>Sleep score 78 → 50, or 20 → 100 min under your usual, from none to full; from first light (05–07), thinning from 10:30, gone by noon</td></tr>
+  <tr><td>HRV</td><td>High cloud</td><td>In your normal band: a clean high sky. Under it: streaks of cirrus, then a milky veil with a halo (well under)</td></tr>
+  <tr><td>Steps, strain</td><td>Cumulus growth</td><td>Ahead of your usual pace for the time of day: clouds build through the afternoon (10–19 h), settle after sunset</td></tr>
+  <tr><td>Skin temp + resting HR</td><td>Haze, rain, storm</td><td>Both up (+0.3 °C, +3 bpm): haze. Both up more (+0.5 °C, +5 bpm), likely illness: light rain (D6). Likely illness and readiness &lt; 35: a storm (D2)</td></tr>
+  <tr><td>No data</td><td>—</td><td>A plain fair sky, no judgement</td></tr>
+</table>
+
+<h2>Sky lab</h2>
+<p>Drag the sliders or pick a day. <b>Tap the sky</b> to see the note.</p>
+<div class="lab">
+  <div class="phone" id="phone" role="button" aria-label="Sky. Tap for why it looks this way.">
+    <canvas id="c"></canvas>
+    <div class="hero"><div class="n" id="hn">86</div><div class="w" id="hw">Ready</div><div class="d" id="hd">Readiness</div></div>
+    <div class="note" id="note"></div>
+    <div class="hint" id="hint">Tap the sky</div>
+  </div>
+  <div class="ctl">
+    <div class="days" id="days"></div>
+    <div id="sl"></div>
+    <div class="tb" id="tb"></div>
+    <pre id="st"></pre>
+  </div>
+</div>
+
+<h2>Example days</h2>
+<p>Rendered by <code>tools/visual-loop/b1.js</code> from <code>b1-days.js</code> (the same function). Sky text with no veil: best of light and dark ink, 3:1 needed.</p>
+<div class="gallery" id="gallery"></div>
+
+<h2>The mountain range</h2>
+<p>Before: two mountains from two bumps, with needle spikes from high-frequency ridged noise. After: one long range, carved by a ridged multifractal (sub-peaks on the high ground, rounded saddles), peaks warped and varied in height, an altitude snow line that caps the tall peaks and leaves the low ones bare.</p>
+<div class="mtn" id="mtn"></div>
+
+<script src="scene-gl.js"></script>
+<script src="body-sky.js"></script>
+<script src="b1-days.js"></script>
+<script>
+const $ = id => document.getElementById(id), word = r => r == null ? '—' : r >= 80 ? 'Ready' : r >= 65 ? 'Steady' : 'Take it easy';
+const SL = [['hour', 'Hour', 0, 24, .25, 13], ['readiness', 'Readiness', 20, 100, 1, 86], ['sleepScore', 'Sleep score', 30, 100, 1, 84], ['sleepMin', 'Sleep (min)', 240, 540, 5, 450],
+  ['hrv', 'HRV (ms)', 30, 80, 1, 60], ['steps', 'Steps so far', 0, 20000, 100, 3400], ['skinTemp', 'Skin temp (°C)', -.5, 1.2, .1, 0], ['rhr', 'Resting HR', 44, 70, 1, 52]];
+const U = { readinessUsual: 79, sleepUsual: 440, hrvMin: 55, hrvMax: 63, stepsUsual: 8240, strainUsual: 11, rhrUsual: 52 };
+const v = {}; var S; let noData = false;   // var: window.S, for the test scripts
+$('sl').innerHTML = SL.map(([k, l, a, b, s, d]) => `<label>${l}<input type="range" id="i_${k}" min="${a}" max="${b}" step="${s}" value="${d}"><output id="o_${k}"></output></label>`).join('');
+SL.forEach(([k]) => { v[k] = +$('i_' + k).value; $('i_' + k).addEventListener('input', e => { v[k] = +e.target.value; noData = false; pick(null); apply(); }); });
+$('days').innerHTML = B1_DAYS.map(d => `<button data-id="${d.id}">${d.label}</button>`).join('');
+$('days').addEventListener('click', e => { const id = e.target.dataset && e.target.dataset.id; if (!id) return; const d = B1_DAYS.find(x => x.id === id);
+  noData = !d.body.readiness; v.hour = d.hour; if (!noData) SL.forEach(([k]) => { if (k !== 'hour' && d.body[k] != null) v[k] = d.body[k]; });
+  SL.forEach(([k]) => $('i_' + k).value = v[k]); pick(id); apply(); });
+function pick(id) { [...$('days').children].forEach(b => b.classList.toggle('on', b.dataset.id === id)); }
+function apply() {
+  SL.forEach(([k]) => $('o_' + k).textContent = k === 'hour' ? `${Math.floor(v.hour)}:${String(Math.round(v.hour % 1 * 60)).padStart(2, '0')}` : k === 'skinTemp' ? (v[k] >= 0 ? '+' : '') + v[k].toFixed(1) : v[k]);
+  const body = noData ? {} : Object.assign({}, U, v, { strain: 0 }), m = BodySky.bodySky(body, v.hour, SceneGL);
+  document.querySelector('.hero').style.color = v.hour < 5.75 || v.hour >= 20 ? '#F2F6FB' : '#0E2A43';   // G3: light ink after dark
+  $('hn').textContent = noData ? '—' : v.readiness; $('hw').textContent = word(noData ? null : v.readiness); $('hd').textContent = noData ? 'No readiness yet' : `Readiness · usual ${U.readinessUsual}`;
+  $('note').innerHTML = m.notes.map(n => `<p>${n}</p>`).join('') + '<div class="k">Each part of the sky follows one of your numbers.</div>';
+  $('tb').textContent = 'TalkBack: ' + m.talkback;
+  const show = {}; ['cover', 'tall', 'grey', 'haze', 'sheet', 'cirrus', 'ciHook', 'ciVeil', 'fog', 'fogH', 'rain', 'bolt'].forEach(k => { if (m.sky[k] != null) show[k] = +(+m.sky[k]).toFixed(2); });
+  $('st').textContent = `regime ${m.regime}\nlayers ${JSON.stringify(Object.fromEntries(Object.entries(m.layers).map(([k, x]) => [k, +x.toFixed(2)])))}\nSkyState ${JSON.stringify(show)}`;
+  if (S) S.set({ sky: m.sky, hour: v.hour, readiness: noData ? null : v.readiness });
+}
+$('phone').addEventListener('click', () => { $('note').classList.toggle('on'); $('hint').style.display = $('note').classList.contains('on') ? 'none' : ''; });
+S = SceneGL.mount($('c'), { readiness: 86, hour: 13, animate: true, post: true, seed: 20411 });
+apply();
+(async () => {
+  const M = await (await fetch('b1/measure.json?' + Date.now())).json();
+  $('gallery').innerHTML = B1_DAYS.map(d => { const r = M[d.id] || { notes: [], sky: { light: 0, dark: 0 } }, c = Math.max(r.sky.light, r.sky.dark);
+    const h = `${Math.floor(d.hour)}:${String(Math.round(d.hour % 1 * 60)).padStart(2, '0')}`;
+    return `<figure><div class="img"><img src="b1/${d.id}.png?${Date.now()}" alt="${d.label}"></div><figcaption><b>${d.label}</b> · ${h}<br>${r.notes.join(' ')}<br>Sky text ${c.toFixed(2)}:1</figcaption></figure>`; }).join('');
+})();
+$('mtn').innerHTML = [['m1/t-13.png', 'M7 · 13:00'], ['m1/u-13.png', 'M8 · 13:00, no mountain'], ['m1/t-18_5.png', 'M7 · 18:30'], ['m1/u-18_5.png', 'M8 · 18:30'], ['m1/t-23.png', 'M7 · 23:00'], ['m1/u-23.png', 'M8 · 23:00']]
+  .map(([f, l]) => `<figure><div class="c"><img src="${f}" alt="${l}"></div><figcaption>${l}</figcaption></figure>`).join('');
+</script>
+</body>
+</html>
