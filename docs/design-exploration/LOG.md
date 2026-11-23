@@ -822,3 +822,38 @@ STOP: waiting for review of the mapping (thresholds, the look of each day) and t
 **Board:** `s2-board.html`. STOP.
 
 **Feedback (2026-11-23):** hour lines and night buttons approved; the faint line joining the stage bars removed (bars only).
+
+## S3 · Sleep: trends below the fold (2026-11-23)
+
+**Asked:** design the trends below the fold of the Sleep tab.
+
+**Built:** `s3-board.html` (A from S2; both phones scroll and work). The scene scrolls away; the page keeps its night colour under the cards (sampled from the scene's bottom row, #0E1A55-ish). Under "Last 30 nights", four glass cards in the same ink, each replacing a shipped Sleep Trends chart:
+- **Sleep:** 30 bars from 4 h, hour grid 5–8 h, your normal as a faint band (mean ± 1 sd), usual in the header.
+- **Bedtime and wake:** one bar per night from falling asleep to waking, on a clock 22:00 → 09:00. Nights asleep after midnight are **hollow** (outline), not red as shipped, and the header counts them: shape carries the meaning, not colour.
+- **Sleep score:** 30 bars from 40, normal band.
+- **Stages by week:** four weeks, deep / REM / light as one segmented bar each (ink strength by stage), the shares written above.
+- **One selection:** the night shown above is the bright bar in every chart and its week the bright row. Tap a night in any chart to open it (tested: tapping 4 Nov opens it and moves every highlight); back/forward move it too. Charts are hidden from TalkBack; each gets a one-line text summary when built.
+
+**Measured** (ink over the glass on the sampled page colour, sRGB blending as CSS): night shown 14.36, other nights and the hollow outline 5.24, weakest stage segment 3.33 (first try 2.67 failed: light segment raised .40 → .46, other weeks dimmed .85 not .80), secondary text 9.84; grid lines 1.59 and the band 1.32 are decoration. Shots: `tools/visual-loop/s3.js` → `out/s3-full.png`, `s3-trends.png`, `s3-trends-nov4.png`.
+
+**Prototype data:** older nights' bedtimes spread wider (±70 min) so late nights occur (10 of 30). Bars are 9.8 px wide: the tap target is the chart column; a list view for TalkBack and larger targets is for the build.
+
+**Not done:** phone check, the Trends tab itself (the shipped Trends now overlaps this), swipe between nights.
+
+**Board:** `s3-board.html`. STOP.
+
+## S4 · Sleep: easier trends (2026-11-23)
+
+**Asked:** the bedtime/wake and sleep charts were hard to read; make sleep a graph instead of columns; bedtime and wake can stay or be redesigned.
+
+**Built:** `s4-board.html` (two scrolled phones, A and B, both live).
+- **Sleep:** one 2 px line through the 30 nights, a dot and a dotted guide on the night shown, the normal band behind. Scale 5 h 30 → 8 h 30 (the range the nights use; first try 4 → 9 h left the bottom half empty).
+- **Bedtime and wake, A · Two lines:** falling asleep and waking as two lines on a clock 21:30 → 09:00, the night filled faintly between them, nights asleep after midnight as hollow dots on the bedtime line (counted in the header), dots on both lines for the night shown, "asleep" / "awake" at the right end.
+- **Bedtime and wake, B · Bars:** S3 unchanged, for comparison.
+- Score and stages by week unchanged.
+
+**Measured** (ink over the glass on the page): lines and dots 11.82, secondary text 9.84, other-night bars 5.24, weakest stage segment 3.33; grid 1.59, night fill 1.59, band 1.32 are decoration. Tap to open still works (tested on 4 Nov: the dots and guides move to it). Shots: `tools/visual-loop/s4.js` → `out/s4-a.png`, `s4-b.png`, `s4-a-nov4.png`.
+
+**Board:** `s4-board.html`. STOP for the pick (A two lines / B bars).
+
+**Picked (2026-11-23):** B · Bars for bedtime and wake (S3 bars, late nights hollow), with sleep as the S4 line. Score and stages by week as S3. The Sleep tab is: last night (S2) + these trends (`s4-board.html`, phone B).

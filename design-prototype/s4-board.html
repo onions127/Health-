@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Health++ · Round S4 · Sleep: easier trends</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:#E9EBEE; color:#14171A; font:400 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding:32px 32px 80px; }
+  header.board { max-width:1180px; margin-bottom:24px; } header.board h1 { font-size:26px; font-weight:600; margin-bottom:8px; } header.board p { color:#3A424B; max-width:110ch; margin-bottom:8px; }
+  section.dir { display:flex; gap:24px; align-items:flex-start; padding:28px 0; border-top:1px solid #D5DAE0; }
+  .sheet { width:340px; flex:none; background:#fff; border-radius:14px; padding:18px; font-size:12.5px; line-height:1.5; color:#30363D; }
+  .sheet h2 { font-size:19px; font-weight:600; color:#111; margin-bottom:4px; } .sheet h3 { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#6A727C; margin:12px 0 4px; } .sheet ul { padding-left:16px; }
+  table.m { border-collapse:collapse; font-size:11.5px; font-variant-numeric:tabular-nums; } table.m td, table.m th { padding:2px 6px; border-bottom:1px solid #E6E9ED; text-align:right; } table.m td:first-child, table.m th:first-child { text-align:left; } table.m th { color:#6A727C; font-weight:500; } .bad { color:#B3261E; font-weight:600; }
+  .phone { position:relative; width:412px; height:915px; overflow:hidden; border-radius:30px; isolation:isolate; zoom:.72; box-shadow:0 1px 2px rgba(20,23,26,.08), 0 16px 40px rgba(20,23,26,.14); font-family:Roboto, "Segoe UI", system-ui, sans-serif; }
+  .phone img.scene { position:absolute; left:0; top:0; width:412px; height:915px; display:block; z-index:0; }
+  .scroll { position:absolute; inset:0; overflow-y:auto; scrollbar-width:none; } .scroll::-webkit-scrollbar { display:none; } .content { position:relative; height:1730px; }
+  .phones { display:flex; gap:16px; align-items:flex-start; } figure { margin:0; } figcaption { font-size:12px; color:#3A424B; margin-top:6px; } [data-i] { cursor:pointer; }
+  .abs { position:absolute; z-index:1; } .glass { position:absolute; z-index:1; border-radius:26px; }
+  .btn { display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 18px; border-radius:24px; font-size:15px; font-weight:500; }
+  .step { width:48px; height:48px; border-radius:24px; display:inline-flex; align-items:center; justify-content:center; border:0; cursor:pointer; font:inherit; }
+  .step[aria-disabled="true"] { opacity:.38; cursor:default; }
+  .nav { position:absolute; left:0; right:0; bottom:0; height:64px; z-index:2; display:grid; grid-template-columns:repeat(4,1fr); align-items:center; text-align:center; font-size:12px; border-top:1px solid; }
+  .nav span { position:relative; padding-top:10px; } .nav span.on { font-weight:500; }
+  .nav span.on::before { content:""; position:absolute; top:-2px; left:50%; width:24px; height:3px; margin-left:-12px; border-radius:2px; background:currentColor; }
+  .u { font-size:.5em; letter-spacing:0; margin:0 .12em 0 .04em; }
+</style>
+</head>
+<body>
+<header class="board" id="hdr">
+  <h1>Round S4 · Sleep: easier trends</h1>
+  <p>S3's sleep and bedtime charts were hard to read: 30 tall bars each, side by side. <b>Sleep</b> is now a line over your normal band, with a dot on the night shown. <b>Bedtime and wake</b> comes in two versions to compare. <b>A · Two lines</b>: falling asleep and waking as two lines on the clock, the night between them softly filled, and late nights (asleep after midnight) as hollow dots on the bedtime line. <b>B · Bars</b>: S3's bars, unchanged. Everything else is as in S3: tap a night in a chart to open it.</p>
+</header>
+<section class="dir"><div class="sheet" id="sheet"></div><div class="phones"><figure><div id="live"></div><figcaption>A · Bedtime and wake as two lines</figcaption></figure><figure><div id="live2"></div><figcaption>B · Bedtime and wake as bars (S3)</figcaption></figure></div></section>
+<script src="data.js"></script>
+<script>
+const HD = window.HEALTH_DATA, days = HD.days, LAST = 89, FIRST = LAST - 29;
+const hm = m => `${Math.floor(m / 60)}<span class="u">h</span>${String(Math.round(m % 60)).padStart(2, '0')}<span class="u">m</span>`, hmT = m => m >= 60 ? `${Math.floor(m / 60)}h ${String(Math.round(m % 60)).padStart(2, '0')}m` : `${Math.round(m)}m`;
+const clk = m => { const x = ((m % 1440) + 1440) % 1440; return `${String(Math.floor(x / 60)).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}`; };
+const word = s => s >= 85 ? 'Restful night' : s >= 70 ? 'Good night' : s >= 55 ? 'Light night' : 'Short night';
+const rgba = (h, a) => `rgba(${[1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(',')},${a})`;
+const rnd = s => { const x = Math.sin(s * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+const STAGES = ['Deep', 'REM', 'Light', 'Awake'], ROW = { Awake: 0, REM: 1, Light: 2, Deep: 3 };
+// one night: bedtime (minutes after midnight before), stage runs, totals. Last night is the real hypnogram; older nights are made from it (see header).
+function night(i) {
+  const d = days[i]; let bed = 23 * 60 + 10, hyp = HD.HYPNOGRAM.map(s => ({ start: s.start, dur: s.dur, stage: s.stage }));
+  if (i !== LAST) {
+    bed += Math.round((rnd(i) - .4) * 140);
+    const j = hyp.map((s, k) => s.dur * (s.stage === 'Awake' ? 1 : .7 + .6 * rnd(i * 31 + k))), asleep = j.reduce((a, v, k) => a + (hyp[k].stage === 'Awake' ? 0 : v), 0);
+    let t = 0; hyp = hyp.map((s, k) => { const dur = Math.max(3, Math.round(s.stage === 'Awake' ? j[k] : j[k] * d.sleepMin / asleep)); const r = { start: t, dur, stage: s.stage }; t += dur; return r; });
+  }
+  const tot = Object.fromEntries(STAGES.map(n => [n, hyp.filter(s => s.stage === n).reduce((a, s) => a + s.dur, 0)])), end = hyp[hyp.length - 1].start + hyp[hyp.length - 1].dur;
+  return { i, d, bed, hyp, tot, end, min: d.sleepMin, score: d.sleepScore };
+}
+const NIGHTS = []; for (let i = FIRST; i <= LAST; i++) NIGHTS[i] = night(i);
+const usual = k => { const v = NIGHTS.filter(Boolean).map(k); return v.reduce((a, x) => a + x, 0) / v.length; };
+const NORM = Object.fromEntries(STAGES.map(n => [n, usual(N => N.tot[n])])), NORM_MIN = usual(N => N.min);
+// the night's stages: one bar per stage run on its labelled row (no line joining them), and a faint line at each full hour with the hour under it
+function hypChart(N, W, H, ink, sub) {
+  const L = 44, x = m => L + m / N.end * (W - L), rh = H / 4;
+  const bars = N.hyp.map(s => `<rect x="${x(s.start).toFixed(1)}" y="${(ROW[s.stage] * rh + rh * .18).toFixed(1)}" width="${Math.max(1.5, x(s.start + s.dur) - x(s.start) - 1).toFixed(1)}" height="${(rh * .64).toFixed(1)}" rx="3" fill="${ink}" fill-opacity="${s.stage === 'Awake' ? .45 : .85}"/>`).join('');
+  const lab = Object.keys(ROW).map(k => `<text x="0" y="${(ROW[k] * rh + rh * .68).toFixed(1)}" font-size="11" fill="${sub}">${k}</text>`).join('');
+  let hrs = ''; for (let h = Math.ceil(N.bed / 60) * 60; h < N.bed + N.end; h += 60) { const hx = x(h - N.bed); if (hx > W - 6) break;
+    hrs += `<line x1="${hx.toFixed(1)}" y1="0" x2="${hx.toFixed(1)}" y2="${H}" stroke="${ink}" stroke-opacity=".16" stroke-width="1"/><text x="${hx.toFixed(1)}" y="${H + 13}" font-size="10.5" text-anchor="middle" fill="${sub}">${String((h / 60) % 24).padStart(2, '0')}</text>`; }
+  return `<svg width="${W}" height="${H + 16}" viewBox="0 0 ${W} ${H + 16}" aria-hidden="true">${lab}${hrs}${bars}</svg>`;
+}
+let PAGE = '#0E1A55';   // the page colour under the cards below the fold: sampled from the scene's bottom row
+const OP = { other: .55, band: .10, grid: .16, night: .16, stage: [.95, .66, .46] };   // mark strengths (ink alpha); measured on the board
+const sd = a => { const m = a.reduce((x, y) => x + y, 0) / a.length; return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / a.length); };
+function trends(N, P, glass, bedStyle) {
+  const ns = NIGHTS.slice(FIRST, LAST + 1), W = 356, cnt = ns.length, ink = P.primary, sub = P.secondary, L = 24, bw = (W - L) / cnt;
+  const bx = k => L + k * bw + 1, op = n => n.i === N.i ? 1 : OP.other, hit = (n, k, H) => `<rect data-i="${n.i}" x="${(L + k * bw).toFixed(1)}" y="0" width="${bw.toFixed(1)}" height="${H}" fill="transparent"><title>${n.d.label}</title></rect>`;
+  const grid = ys => ys.map(([y, t]) => `<line x1="${L}" y1="${y.toFixed(1)}" x2="${W}" y2="${y.toFixed(1)}" stroke="${ink}" stroke-opacity="${OP.grid}"/><text x="0" y="${(y + 4).toFixed(1)}" font-size="10.5" fill="${sub}">${t}</text>`).join('');
+  const foot = `<div style="display:flex;justify-content:space-between;font-size:11px;color:${sub};margin:4px 0 0 ${L}px"><span>${ns[0].d.dayNum} ${ns[0].d.monthName.slice(0, 3)}</span><span>Last night</span></div>`;
+  const card = (top, h, title, right, body) => `<div class="glass" style="${glass};top:${top}px;left:12px;right:12px;height:${h}px;padding:12px 16px"><div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:${sub}"><span style="color:${ink};font-size:15px;font-weight:500">${title}</span><span>${right}</span></div><div style="margin-top:10px">${body}</div></div>`;
+  // 1 duration: bars from 4 h, the usual band (mean +- 1 sd)
+  const H1 = 112, y1 = m => H1 - (Math.min(Math.max(m, 330), 510) - 330) / 180 * H1, s1 = sd(ns.map(n => n.min));
+  const cxk = k => L + (k + .5) * bw, line = (ys, op2 = .9) => `<path d="${ys.map((y, k) => `${k ? 'L' : 'M'}${cxk(k).toFixed(1)} ${y.toFixed(1)}`).join(' ')}" fill="none" stroke="${ink}" stroke-opacity="${op2}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  const selK = ns.findIndex(n => n.i === N.i), guide = H => `<line x1="${cxk(selK).toFixed(1)}" y1="0" x2="${cxk(selK).toFixed(1)}" y2="${H}" stroke="${ink}" stroke-opacity=".30" stroke-dasharray="2 3"/>`;
+  const dot = (y, r = 4.5) => `<circle cx="${cxk(selK).toFixed(1)}" cy="${y.toFixed(1)}" r="${r}" fill="${ink}"/>`;
+  const dur = `<svg width="${W}" height="${H1}" viewBox="0 0 ${W} ${H1}" aria-hidden="true" style="overflow:visible">${grid([[y1(360), '6h'], [y1(420), '7h'], [y1(480), '8h']])}
+    <rect x="${L}" y="${y1(NORM_MIN + s1).toFixed(1)}" width="${W - L}" height="${(y1(NORM_MIN - s1) - y1(NORM_MIN + s1)).toFixed(1)}" fill="${ink}" fill-opacity="${OP.band}"/>
+    ${guide(H1)}${line(ns.map(n => y1(n.min)))}${dot(y1(ns[selK].min))}${ns.map((n, k) => hit(n, k, H1)).join('')}</svg>${foot}`;
+  // 2 bedtime and wake: one bar per night from falling asleep to waking, on a clock from 22:00 down to 09:00; late nights hollow
+  const H2 = 150, T0 = 21.5 * 60, T1 = 33 * 60, y2 = m => (Math.min(Math.max(m, T0), T1) - T0) / (T1 - T0) * H2, LATE = 24 * 60;
+  const bedG = grid([22, 24, 26, 28, 30, 32].map(h => [y2(h * 60), String(h % 24).padStart(2, '0')]));
+  const top = ns.map(n => y2(n.bed)), bot = ns.map(n => y2(n.bed + n.end));
+  const fill = `<path d="${top.map((y, k) => `${k ? 'L' : 'M'}${cxk(k).toFixed(1)} ${y.toFixed(1)}`).join(' ')} ${bot.map((y, k) => [k, y]).reverse().map(([k, y]) => `L${cxk(k).toFixed(1)} ${y.toFixed(1)}`).join(' ')} Z" fill="${ink}" fill-opacity="${OP.night}"/>`;
+  const lateDots = ns.map((n, k) => n.bed > LATE && k !== selK ? `<circle cx="${cxk(k).toFixed(1)}" cy="${top[k].toFixed(1)}" r="3.4" fill="${PAGE}" stroke="${ink}" stroke-width="1.6"/>` : '').join('');
+  const bed = bedStyle === 'bars'
+    ? `<svg width="${W}" height="${H2}" viewBox="0 0 ${W} ${H2}" aria-hidden="true" style="overflow:visible">${bedG}
+    ${ns.map((n, k) => { const late = n.bed > LATE, a = y2(n.bed), b = y2(n.bed + n.end); return late
+      ? `<rect x="${(bx(k) + .75).toFixed(1)}" y="${(a + .75).toFixed(1)}" width="${(bw - 3.5).toFixed(1)}" height="${(b - a - 1.5).toFixed(1)}" rx="2" fill="none" stroke="${ink}" stroke-opacity="${op(n)}" stroke-width="1.5"/>`
+      : `<rect x="${bx(k).toFixed(1)}" y="${a.toFixed(1)}" width="${(bw - 2).toFixed(1)}" height="${(b - a).toFixed(1)}" rx="2" fill="${ink}" fill-opacity="${op(n)}"/>`; }).join('')}${ns.map((n, k) => hit(n, k, H2)).join('')}</svg>${foot}`
+    : `<svg width="${W}" height="${H2}" viewBox="0 0 ${W} ${H2}" aria-hidden="true" style="overflow:visible">${bedG}${fill}${guide(H2)}${line(top)}${line(bot)}${lateDots}${dot(top[selK])}${dot(bot[selK])}
+    <text x="${W}" y="${(Math.min(...top) - 5).toFixed(1)}" font-size="10.5" text-anchor="end" fill="${sub}">asleep</text><text x="${W}" y="${(Math.max(...bot) + 13).toFixed(1)}" font-size="10.5" text-anchor="end" fill="${sub}">awake</text>${ns.map((n, k) => hit(n, k, H2)).join('')}</svg>${foot}`;
+  const lateN = ns.filter(n => n.bed > LATE).length;
+  // 3 score: bars from 40, the usual band
+  const H3 = 84, y3 = v => H3 - (Math.max(v, 40) - 40) / 60 * H3, sc = ns.map(n => n.score), ms = sc.reduce((a, b) => a + b, 0) / cnt, s3 = sd(sc);
+  const score = `<svg width="${W}" height="${H3}" viewBox="0 0 ${W} ${H3}" aria-hidden="true" style="overflow:visible">${grid([[y3(60), '60'], [y3(80), '80']])}
+    <rect x="${L}" y="${y3(ms + s3).toFixed(1)}" width="${W - L}" height="${(y3(ms - s3) - y3(ms + s3)).toFixed(1)}" fill="${ink}" fill-opacity="${OP.band}"/>
+    ${ns.map((n, k) => `<rect x="${bx(k).toFixed(1)}" y="${y3(n.score).toFixed(1)}" width="${(bw - 2).toFixed(1)}" height="${(H3 - y3(n.score)).toFixed(1)}" rx="2" fill="${ink}" fill-opacity="${op(n)}"/>`).join('')}${ns.map((n, k) => hit(n, k, H3)).join('')}</svg>${foot}`;
+  // 4 stages by week: the last four weeks, share of time asleep; the week holding the night shown is the bright row
+  const weeks = [0, 1, 2, 3].map(w => ns.slice(cnt - 7 * (w + 1), cnt - 7 * w)).reverse();
+  const mix = weeks.map(wk => { const t = ['Deep', 'REM', 'Light'].map(n => wk.reduce((a, x) => a + x.tot[n], 0)), all = t.reduce((a, b) => a + b, 0); return { wk, p: t.map(v => v / all), on: wk.some(x => x.i === N.i) }; });
+  const stages = mix.map(({ wk, p, on }, r) => { let x = 0; const segs = p.map((v, j) => { const w = v * W - (j < 2 ? 3 : 0), s = `<rect x="${x.toFixed(1)}" y="0" width="${Math.max(0, w).toFixed(1)}" height="10" rx="3" fill="${ink}" fill-opacity="${(OP.stage[j] * (on ? 1 : .85)).toFixed(3)}"/>`; x += v * W; return s; }).join('');
+    const e = wk[wk.length - 1].d; return `<div style="margin-top:${r ? 10 : 0}px"><div style="display:flex;justify-content:space-between;font-size:12px;color:${on ? ink : sub};${on ? 'font-weight:500' : ''}"><span>Week to ${e.dayNum} ${e.monthName.slice(0, 3)}</span><span>Deep ${Math.round(p[0] * 100)}% · REM ${Math.round(p[1] * 100)}% · Light ${Math.round(p[2] * 100)}%</span></div>
+      <svg width="${W}" height="10" viewBox="0 0 ${W} 10" aria-hidden="true" style="margin-top:4px;display:block">${segs}</svg></div>`; }).join('');
+  return `<div class="abs" style="top:794px;left:22px;font-size:12px;color:${sub}">Last 30 nights</div>`
+    + card(818, 176, 'Sleep', `usual ${hmT(Math.round(NORM_MIN))} · band = your normal`, dur)
+    + card(1006, 220, 'Bedtime and wake', bedStyle === 'bars' ? `hollow = asleep after midnight (${lateN})` : `○ = asleep after midnight (${lateN})`, bed)
+    + card(1238, 148, 'Sleep score', `usual ${Math.round(ms)}`, score)
+    + card(1398, 214, 'Stages by week', 'share of time asleep', stages);
+}
+// contrast of a mark (ink at alpha) over the glass on the flat page colour (sRGB alpha blending, as CSS does)
+const hx3 = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)), over = (f, b, a) => f.map((v, i) => v * a + b[i] * (1 - a));
+const lumi = c => { const l = c.map(v => (v /= 255) <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4); return .2126 * l[0] + .7152 * l[1] + .0722 * l[2]; };
+const cr = (a, b) => { const x = lumi(a), y = lumi(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+const chev = (dir, c) => `<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="${dir < 0 ? 'M14.5 5.5 8 12l6.5 6.5' : 'M9.5 5.5 16 12l-6.5 6.5'}" fill="none" stroke="${c}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+function phone(img, g, satD, N, bedStyle) {
+  const P = g.ink, S = g.skyInk, dark = g.mode === 'dark', last = N.i === LAST;
+  const glass = `background:${rgba(g.tint, g.a)};-webkit-backdrop-filter:blur(22px) saturate(${dark ? satD : 1.6});backdrop-filter:blur(22px) saturate(${dark ? satD : 1.6});box-shadow:${dark ? 'inset 0 0 0 1px rgba(255,255,255,.10), inset 0 1px 0 rgba(255,255,255,.08), 0 10px 28px rgba(0,0,0,.12)' : '0 10px 28px rgba(14,42,67,.10)'}`;
+  const dm = Math.round(N.min - NORM_MIN), diff = `${Math.abs(dm)} min ${dm >= 0 ? 'more' : 'less'} than usual`, span = `${clk(N.bed)} – ${clk(N.bed + N.end)}`;
+  const ctx = n => { const v = Math.round(N.tot[n] - NORM[n]); return Math.abs(v) < 10 ? 'Within normal' : `${v > 0 ? '↑' : '↓'} ${Math.abs(v)}m vs normal`; };
+  const stepBtn = (dir, off, label) => `<button class="step" data-dir="${dir}" aria-label="${label}" aria-disabled="${off}" style="background:${rgba(S.sky, .12)};box-shadow:inset 0 0 0 1px ${rgba(S.sky, .28)}">${chev(dir, S.sky)}</button>`;
+  return `<div class="phone" style="color:${P.primary};background:${PAGE}"><div class="scroll"><div class="content"><img class="scene" src="${img}" alt="">
+    <div class="abs" style="top:12px;left:20px;font:500 12px Roboto, 'Segoe UI';color:${S.sky}">07:42</div>
+    <div class="abs" style="top:40px;left:20px;color:${S.sky}"><div style="font-size:19px;font-weight:500">${last ? 'Last night' : N.d.label}</div><div style="font-size:12px;margin-top:2px">${last ? N.d.label + ' · ' : ''}${span}${last ? '' : ` · ${LAST - N.i} nights ago`}</div></div>
+    <div class="abs" style="top:40px;right:14px;display:flex;gap:6px">${stepBtn(-1, N.i === FIRST, 'Earlier night')}${stepBtn(1, last, 'Later night')}</div>
+    <div class="abs" style="top:112px;left:22px;color:${S.sky}"><div style="font-size:72px;font-weight:300;line-height:1;letter-spacing:-0.035em;margin-left:-3px">${hm(N.min)}</div><div style="font-size:23px;line-height:1.25;margin-top:8px">${word(N.score)}</div><div style="font-size:15px;line-height:1.35;margin-top:4px">Score ${N.score} · ${diff}</div></div>
+    <div class="glass" style="${glass};top:384px;left:12px;right:12px;height:164px;padding:12px 16px"><div style="display:flex;justify-content:space-between;font-size:12px;color:${P.secondary}"><span>Stages</span><span>${span}</span></div><div style="margin-top:8px">${hypChart(N, 356, 92, P.primary, P.secondary)}</div></div>
+    <div class="glass" style="${glass};top:560px;left:12px;right:12px;height:140px;padding:12px 16px"><div style="font-size:12px;color:${P.secondary}">Time in each stage</div>
+      ${STAGES.map(n => `<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:4px"><div><span style="font-size:15px;font-weight:500">${n}</span> <span style="font-size:12px;color:${P.secondary}">${ctx(n)}</span></div><div style="font-size:15px;font-weight:500">${hmT(N.tot[n])}</div></div>`).join('')}</div>
+    <div class="glass" style="${glass};top:712px;left:12px;right:12px;height:64px;padding:8px 8px 8px 16px;display:flex;align-items:center;justify-content:space-between"><div style="font-size:15px">Times right?<div style="font-size:12px;color:${P.secondary}">${span}</div></div>
+      <div><span class="btn" style="color:${P.primary}">Edit</span><span class="btn" style="background:${dark ? '#FFFFFF' : '#0B5FA5'};color:${dark ? '#0B3A66' : '#FFFFFF'}">Looks right</span></div></div>
+    ${trends(N, P, glass, bedStyle)}</div></div>
+    <nav class="nav" style="background:${rgba(g.tint, g.navA)};color:${P.secondary};border-top-color:${rgba('#FFFFFF', dark ? .14 : .6)};-webkit-backdrop-filter:blur(22px) saturate(${dark ? satD : 1.6});backdrop-filter:blur(22px) saturate(${dark ? satD : 1.6})">${['Today', 'Sleep', 'Trends', 'Coach'].map(l => `<span class="${l === 'Sleep' ? 'on' : ''}" style="${l === 'Sleep' ? 'color:' + P.primary : ''}">${l}</span>`).join('')}</nav></div>`;
+}
+let cur = LAST; window.S3 = window.S2 = { go: i => { cur = Math.max(FIRST, Math.min(LAST, i)); draw(); }, get cur() { return cur; }, LAST, FIRST };
+let M, MB;
+function draw() { const g = M.m.bed2310['3'], keep = [...document.querySelectorAll('.scroll')].map(e => e.scrollTop);
+  ['live', 'live2'].forEach((id, k) => { const el = document.getElementById(id); el.innerHTML = phone('s1/bed2310.png', g, M.m.bed2310.satD, NIGHTS[cur], k ? 'bars' : 'lines'); el.querySelector('.scroll').scrollTop = keep[k] != null ? keep[k] : 770; }); }
+document.querySelector('.phones').addEventListener('click', e => { const t = e.target.closest('[data-i]'); if (t) return S2.go(+t.dataset.i);
+  const b = e.target.closest('.step'); if (!b || b.getAttribute('aria-disabled') === 'true') return; S2.go(cur + +b.dataset.dir); });
+(async () => {
+  M = await (await fetch('s1/measure.json?' + Date.now())).json();
+  const im = new Image(); im.src = 's1/bed2310.png'; await im.decode(); const cv = document.createElement('canvas'); cv.width = 412; cv.height = 915; const cx = cv.getContext('2d'); cx.drawImage(im, 0, 0, 412, 915);
+  const px = cx.getImageData(0, 905, 412, 1).data, acc = [0, 0, 0]; for (let i = 0; i < px.length; i += 4) for (let j = 0; j < 3; j++) acc[j] += px[i + j] / 412;
+  PAGE = '#' + acc.map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
+  draw();
+  const g = M.m.bed2310['3'], card = over(hx3(g.tint), acc, g.a), ink = hx3(g.ink.primary), at = a => cr(over(ink, card, a), card);
+  const rows = [['Lines (sleep, bedtime, wake) and the dot', at(.9)], ['Night shown (bars)', at(1)], ['Other nights, late-night outline', at(OP.other)], ['Weakest stage segment (light, other weeks)', Math.min(...OP.stage.map(a => at(a * .85)))], ['Secondary text (axes, labels)', cr(hx3(g.ink.secondary), card)], ['Grid lines (decoration)', at(OP.grid)], ['Night fill between the lines (decoration)', at(OP.night)], ['Normal band (decoration)', at(OP.band)]];
+  window.S3M = Object.fromEntries(rows.map(([n, v]) => [n, +v.toFixed(2)]));
+  document.getElementById('sheet').innerHTML = `<h2>Sleep trends, S4</h2>
+    <h3>Below the fold</h3><ul><li><b>Sleep</b>: one line through 30 nights, a dot and a dotted guide on the night shown, your normal as a faint band (mean ± 1 sd)</li><li><b>Bedtime and wake</b>: A two lines (asleep, awake) on a clock 21:30 → 09:00, the night filled between them, late nights as hollow dots; B the S3 bars</li><li><b>Sleep score</b>: 30 bars from 40, your normal as a band</li><li><b>Stages by week</b>: four weeks of deep / REM / light as one bar each, the shares written above it</li></ul>
+    <h3>One selection</h3><ul><li>The night shown above is the bright bar in every chart, and its week the bright row</li><li>Tap a night in any chart to open it; back/forward move the highlight</li><li>The charts are hidden from TalkBack; each gets a one-line text summary when built</li></ul>
+    <h3>Measured (ink over the glass on page ${PAGE.toUpperCase()})</h3><table class="m"><tr><th>mark</th><th>contrast</th></tr>${rows.map(([n, v]) => `<tr><td>${n}</td><td class="${v < 3 && !/decoration/.test(n) ? 'bad' : ''}">${v.toFixed(2)}</td></tr>`).join('')}</table>
+    <p style="margin-top:8px">Meaningful marks need 3:1 against the card. Grid lines and the band are decoration and stay faint on purpose.</p>`;
+})();
+</script>
+</body>
+</html>
