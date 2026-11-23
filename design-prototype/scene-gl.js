@@ -838,6 +838,18 @@ vec3 dec(vec4 e){ vec3 g = e.rgb*e.a*R; return g*g; }
 void main(){ vec2 uv = gl_FragCoord.xy/uDst;                          // the hour between two baked keyframes: blend in linear light
   vec3 c = mix(dec(texture(uAc, uv)), dec(texture(uBc, uv)), uW); vec4 x = mix(texture(uAa, uv), texture(uBa, uv), uW);
   o = vec4(c, x.r); o2 = vec4(x.g, x.b, 0., x.r); }`;
+  // Round X1: transitions. The last picture on screen (uSrc, a snapshot) laid over the new one; alpha = how much of the old still shows.
+  // Styles: 1 fade, 2 a front that crosses from the left with a cloud-torn edge (the weather blowing in), 3 patches that open like clouds forming.
+  const XF = `#version 300 es
+precision highp float; uniform sampler2D uSrc; uniform vec2 uDst; uniform float uP, uStyle; out vec4 o;
+float hash(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x*p.y); }
+float vn(vec2 p){ vec2 i = floor(p), f = fract(p), u = f*f*(3. - 2.*f); return mix(mix(hash(i), hash(i + vec2(1., 0.)), u.x), mix(hash(i + vec2(0., 1.)), hash(i + vec2(1., 1.)), u.x), u.y); }
+float fbm(vec2 p){ float s = 0., a = .5; for (int i = 0; i < 4; i++) { s += a*vn(p); p = p*2.03 + 17.1; a *= .5; } return s/.9375; }
+void main(){ vec2 uv = gl_FragCoord.xy/uDst, q = uv*vec2(uDst.x/uDst.y, 1.); float r;
+  if (uStyle < 1.5) r = uP;
+  else if (uStyle < 2.5) { float e = uP*1.68 - .34; r = 1. - smoothstep(e - .22, e + .22, uv.x + .24*(fbm(q*vec2(2.5, 5.)) - .5)); }
+  else r = smoothstep(-.08, .08, uP*1.2 - .1 - clamp((fbm(q*3.5) - .5)*2.5 + .5, 0., 1.));   // fbm spread to ~0..1, so patches open evenly through the run
+  o = vec4(texture(uSrc, uv).rgb, 1. - r); }`;
   // Light shafts: march toward the sun gathering open sky near it. Soft by nature, so they run at quarter resolution and are
   // blurred (3.12: at full resolution this march was ~15 of the 24 ms a frame took on the phone).
   const RAYS = `#version 300 es
@@ -1148,13 +1160,13 @@ void main(){
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, SEG_MAX * 2, 2, 0, gl.RGBA, gl.FLOAT, null);
       [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER].forEach(k => gl.texParameteri(gl.TEXTURE_2D, k, gl.NEAREST)); PR.forEach(q => { gl.useProgram(q); gl.uniform1i(gl.getUniformLocation(q, 'uTreeTex'), 15); });
     }
-    const pB = prog(gl, BRIGHT), pBl = prog(gl, BLUR), pF = prog(gl, FINAL), pC = prog(gl, COMPOSE), pR = prog(gl, RAYS), Up = (q, n) => gl.getUniformLocation(q, n);
+    const pB = prog(gl, BRIGHT), pBl = prog(gl, BLUR), pF = prog(gl, FINAL), pC = prog(gl, COMPOSE), pR = prog(gl, RAYS), pX = prog(gl, XF), Up = (q, n) => gl.getUniformLocation(q, n);
     // Parallax: each slice slides by its own amount (CSS px at full tilt). Nearer slices slide further, as when the eye moves sideways;
     // the cards stay put, so the scene reads as a world behind the glass. Slices are rendered past the screen edge by MARGIN.
     const AMP = [1, 3, 5, 7], MARGIN = 28,   // M2 (2026-11-22): about a third of the 3.10 shift [3, 9, 14, 22]: a faint depth, not a moving picture
     SPLIT = 30;                 // SPLIT: clouds nearer than this (km) go in the near-cloud slice. 30, not 14 (3.12): hero clouds reach ~24 km, and a cloud cut by the split tears apart when the near layer drifts or tilts; beyond 30 km clouds sit low enough to stay behind the far ridge
     const cssDpr = () => st.dpr || Math.min(2, G.devicePixelRatio || 1);
-    let RT = null, man = null;
+    let RT = null, man = null, trn = null;                                // trn: the transition running (X1)
     function target(w, h, mat, fmt) {
       gl.activeTexture(gl.TEXTURE6);                                       // units 0-2 hold the noise; binding here must not replace them
       const tex = () => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
@@ -1178,11 +1190,11 @@ void main(){
       const CW = canvas.width, CH = canvas.height;
       const F = baked ? { W: man.W, H: man.H, dpr: man.dpr, E: man.E } : { W: CW, H: CH, dpr: cssDpr(), E: st.bake ? Math.round(DRIFT_ROOM * cssDpr()) : 0 };
       if (RT && RT.W === F.W && RT.H === F.H && RT.CW === CW && RT.CH === CH && RT.E === F.E) return false;
-      if (RT) [...RT.s, RT.acc, RT.a, RT.b, RT.c, RT.d, RT.r].forEach(drop);
-      k = 0;                                                               // new buffers: restart the average
+      if (RT) [...RT.s, RT.acc, RT.a, RT.b, RT.c, RT.d, RT.r, RT.o].forEach(drop);
+      k = 0; trn = null;                                                               // new buffers: restart the average
       const m = Math.ceil(MARGIN * F.dpr), q = n => [Math.max(1, Math.ceil(CW / n)), Math.max(1, Math.ceil(CH / n))];
       RT = { W: F.W, H: F.H, CW, CH, m, E: F.E, dpr: F.dpr, s: [0, 1, 2, 3].map(i => target(F.W + 2 * m + (i === 1 ? F.E : 0), F.H + 2 * m, i >= 2 ? true : baked ? false : 'pad')),
-        acc: target(CW, CH), a: target(...q(4)), b: target(...q(4)), c: target(...q(16)), d: target(...q(16)), r: target(...q(4)) };
+        acc: target(CW, CH), a: target(...q(4)), b: target(...q(4)), c: target(...q(16)), d: target(...q(16)), r: target(...q(4)), o: target(CW, CH, null, 'u8') };   // o: the last picture, held while a transition runs
       const kx = Math.min(RT.W / CW, RT.H / CH); RT.xf = [kx, kx, RT.W / 2 - CW / 2 * kx, RT.H / 2 - CH / 2 * kx];   // canvas px -> frame px, cover fit, centred
       return true;
     }
@@ -1406,21 +1418,42 @@ void main(){
         setTarget(Math.abs(x) <= 1 && Math.abs(y) <= 1 ? x : 0, Math.abs(x) <= 1 && Math.abs(y) <= 1 ? y : 0);
       });
     }
+    // X1: lay the snapshot of the old picture over the new one. The old one holds until the new is ready (live: converged; baked: decoded), then gives way.
+    function xfade(now) {
+      const t = trn.hold != null ? trn.hold : trn.t0 == null ? 0 : Math.min(1, (now - trn.t0) / trn.dur), p = trn.style === 1 ? t * t * (3 - 2 * t) : t;   // the front and the patches move at an even pace; the fade eases
+      pass(pX, null, RT.o, () => { gl.uniform2f(Up(pX, 'uDst'), RT.CW, RT.CH); gl.uniform1f(Up(pX, 'uP'), p); gl.uniform1f(Up(pX, 'uStyle'), trn.style);
+        gl.enable(gl.BLEND); gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE); });   // keep the canvas opaque
+      gl.disable(gl.BLEND);
+      if (t >= 1 && trn.hold == null) { trn = null; dirty = true; }
+    }
     function loop(now) {
       const moving = step(now);
+      if (trn && !baked && trn.t0 == null && k >= 24) trn.t0 = now;
       if (baked) { if (ready) resizeBaked(); }
       else if (k < 24) accumulate(live ? now : t0);
       else if (live && gpu < DRIFT_MAX && now - last > Math.max(120, gpu * 4)) { accumulate(now); last = now; }   // cloud drift re-renders the slices: only where the GPU can afford it
       const ambient = live && now - lastC > 33;                            // wind, birds, baked drift: 30 fps is enough, and spares the battery
-      if ((!baked || ready) && (dirty || moving || ambient)) { compose(now); post(now); dirty = false; lastC = now; if (G.SCENE_T && G.__lt && !G.__lt.cp) { sync(); G.__lt('first compose + post, frame ' + k); G.__lt.cp = 1; } }
+      if ((!baked || ready) && (dirty || moving || ambient || trn)) { compose(now); post(now); if (trn) xfade(now); dirty = false; lastC = now; if (G.SCENE_T && G.__lt && !G.__lt.cp) { sync(); G.__lt('first compose + post, frame ' + k); G.__lt.cp = 1; } }
       if (G.SCENE_T && G.__lt && k === 24 && !G.__lt.k24) { G.__lt('24 frames accumulated'); G.__lt.k24 = 1; }
-      if ((baked ? !ready : k < 24) || live || moving) next(loop); else running = false;
+      if ((baked ? !ready : k < 24) || live || moving || trn) next(loop); else running = false;
     }
     function kick() { if (!running) { running = true; tilt.t = performance.now(); next(loop); } }
     if (baked) bakedScene().catch(e => { console.error(e); fail(canvas, 'Baked sky failed to load: ' + e.message); });
     else if (!st.manual) kick();                                           // manual: the on-device baker drives rendering itself (renderSliced)
     return {
-      set(o) { Object.assign(st, o); if (baked) { if (man) bakedScene(); dirty = true; kick(); } else { k = 0; if (!st.manual) kick(); } },
+      // o.transition: 'fade' | 'front' | 'patches' (X1) eases from the picture on screen to the new state; without it the change is instant
+      set(o) {
+        const style = { fade: 1, front: 2, patches: 3 }[o.transition];
+        if (style && RT && (baked ? ready : k >= 24)) {                    // the canvas keeps its last frame (preserveDrawingBuffer): copy it
+          gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null); gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, RT.o.f);
+          gl.blitFramebuffer(0, 0, RT.CW, RT.CH, 0, 0, RT.CW, RT.CH, gl.COLOR_BUFFER_BIT, gl.NEAREST); gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+          trn = { style: reduce ? 1 : style, dur: 1000 * (o.trSec || (reduce ? 1.2 : [0, 1.8, 3.5, 3][style])), t0: null, hold: null };   // reduced motion: a plain fade
+        }
+        Object.assign(st, o);
+        if (baked) { if (man) bakedScene().then(() => { if (trn && trn.t0 == null) trn.t0 = performance.now(); }); dirty = true; kick(); } else { k = 0; if (!st.manual) kick(); }
+      },
+      holdTransition(p) { if (trn) { trn.hold = p; dirty = true; kick(); } },   // review: freeze a transition at progress p (0..1); null lets it run
+      get transitioning() { return !!trn; }, get transitionReady() { return !!(trn && trn.t0 != null); },
       setTilt(x, y) { setTarget(x, y); },
       skip(sec) { t0 -= sec * 1000; dirty = true; kick(); },              // jump the clock (board: bring the birds now)
       get t() { return (performance.now() - t0) / 1000 + 40; },

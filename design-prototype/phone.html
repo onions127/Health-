@@ -40,6 +40,7 @@
     const S = SceneGL.mount(document.getElementById('c'), { tilt: q.get('tilt') !== '0', readiness, hour, sky: SceneGL.PRESETS[q.get('sky')], animate: q.get('anim') !== '0', post: true, seed, baked });
     Object.assign(window.PHONE, { S, bench: () => ({ tilt: S.bench('tilt', 30), full: S.bench('full', 6) }) });
     if (device && need.length) startBaker(S, need);
+    if (device && !q.has('h')) setInterval(() => { const d = new Date(); S.set({ hour: d.getHours() + d.getMinutes() / 60, transition: 'fade' }); }, 60000);   // X1: the hour follows the clock while open, eased
     if (navigator.storage && navigator.storage.estimate) setInterval(async () => { sky.cacheMB = (await navigator.storage.estimate()).usage / 1048576; }, 2000);
   })().catch(e => { hud.hidden = false; hud.textContent = 'FAILED ' + e.message; });
 

@@ -764,3 +764,24 @@ STOP: waiting for review of the mapping (thresholds, the look of each day) and t
 **Not checked:** phone (not connected), load time.
 
 **Picked (2026-11-23):** keep the horizon without the mountain.
+
+## X1 · Sky transitions (PLAN-sky 3.9, 2026-11-23)
+
+**Asked:** continue the redesign with transitions: how the sky changes when data syncs or the hour moves.
+
+**Built:** `set({ ..., transition: 'fade' | 'front' | 'patches' })` in `scene-gl.js`. On set, the canvas's last frame (it keeps its buffer) is copied into one 8-bit target `RT.o`; after post, one small pass (`XF`) lays it over the new picture with an alpha per pixel. The old picture **holds until the new one is complete** (live: 24 frames converged; baked: both keyframes decoded), so no half-drawn frame shows, then gives way:
+- **A · Fade** 1.8 s, eased.
+- **B · Front** 3.5 s, even pace: the new weather crosses from the left behind a soft, cloud-torn edge (fbm).
+- **C · Patches** 3 s, even pace: the new sky opens in cloud-shaped patches (fbm spread to 0..1).
+- Reduced motion: any style becomes a 1.2 s fade. The hour: `phone.html ?device=1` now sets the clock hour once a minute with a fade (invisible step; hides the live re-accumulation).
+- Cost: one full-screen pass only while a transition runs; one 8-bit canvas-sized target (~3 MB at 824×1830). No shader change to the scene programs (no compile cost).
+
+**Cases** (`x1-cases.js`, from the B1 days through `BodySky`): morning sync (no data → short sleep, 07:30), signs of illness (good → light rain, 13:00), readiness recalculated (61 → 86, 13:00). Frames at 0/25/50/75/100% shot by `tools/visual-loop/x1.js` into `x1/`. First run: front and patches did most of their change between 25 and 50%; retuned to an even pace.
+
+**Measured:** live in the pane, illness case, front: old picture held 2.3 s while the new sky converged, then 3.5 s run, done at 5.4 s. Baked (`phone.html?baked=today&h=13`, 86 → 58): new keyframes decoded in < 0.2 s, run done at 3.6 s. No console errors.
+
+**Not done:** the hero number and the glass do not animate yet (the number swaps at once; the glass follows the palette). Morph (gliding SkyState so clouds really grow and fog really lifts) left out: it re-renders the sky every step, so it is live-only and cannot run on baked phones (API 26–32). Phone not tested (not connected).
+
+**Board:** `x1-board.html` (play each case in each style, frame strips). STOP for the pick.
+
+**Picked (2026-11-23):** A · Fade (1.8 s, eased) for data syncs; the hour tick already uses it. Front and patches stay in `XF` for comparison only.
