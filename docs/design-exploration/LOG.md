@@ -1040,3 +1040,20 @@ STOP: waiting for review of the mapping (thresholds, the look of each day) and t
 **Board:** `nt1-board.html`. STOP.
 
 **Approved (2026-11-23):** the night versions as built, with the x 262 rule for sky text at night.
+
+## MD3 · Three more metrics (2026-11-23)
+
+**Asked:** continue (open item: the other metrics' pages).
+
+**Built:** `md3-board.html`, the approved page (MD1 A + MD2 ranges, Month shown) for metrics that work differently from HRV; also opens with `?night=1`.
+- **Readiness** (a score): hero 86 with "↑ Above normal" and the normal 72–85; a shorter month chart (30-day average in its header); "How today's 86 is made": the shipped parts (`readinessParts`: HRV vs your average 40%, resting HR 25%, sleep 25%, blood oxygen and skin temp 10%) as one bar split by points (34 / 22 / 21 / 9, the shipped `shownPoints` rounding), ink strength per part and every part named with its reading.
+- **Weight** (logged): no band and no good/bad; entries as dots with a 7-day average through them; hero "63.9 kg · −0.9 kg since 14 Oct · Latest today 07:15"; the top-right button is WT1's ("✓ 63.9 kg"); the picked day shows Edit · Delete on an entry, "No entry · Log" otherwise (as shipped `WeightDayActions`); 30-day average "used for calories".
+- **Skin temperature** (a difference): hero "+0.1 °C · Near your average · 36.4 °C vs your average 36.3"; bars up and down from zero per night, band ±0.3, a night outside it hollow in coral either way (closer to zero is better); a card "Not core body temperature" that ties a rise with resting HR to the hazy sky (D6).
+
+**Measured:** as MD1 (glass 3.75, sky 5.55, number 7.04); part swatches are decoration (every part is named). Shots: `tools/visual-loop/md3.js` → `out/md3-0..3.png`.
+
+**Not done:** Daily score, Recovery and Sleep score pages (same pattern as Readiness), steps against pace, blood oxygen; phone check.
+
+**Board:** `md3-board.html`. STOP.
+
+**Approved (2026-11-23):** the three pages as built (Readiness with its parts, Weight, Skin temperature).
