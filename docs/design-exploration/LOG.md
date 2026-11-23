@@ -1260,3 +1260,34 @@ Dusk under stratus needs 41% white (34% fair, 37% stratocumulus); dark glass wou
 **Board:** `wt1-board.html?fit=1`. STOP for the pick (A / B / C).
 
 **Picked (2026-11-23):** B · compact. Today now draws the compact tiles whenever a card sits on the lip (every board: MC2's E1 card, UH1's sync card, VP1's illness card); the LT1 board still shows A and C for comparison.
+
+## ST1 · The storm day (2026-11-23)
+
+**Asked:** continue (open since VP1: likely illness with readiness under 35, D2).
+
+**The day:** HRV 36 ms, resting HR 64 (average 54), 4h 50m asleep (score 40), skin +1.1 °C, SpO2 93% → **34** by the shipped `readinessParts` (HRV 10.5, resting HR 8.3, sleep 10, vitals 5.4). Skin ≥ +0.5 and resting HR ≥ +5 with readiness under 35: BodySky gives the thunder sky (denser rain, the bolt).
+
+**Found and fixed (`scene-gl.js`):**
+- **The bolt never drew.** Its `uBolt` uniform call had slid into the end of a `//` comment (G3's snow-colour line), so `uBolt` stayed 0 on every thunder render since G3 (the SH1-era `out/thunder.png` has no bolt). Moved back onto its own line.
+- **It struck through the number.** The bolt lived at x 0.30 of the width from the top edge, through the readiness number; at night it also sat behind the top-right button (white button 1.45:1). Now at x 0.74 from the cloud base (y 0.10) down to y ≈ 0.27, above the maple; shorter (12 + 7 steps); the branch stays on screen; the cull box leaves the glow under 1% at its edges (the first try cut a visible box at night).
+- Live it still flashes every ~9 s with one flicker (two flashes, under WCAG's 3 a second); still frames and reduced motion show it steady.
+
+**Rule:** on a storm day, sky text keeps left of x 262 by day as well, like at night (`SKY_RIGHT` also when `BOLT`): the bolt owns the right sky.
+
+**Measured** (`st1/measure.json`, floor 3.0, no veil; glass y 236–851 + nav; sky text to x 380 by day, x 262 at night; bolt on):
+
+| | 07:15 | 15:10 | 19:45 | 23:10 |
+|---|---|---|---|---|
+| Storm | white 26%, 3.19, sky 4.42; button `#082F5A` 4.15 | white 24%, 3.17, 4.86; 4.91 | white 31%, 3.19, 3.34; 3.23 | land `#1E2739` 22%, 3.72, 7.08; white 3.38 |
+
+Load to converged 20.1 s (`loadT.js`; SH1 26.1 s): compile cost holds.
+
+**Built** (`?bad=1`, third section on each board; shots `node vp1.js` → `out/vp1-wt1-10…14.png`, `out/vp1-co2-8…11.png`; sheets `out/st1-today.png`, `out/st1-coach.png`, skies `out/st1-skies.png`):
+- **Today:** 34, *Rest*, "42 below your normal 76"; the card on the lip (*Your body may be fighting something* · *Skin +1.1 °C · resting HR 10 above usual* · Why), compact tiles under it (LT1); the sky note says *A storm: … This can mean your body is fighting something; rest if you can.*
+- **Coach:** *Rest. Your body needs it.* (detail: the two signs) → *Rest is the plan today.* → *Wind down early tonight.* → *Sleep now if you can.* Answers say rest, and to talk to a doctor with a fever, if unwell, or if the signs stay up.
+
+**Not done:** Readiness, Calendar and Trends on the bad days; the haze-only day. Other boards that show `thunder` now show the bolt, at its new place.
+
+**Board:** `wt1-board.html?bad=1`, `co2-board.html?bad=1` (third section). STOP.
+
+**Approved (2026-11-24):** ST1 as built (the bolt fixed and moved to the right sky; storm-day sky text left of x 262; Today and Coach through the storm day).

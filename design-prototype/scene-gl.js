@@ -765,14 +765,14 @@ float snowAt(vec2 P, float cs, float r, float blur, float sp, float seed){
 // a branching lightning bolt in the upper sky: jagged segments, a thin white core with a soft glow
 float segD(vec2 p, vec2 a, vec2 b){ vec2 pa = p - a, ba = b - a; return length(pa - ba*clamp(dot(pa, ba)/dot(ba, ba), 0., 1.)); }
 float bolt(vec2 P, float asp){
-  if (P.y > .36 || abs(P.x - asp*.30) > .16) return 0.;                 // cull: the bolt lives in a box in the upper sky (phone cost)
-  float d = 1e3, d2 = 1e3; vec2 a = vec2(asp*.30, -.01), br = vec2(0.);
-  for (int i = 0; i < 18; i++) {                                           // short jagged steps down to ~30% of the screen
+  if (P.y > .34 || P.y < .04 || abs(P.x - asp*.74) > .16) return 0.;    // cull (the glow has faded to < 1% at the box's edge): the bolt lives in a box in the upper sky (phone cost)
+  float d = 1e3, d2 = 1e3; vec2 a = vec2(asp*.74, .10), br = vec2(0.);    // ST1: right of the hero text (was x .30, through the readiness number) and below the top-right button (was from the top edge)
+  for (int i = 0; i < 12; i++) {                                           // short jagged steps from the cloud base down to ~27% of the screen, above the maple
     vec2 b = a + vec2((hash(vec2(float(i), 3.1)) - .5)*.030, .010 + .009*hash(vec2(float(i), 5.7)));
-    d = min(d, segD(P, a, b)); if (i == 7) br = b; a = b;
+    d = min(d, segD(P, a, b)); if (i == 5) br = b; a = b;
   }
   a = br;
-  for (int i = 0; i < 9; i++) { vec2 b = a + vec2(.007 + (hash(vec2(float(i), 9.3)) - .35)*.022, .009 + .005*hash(vec2(float(i), 2.9))); d2 = min(d2, segD(P, a, b)); a = b; }
+  for (int i = 0; i < 7; i++) { vec2 b = a + vec2(.003 + (hash(vec2(float(i), 9.3)) - .35)*.016, .009 + .005*hash(vec2(float(i), 2.9))); d2 = min(d2, segD(P, a, b)); a = b; }
   float px = 1./uRes.y;
   return (1. - smoothstep(.6*px*uDpr, 1.6*px*uDpr, d)) + .55*(1. - smoothstep(.4*px*uDpr, 1.2*px*uDpr, d2)) + .21*exp(-d/.012) + .15*exp(-d2/.008);
 }
@@ -1227,7 +1227,8 @@ void main(){
       gl.uniform1f(Up(pC, 'uT'), st.animate ? (now - t0) / 1000 + 40 : 40); gl.uniform1f(Up(pC, 'uRain'), cur.w.rain); gl.uniform1f(Up(pC, 'uNight'), cur.p.night);
       gl.uniform3fv(Up(pC, 'uRainCol'), hex(mixV('#EDF2FA', cur.p.fog, cur.p.night)).map(v => v ** 2.2));   // light streaks by day, fog-coloured at night
       [2, 3].forEach((i, j) => { gl.activeTexture(gl.TEXTURE11 + j); gl.bindTexture(gl.TEXTURE_2D, RT.s[i].m); gl.uniform1i(Up(pC, 'uM' + i), 11 + j); });
-      gl.uniform1f(Up(pC, 'uSnowF'), cur.w.snow || 0); gl.uniform3fv(Up(pC, 'uSnowCol'), hex(mixV('#FBFDFF', cur.p.cl, cur.p.night)).map(v => v ** 2.2 * (1 - .4 * cur.p.night)));   // G3: at night the flakes are lit like the cloud's moonlit side, a little under it (L* ~60) gl.uniform1f(Up(pC, 'uBolt'), cur.w.bolt || 0);
+      gl.uniform1f(Up(pC, 'uSnowF'), cur.w.snow || 0); gl.uniform3fv(Up(pC, 'uSnowCol'), hex(mixV('#FBFDFF', cur.p.cl, cur.p.night)).map(v => v ** 2.2 * (1 - .4 * cur.p.night)));   // G3: at night the flakes are lit like the cloud's moonlit side, a little under it (L* ~60)
+      gl.uniform1f(Up(pC, 'uBolt'), cur.w.bolt || 0);   // ST1: this call sat inside the comment above since G3, so the bolt never drew
       gl.uniform1f(Up(pC, 'uWind'), cur.w.wind); gl.uniform1f(Up(pC, 'uDpr'), dpr); gl.uniform1f(Up(pC, 'uWindDbg'), st.windDebug ? 1 : 0);
       gl.uniform1f(Up(pC, 'uBirds'), live ? (1 - cur.p.night) * (1 - cur.w.rain) * (1 - .8 * Math.min(1, cur.w.fog)) * (1 - .7 * cur.w.grey) : 0);   // day, dry, clear enough to see them; none when still
       gl.uniform3fv(Up(pC, 'uBirdCol'), hex(mixV('#2F3B48', cur.p.mid, .18)).map(v => v ** 2.2));   // dark, a little hazed by the air between

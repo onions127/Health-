@@ -165,14 +165,18 @@ const SECTIONS = [
       ill: { ready: 49, detail: '27 below your normal 76', steps: ['120', '2,400', '3,050', '3,300'], tl: { sleep: '6h 05m', score: 'Score 56', sleepSub: '1h 09m less than usual', stepsSub: 'a rest day', hrv: '44 ms', hrvSub: 'morning check' },
         alert: ['Your body may be fighting something', 'Skin +0.8 °C · resting HR 6 above usual', 'Why'],
         note: ['Low grey cloud: readiness 49, 27 below your normal.', 'Light rain: skin temperature +0.8 °C and resting HR 60 bpm (usual 54), both up. This can be an early sign of illness.'], noteAt: 1,
-        title: 'VP1 · Today with likely illness', thesis: 'Skin temperature +0.8 °C and resting HR 6 above usual, both up (D6): light rain, and one card on the lip that says it in words, so the sky never carries it alone. Why opens the same note as tapping the sky. Readiness 49, <b>Rest</b>.' } };
-    const fig = (day, i, extra = {}) => { const D = DAYS[day], [k, clock] = VP1_HOURS[i], g0 = vp1G(day, k), g = { ...g0, skyInk: g0.skyInk.sky }; window.NIGHT = k === 'night';
-      const h = phone(`vp1/${day}-${k}.png`, g, { ...T, time: clock, ready: D.ready, done: 1, detail: D.detail, alert: D.alert, tiles: { ...D.tl, steps: D.steps[i] }, ...extra });
+        title: 'VP1 · Today with likely illness', thesis: 'Skin temperature +0.8 °C and resting HR 6 above usual, both up (D6): light rain, and one card on the lip that says it in words, so the sky never carries it alone. Why opens the same note as tapping the sky. Readiness 49, <b>Rest</b>.'  },
+      st: { ready: 34, detail: '42 below your normal 76', steps: ['60', '1,100', '1,400', '1,500'], tl: { sleep: '4h 50m', score: 'Score 40', sleepSub: '2h 24m less than usual', stepsSub: 'a rest day', hrv: '36 ms', hrvSub: 'morning check' },
+        alert: ['Your body may be fighting something', 'Skin +1.1 °C · resting HR 10 above usual', 'Why'],
+        note: ['Low grey cloud: readiness 34, 42 below your normal.', 'A storm: skin temperature +1.1 °C and resting HR 64 bpm (usual 54), both up, and readiness 34. This can mean your body is fighting something; rest if you can.'], noteAt: 1,
+        title: 'ST1 · Today on the storm day', thesis: 'Likely illness and readiness under 35 (D2): the one day the sky storms. Denser rain and a bolt in the right sky, clear of the number and below the top-right button. The card on the lip says it in words, as on a rain day; the tiles go compact under it (LT1).' } };
+    const fig = (day, i, extra = {}) => { const D = DAYS[day], [k, clock] = VP1_HOURS[i], g0 = vp1G(day, k), g = { ...g0, skyInk: g0.skyInk.sky }; window.NIGHT = k === 'night'; window.BOLT = day === 'st';
+      const h = phone(badImg(day, k), g, { ...T, time: clock, ready: D.ready, done: 1, detail: D.detail, alert: D.alert, tiles: { ...D.tl, steps: D.steps[i] }, ...extra });
       return [h, `${clock} · ${g.mode === 'dark' ? 'land' : 'white'} glass ${Math.round(g.a * 100)}% · glass text ${g.cardS.toFixed(2)} · sky text ${g.sky.toFixed(2)}`]; };
     const note = day => ({ title, para, P }) => [DAYS[day].alert ? 560 : 520, title('The sky today') + DAYS[day].note.map(para).join('') + `<div style="font-size:12.5px;color:${P.secondary};margin-top:12px">Each part of the sky follows one of your numbers.</div>`];
-    ['vp', 'ill'].forEach((day, n) => { const D = DAYS[day];
+    ['vp', 'ill', 'st'].forEach((day, n) => { const D = DAYS[day];
       addSection(D.title, D.thesis, [0, 1, 2, 3].map(i => fig(day, i)).concat([[fig(day, D.noteAt, { custom: note(day) })[0], `${VP1_HOURS[D.noteAt][1]} · the sky tapped`]]), !n); });
-    window.NIGHT = TIME === 'night'; }
+    window.NIGHT = TIME === 'night'; window.BOLT = false; }
   if (/[?&]fit=1/.test(location.search)) {   // LT1: the last tile with a card on the lip; three fits per situation
     const FITS = [['scroll', 'A · as built: scrolls, Daily score under the tab bar'], ['compact', 'B · compact: Steps and HRV 76 high'], ['grid', 'C · grid: two rows of two']];
     const ill = { ready: 49, done: 1, detail: '27 below your normal 76', alert: ['Your body may be fighting something', 'Skin +0.8 °C · resting HR 6 above usual', 'Why'] }, illTl = i => ({ sleep: '6h 05m', score: 'Score 56', sleepSub: '1h 09m less than usual', steps: ['120', '2,400', '3,050', '3,300'][i], stepsSub: 'a rest day', hrv: '44 ms', hrvSub: 'morning check' });
