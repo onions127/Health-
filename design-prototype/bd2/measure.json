@@ -10,6 +10,14 @@
   {
    "id": "hz-night",
    "label": "hz 23:10"
+  },
+  {
+   "id": "hz-am0715",
+   "label": "hz 07:15"
+  },
+  {
+   "id": "hz-dusk1945",
+   "label": "hz 19:45"
   }
  ],
  "m": {
@@ -37,15 +45,15 @@
     "skyMode": "light",
     "scrimT": "#FFFFFF",
     "scrimA": 0,
-    "sky": 6.47,
+    "sky": 6.45,
     "hero": null,
     "btn": {
      "fill": "#0B5FA5",
      "ink": "#FFFFFF"
     },
-    "btnC": 3.8
+    "btnC": 3.76
    },
-   "pageL": 79.61097151939371,
+   "pageL": 79.63851476656006,
    "lightT": "#FFFFFF",
    "darkT": "#1E2929",
    "satD": 1
@@ -86,7 +94,81 @@
    "lightT": "#FFFFFF",
    "darkT": "#142257",
    "satD": 1
+  },
+  "hz-am0715": {
+   "3": {
+    "mode": "light",
+    "tint": "#FFFFFF",
+    "a": 0.22,
+    "needLight": 0,
+    "needDark": 0.61,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "skyInk": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "cardP": 6.55,
+    "cardS": 4.12,
+    "navS": 5.71,
+    "skyMode": "light",
+    "scrimT": "#FFFFFF",
+    "scrimA": 0,
+    "sky": 5.6,
+    "hero": null,
+    "btn": {
+     "fill": "#0B5FA5",
+     "ink": "#FFFFFF"
+    },
+    "btnC": 3.18
+   },
+   "pageL": 79.86125130248318,
+   "lightT": "#FFFFFF",
+   "darkT": "#202828",
+   "satD": 1
+  },
+  "hz-dusk1945": {
+   "3": {
+    "mode": "light",
+    "tint": "#FFFFFF",
+    "a": 0.3,
+    "needLight": 0.28,
+    "needDark": 0.39,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "skyInk": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "cardP": 5.07,
+    "cardS": 3.19,
+    "navS": 3.29,
+    "skyMode": "light",
+    "scrimT": "#FFFFFF",
+    "scrimA": 0.04,
+    "sky": 3.25,
+    "hero": null,
+    "btn": {
+     "fill": "#082F5A",
+     "ink": "#FFFFFF"
+    },
+    "btnC": 4.16
+   },
+   "pageL": 54.58675183496308,
+   "lightT": "#FFFFFF",
+   "darkT": "#222732",
+   "satD": 1
   }
  },
- "note": "BD2: the haze-only day (readiness 67, skin +0.4, resting HR +3). g2.js FLOORS=3, glass y 236-851 + nav; sky text to x 380 by day, to x 262 at night."
+ "note": "BD2: the haze-only day (readiness 67, skin +0.4, resting HR +3). g2.js FLOORS=3, glass y 236-851 + nav; sky text to x 380 by day, to x 262 at night. BD3: 07:15, and 19:45 with MODE=light (white glass at dusk). 15:10 re-rendered with 4,700 steps (BD3)."
 }

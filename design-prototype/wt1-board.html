@@ -104,7 +104,7 @@ function phone(img, g, o) {
   }
   if (o.kbd) h += keyboard();
   if (o.snack) h += `<div class="abs" style="z-index:3;left:12px;right:12px;top:771px;height:56px;border-radius:18px;padding:0 6px 0 18px;display:flex;align-items:center;justify-content:space-between;background:${dark ? 'rgba(242,246,251,.96)' : 'rgba(14,42,67,.94)'};color:${dark ? '#0E2A43' : '#FFFFFF'};box-shadow:0 8px 24px rgba(14,42,67,.22)"><span style="font-size:15px">${o.snack}</span><span class="btn" style="color:${dark ? '#0B5FA5' : '#A8CBFF'};font-weight:600">${o.snackAct || 'Undo'}</span></div>`;
-  return `<div class="phone" style="color:${P.primary}"><img class="scene" src="${img}" alt="">${h}</div>`;
+  return `<div class="phone" style="color:${P.primary}"><img class="scene" src="${img}" alt="">${skyVeil(g)}${h}</div>`;
 }
 // Android's own number keyboard (system UI, drawn only to show what it covers)
 const keyboard = () => { const K = [['1', '2', '3', '−'], ['4', '5', '6', '␣'], ['7', '8', '9', '⌫'], [',', '0', '.', '✓']];
@@ -159,7 +159,10 @@ const SECTIONS = [
   if (POOR) uhSection('PD1 · Today on a poor day', 'The number, its word and the sky say it first: 58, Take it easy, a lower grey sheet of stratocumulus. The tiles keep their places and hold the day’s values plainly; no colour, as on a good day.',
     [[phone(IMG, MEAS.am0715f, { ...T, ready: 58, done: 1, detail: '18 below your normal 76', tiles: { sleep: '6h 05m', score: 'Score 58', sleepSub: '1h 07m less than usual', steps: NIGHT ? '4,820' : '3,240', stepsSub: 'an easy day', hrv: '46 ms', hrvSub: 'morning check' } }), 'Today, poor day']]);
   if (BAD) {   // VP1: a very poor day and likely illness, through the day, then the sky tapped (D4)
-    const DAYS = { vp: { ready: 46, detail: '30 below your normal 76', steps: ['180', '2,900', '4,100', '4,600'], tl: { sleep: '4h 40m', score: 'Score 42', sleepSub: '2h 34m less than usual', stepsSub: 'a rest day', hrv: '38 ms', hrvSub: 'morning check' },
+    const DAYS = { hz: { ready: 67, detail: '9 below your normal 76', steps: ['300', '4,700', '7,100', '7,900'], tl: { sleep: '6h 50m', score: 'Score 70', sleepSub: '24 min less than usual', stepsSub: 'on pace', hrv: '52 ms', hrvSub: 'morning check' },
+        note: ['Partly cloudy: readiness 67, 9 below your normal.', 'Streaks of high cloud: HRV 52 ms, under your normal 55–63.', 'A humid haze: skin temperature +0.4 °C and resting HR 57 bpm (usual 54), both up. Your body is under some load.'], noteAt: 1,
+        title: 'BD3 · Today on the haze day', thesis: 'Skin temperature and resting HR a little up (+0.4 °C, +3), not enough for illness: a humid haze over a partly cloudy day, readiness 67, <b>Steady</b>. No card on the lip: nothing to act on, so the sky and its note carry it, and Trends and Coach say it in words. At dusk the sky text needs a 4% white veil behind it (3.25), the first dusk that does.' },
+      vp: { ready: 46, detail: '30 below your normal 76', steps: ['180', '2,900', '4,100', '4,600'], tl: { sleep: '4h 40m', score: 'Score 42', sleepSub: '2h 34m less than usual', stepsSub: 'a rest day', hrv: '38 ms', hrvSub: 'morning check' },
         note: ['Low grey cloud: readiness 46, 30 below your normal.', 'Morning mist in the valley: you slept 4 h 40 m, 154 min less than usual. It clears by late morning.'], noteAt: 0,
         title: 'VP1 · Today on a very poor day', thesis: 'Readiness 46 (HRV 38 ms, resting HR 59, 4h 40m asleep): the word is <b>Rest</b>, the sky low grey cloud all day with mist on the loch until late morning. Nothing else changes: the tiles hold the numbers plainly, no colour. HRV’s high veil is still set but does not show under the low sheet, so the sky note leaves it out.' },
       ill: { ready: 49, detail: '27 below your normal 76', steps: ['120', '2,400', '3,050', '3,300'], tl: { sleep: '6h 05m', score: 'Score 56', sleepSub: '1h 09m less than usual', stepsSub: 'a rest day', hrv: '44 ms', hrvSub: 'morning check' },
@@ -174,7 +177,7 @@ const SECTIONS = [
       const h = phone(badImg(day, k), g, { ...T, time: clock, ready: D.ready, done: 1, detail: D.detail, alert: D.alert, tiles: { ...D.tl, steps: D.steps[i] }, ...extra });
       return [h, `${clock} · ${g.mode === 'dark' ? 'land' : 'white'} glass ${Math.round(g.a * 100)}% · glass text ${g.cardS.toFixed(2)} · sky text ${g.sky.toFixed(2)}`]; };
     const note = day => ({ title, para, P }) => [DAYS[day].alert ? 560 : 520, title('The sky today') + DAYS[day].note.map(para).join('') + `<div style="font-size:12.5px;color:${P.secondary};margin-top:12px">Each part of the sky follows one of your numbers.</div>`];
-    ['vp', 'ill', 'st'].forEach((day, n) => { const D = DAYS[day];
+    ['hz', 'vp', 'ill', 'st'].forEach((day, n) => { const D = DAYS[day];
       addSection(D.title, D.thesis, [0, 1, 2, 3].map(i => fig(day, i)).concat([[fig(day, D.noteAt, { custom: note(day) })[0], `${VP1_HOURS[D.noteAt][1]} · the sky tapped`]]), !n); });
     window.NIGHT = TIME === 'night'; window.BOLT = false; }
   if (/[?&]fit=1/.test(location.search)) {   // LT1: the last tile with a card on the lip; three fits per situation

@@ -1333,3 +1333,23 @@ Load to converged 20.1 s (`loadT.js`; SH1 26.1 s): compile cost holds.
 **Board:** `md3-board.html?bad=1`, `tr2-board.html?bad=1`, each also with `&t=night`. STOP.
 
 **Approved (2026-11-24):** BD2 as built (the haze day; the bad days at 23:10; the Calendar weather key in three rows; sky hero words in the sky ink, colour on the glass only).
+
+## BD3 · The haze day on Today and Coach (2026-11-24)
+
+**Asked:** continue (open since BD2: the haze day on Today and Coach).
+
+**Skies** (`bd2/`, BodySky for the haze body at 07:15 / 15:10 / 19:45 / 23:10; 19:45 with the white glass forced, as every dusk): 07:15 white 22%, glass 4.12, sky 5.60; 15:10 white 22%, 4.07, 6.45; 19:45 white 30%, 3.19, **sky 3.25 with a 4% white veil**; 23:10 land `#142257` 22%, 6.64, 4.08.
+
+**Found:**
+- **The first dusk that needs a veil.** Behind the sky text the haze dusk is mid lavender with shaded cloud; the ink needs about 1% white under it (g2 adds its 3% margin: 4%). `skyVeil(g)` in `night.js` now draws the veil g2 asks for (a band over the sky text, fading out above the lip) on Today and Coach; it is 0 everywhere else, and G3 keeps it off at night.
+- **Two pace thresholds.** BodySky starts building cumulus at 1.0 × your usual pace ("ahead of your usual pace" in the sky note), while Trends calls a day "ahead" only past 1.15 ×. At 5,200 steps by 15:10 (1.08 ×) the sky note and the Steps tile disagreed. The haze day now has 4,700 by 15:10 (under both; 15:10 re-rendered and re-measured, BD2's Trends follow). One threshold should own both: open.
+
+**Built** (`?bad=1`, first section on each board; shots `TAG=bd3 node vp1.js` → `out/bd3-wt1-0…4.png`, `out/bd3-co2-0…3.png`, sheet `out/bd3-sheet.png`):
+- **Today:** 67, *Steady*, "9 below your normal 76"; no card on the lip (nothing to act on, so the sky and its note carry it; Trends and Coach say it in words); tiles plain. The sky tapped at 15:10: partly cloudy (readiness), streaks of high cloud (HRV 52), a humid haze (skin +0.4 °C, resting HR 57 against 54): "Your body is under some load."
+- **Coach:** *A steady day. Keep it moderate.* (detail: the two small rises) → *On pace. Keep it moderate.* → *A fair day done. Sleep on time.* → *Bed by 23:10 tonight.* No talk of illness: the numbers do not say it.
+
+**Not done:** one pace threshold for BodySky and Trends; past bad days opened from the Calendar; `md1-board.html`'s coloured hero word.
+
+**Board:** `wt1-board.html?bad=1`, `co2-board.html?bad=1` (first section). STOP.
+
+**Approved (2026-11-24):** BD3 as built (the haze day on Today and Coach; the sky veil drawn where g2 asks for one).

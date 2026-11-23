@@ -100,7 +100,7 @@ const LAST = 89, NOV4 = 81;
     <p style="margin-top:8px">Green and coral also differ in lightness, and the arrow and word carry the meaning, so it holds for colour-blind eyes.</p>`;
   if (BAD) {   // BD1: Trends on the three bad days at 15:10, under each day's sky; colours measured against each day's glass
     const K = BAD_K(), NT = K === 'night', AT = NT ? '23:10' : '15:10';   // BD2: steps and strain at 23:10 are the full day's
-    const BODY = { hz: { hrv: 52, rhr: 57, sleepMin: 410, readiness: 67, steps: NT ? 7900 : 5200, strain: NT ? 58 : 40, spo2: 96, skinTemp: .4 }, vp: { hrv: 38, rhr: 59, sleepMin: 280, readiness: 46, steps: NT ? 4600 : 2900, strain: NT ? 31 : 24, spo2: 96, skinTemp: .1 }, ill: { hrv: 44, rhr: 60, sleepMin: 365, readiness: 49, steps: NT ? 3300 : 2400, strain: NT ? 26 : 20, spo2: 93, skinTemp: .8 },
+    const BODY = { hz: { hrv: 52, rhr: 57, sleepMin: 410, readiness: 67, steps: NT ? 7900 : 4700, strain: NT ? 58 : 36, spo2: 96, skinTemp: .4 }, vp: { hrv: 38, rhr: 59, sleepMin: 280, readiness: 46, steps: NT ? 4600 : 2900, strain: NT ? 31 : 24, spo2: 96, skinTemp: .1 }, ill: { hrv: 44, rhr: 60, sleepMin: 365, readiness: 49, steps: NT ? 3300 : 2400, strain: NT ? 26 : 20, spo2: 93, skinTemp: .8 },
       st: { hrv: 36, rhr: 64, sleepMin: 290, readiness: 34, steps: NT ? 1500 : 1100, strain: NT ? 14 : 9, spo2: 93, skinTemp: 1.1 } };
     const ILL = 'Skin temp and resting HR are both up: your body may be fighting something', HAZE = 'Skin temp and resting HR are a little up: your body is under some load';
     const figs = [], ms = [];
