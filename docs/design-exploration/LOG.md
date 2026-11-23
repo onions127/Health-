@@ -890,3 +890,21 @@ STOP: waiting for review of the mapping (thresholds, the look of each day) and t
 **Board:** `tr2-board.html`. STOP.
 
 **Approved (2026-11-23):** the good/bad colour as built.
+
+## CO1 · Coach on the scene (2026-11-23)
+
+**Asked:** commit Trends, then the Coach tab.
+
+**Shipped today (control):** graphite chat: header with a recovery chip, three suggested questions, a text field with Ask, answers of three lines at most grounded in your own normal, and "Ask in Claude Pro App ($0 API)" which copies 14 days of metrics into the Claude app.
+
+**Built:** `co1-board.html`, on the same sky as Today at 15:10 (G2 day glass). In the hero's place: **the coach's read of today in one sentence** ("A good day to train hard.", 36 px light) and the numbers it rests on under it. Every answer ends with a line naming its source ("From HRV and readiness, this morning"). Your questions are blue bubbles (the action colour), the coach's are glass. The handoff stays as a quiet link ("Ask in the Claude app ↗ copies your last 14 days").
+- **A · Chat on the sky:** the conversation under the horizon, chips and the field docked above the nav.
+- **B · Briefing, then a sheet:** opens on "Today's read" (readiness, HRV, sleep with their comparison) and the questions as chips; asking raises a glass sheet over the sky holding the conversation, with the read kept small above it.
+
+**Measured** (`g2.js`, `co1/measure.json`, floor 3.0, no veil): sky text incl. the sentence over the sun's glare 6.85; glass text 5.57 below the horizon and 3.74 where B's sheet covers the land and water (same 22% glass); send button from the G2 rule. Shots: `tools/visual-loop/co1.js` → `out/co1-0..2.png`.
+
+**Not done:** night state, typing/keyboard state, error and offline states, phone check.
+
+**Board:** `co1-board.html`. STOP for the pick.
+
+**Picked (2026-11-23):** A · Chat on the sky.
