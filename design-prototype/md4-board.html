@@ -320,6 +320,16 @@ sec.innerHTML = `<div class="sheet"><h2>A · The last metrics</h2><div class="th
   <div class="phones">${[[dailyPage(), 'Daily score: how today’s is made'], [recoveryPage(), 'Recovery: two parts, and why it differs from Readiness'], [sleepPage(), 'Sleep score: five parts, last night'], [stepsPageToday(), 'Steps, Today: against your usual pace'], [stepsPageMonth(), 'Steps, Month: full days, today so far'], [spo2Page(), 'Blood oxygen, 3M: the one low night picked']].map(([h, c]) => `<figure>${h}<figcaption>${c}</figcaption></figure>`).join('')}</div>`;
 document.getElementById('board').appendChild(sec);
 console.log('MD4', JSON.stringify({ daily: T0.dailyScore, rec: T0.recovery, sleep: T0.sleepScore, hrv: T0.hrv, rhr: T0.rhr, strain: T0.strain, readiness: T0.readiness, SO_FAR, BY_NOW, PACE, USUAL }));
+// UH1 · a new band: HRV with 4 of the 7 days a normal needs (MetricInsights.MIN_BASELINE_DAYS); values plain, no band, no colour
+function newBandPage() { const g = G.day1510, v = [61, 57, 66, 64], lab = ['Fri', 'Sat', 'Sun', 'Today'];
+  const pts = v.map((x, i) => ({ x: (i + 3) / 6, v: x, sel: i === 3, label: 1, plain: 1 }));
+  return shell(ALT ? ALT_IMG : 'md1/day1510.png', g, head('HRV', 'Heart rate variability') + heroU(64, 'ms', 'Building your normal', '4 of 7 days so far · 3 to go')
+    + seg5(g, 'Week')
+    + cardAt(g, 452, `<div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:15px;font-weight:500">Today · 64 ms</div><div style="font-size:12.5px;color:${P.secondary}">no normal yet</div></div>
+      <div style="margin-top:14px">${plot(334, 150, { band: false, shade: [0, 2.5 / 6, 'before the band'], line: pts.map(p => [p.x, p.v]), lineW: 1.4, pts, xLabels: ['Tue', 'Wed', 'Thu', ...lab].map((t, i) => [i / 6, t]) })}</div>
+      <div style="font-size:11.5px;color:${P.secondary};margin-top:2px">● daily values · your normal appears after 7 days with data</div>`)
+    + cardAt(g, 700, `<div style="font-size:15px">Why wait</div><div style="font-size:12.5px;color:${P.secondary}">Above or below normal means against your own last 30 days. Until there are 7 days, values are shown plain and the sky leaves HRV out.</div>`, '12px 16px')); }
+if (UH) uhSection('UH1 · A metric on a new band', 'Before a normal exists (7 days with data, as shipped), the page shows the values plain: no band, no colour, no arrow; the word says what is missing and how long it takes.', [[newBandPage(), 'HRV, day 4: Building your normal']]);
 stackCards(); addEventListener('load', () => stackCards());
 </script>
 </body>

@@ -65,7 +65,10 @@ function phone(img, g, kind) {
   const me = txt => `<div style="display:flex;justify-content:flex-end"><div class="bub" style="background:${BLUE};color:${ON};border-bottom-right-radius:8px">${txt}</div></div>`;
   const nav = `<nav class="nav" style="background:${rgba(g.tint, g.navA)};color:${P.secondary};border-top-color:${navEdge(g)};${glassFx(g).split(';box-shadow')[0]}">${['Today', 'Sleep', 'Trends', 'Coach'].map(l => `<span class="${l === 'Coach' ? 'on' : ''}" style="${l === 'Coach' ? 'color:' + P.primary : ''}">${l}</span>`).join('')}</nav>`;
   let body = '';
-  if (kind === 'chat') {
+  if (kind === 'offline') {
+    body = `<div class="abs" style="top:384px;left:12px;right:12px;display:flex;flex-direction:column;gap:10px">${me(H().q)}${coach(`Coach is offline, so here are your numbers: readiness ${t.readiness}, ${t.readiness - Mt.readiness.avg30} above your usual; HRV ${t.hrv} ms, above your normal ${Mt.hrv.normalMin}–${Mt.hrv.normalMax}; sleep ${HD.formatSleep(t.sleepMin)}, score ${t.sleepScore}.`, 'From this phone · nothing was sent')}</div>`
+      + chips(['Try again'], 628, false) + `<div class="abs" style="top:684px;left:24px;font-size:13px;color:${P.secondary};height:48px;display:flex;align-items:center">No connection · the read on the sky works offline</div>` + input(772);
+  } else if (kind === 'chat') {
     body = `<div class="abs" style="top:384px;left:12px;right:12px;display:flex;flex-direction:column;gap:10px">
         ${me(H().q)}${coach(H().a || R[Q[0]].slice(0, 2).join(' '), H().foot)}</div>`
       + chips(H().chips, 628, false) + handoff(684) + input(772);
@@ -94,6 +97,7 @@ window.CO2_NEW = 1;
     <h3>Measured (floor 3.0, no veil)</h3><table class="m"><tr><th>hour</th><th>glass</th><th>glass text</th><th>sky text</th></tr>${rows}</table></div>
     <div class="phones">${Object.keys(HOURS).map(h => { HOUR = +h; window.NIGHT = h === '23.17'; return `<figure>${phone(HOURS[h].img, G4[h], 'chat')}<figcaption>${HOURS[h].clock} · ${HOURS[h].line}</figcaption></figure>`; }).join('')}</div>`;
   document.getElementById('board').appendChild(el);
+  if (UH) { window.NIGHT = TIME === 'night'; HOUR = NIGHT ? 23.17 : 15.17; uhSection('UH1 · Coach offline', 'The read on the sky comes from rules on the phone, so it still works. A question with no connection gets the shipped fallback: the numbers it would rest on, from the phone, and Try again. The Claude app hand-off goes, since it needs the connection too.', [[phone(NIGHT ? 'nt1/night.png' : 'tr1/day1510.png', NIGHT ? N : D, 'offline'), 'No connection: your numbers, Try again']]); }
 })();
 </script>
 </body>

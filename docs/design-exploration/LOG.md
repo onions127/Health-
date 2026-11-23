@@ -1149,3 +1149,23 @@ STOP: waiting for review of the mapping (thresholds, the look of each day) and t
 **Approved (2026-11-23):** the phone check as done; at lock, no text under 12 sp.
 
 **Gaps (2026-11-23, after the phone check):** the last card on Steps sat 3 px *under* the chart card and on Blood oxygen 9 px under it; the other metric pages ran 7–23 px apart. The cards under the range control now stack at the standard 12 px on every metric page (`stackCards()` in `night.js`, MD2–MD4 boards, the app's Column spacedBy 12 dp); all end above the nav (lowest 835). Re-shot: MD2–MD4, `nt1/metric-*.png`, `dd1/*-{metric-month,readiness,steps,spo2}.png`, phone Steps and Blood oxygen.
+
+## UH1 · Unhappy states (2026-11-23)
+
+**Asked:** the unhappy states (open since SE1, CO1, WT1, MD1: errors, offline, a disconnected or low band).
+
+**Found (shipped words):** sync pill `Band not found · Retry`, `Couldn't connect · Retry`, `Sync incomplete · Retry`, `Bluetooth off · Turn on`, `Allow Bluetooth`, stale after 6 h `Last sync … ago`; battery low under 20% ("charge your band"); Coach `Coach is offline, so here are your numbers.`; weight `Enter 30.0 to 300.0 kg`, `Couldn't save 63.9 kg for 23 Nov`, `Couldn't delete · Retry`; a metric's normal needs 7 days with data (`MIN_BASELINE_DAYS`). The morning check's failed / unsaved / no-band sheets were already drawn in MC2.
+
+**Built:** every board opens its unhappy states with `?uh=1` (also `&t=night`); approved views are unchanged. Shots `tools/visual-loop/uh1.js` → `out/uh1-{day,night}-0..7.png`, sheet `out/uh1-sheet.png`.
+- **Settings (`se1-board.html?uh=1`):** the hero carries the band's state: *Band not found* (battery when last seen, Retry), *Bluetooth is off* (Turn on), *Charge your band* (14%, Sync now). The Recent syncs row says the same.
+- **Today and Log weight (`wt1-board.html?uh=1`):** a failed sync puts one glass card on the lip (Band not found · last synced 13:40 · Retry) and the tiles move down 76 px, the numbers staying the last good ones; a typed 639 says *Enter 30.0 to 300.0 kg · did you mean 63.9?* in coral with a mark and the underline in coral, Save outlined until it is in range; a failed save keeps the snackbar with *Retry* instead of Undo.
+- **Coach (`co2-board.html?uh=1`):** the read on the sky still works (rules on the phone); a question gets the shipped fallback with your numbers, *From this phone · nothing was sent*, a *Try again* chip; the Claude app hand-off is replaced by "No connection".
+- **A new band (`md4-board.html?uh=1`):** HRV on day 4: *Building your normal · 4 of 7 days so far*, Week range, values plain (no band, no colour, no arrow), the days before the band shaded, and why it waits.
+
+**Measured:** no new colours or surfaces: the glass, ink and sky are the measured ones for each screen (Settings 15:10 3.75 / night 6.96; Today 07:15 3.79; coral on the day card 3.54, TR2). Sky text at night ends left of the moon.
+
+**Open:** with the alert card, Today's last tile (Daily score) goes under the nav, as with MC2's E1 entry card: Today scrolls, but the first screen loses it. Proposed: the sky leaves HRV's cirrus at its default until a normal exists (the "Why wait" card says so); not built in the scene.
+
+**Board:** `?uh=1` on the four boards. STOP.
+
+**Approved (2026-11-23):** the unhappy states as built (Settings hero states, Today sync card, weight range and save errors, Coach offline, a new band's metric).

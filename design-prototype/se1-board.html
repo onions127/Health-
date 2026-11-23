@@ -50,10 +50,14 @@ function phone(img, g, kind) {
     <div class="abs" style="top:40px;left:56px;color:${S.sky}"><div style="font-size:19px;font-weight:500">Settings</div><div style="font-size:12px;margin-top:2px">${sub}</div></div>`;
   const forget = `<span style="color:${P.primary};font-weight:500;text-decoration:underline;text-underline-offset:3px">Forget band…</span>`;
   let body;
-  if (kind === 'hero') {
-    body = head('Band, data and reminders') + `<div class="abs btn" style="top:40px;right:20px;background:${SKYB};color:${SKYON}">${sync}&nbsp;Sync now</div>
-      <div class="abs" style="top:112px;left:22px;color:${S.sky}"><div style="font-size:72px;font-weight:300;line-height:1;letter-spacing:-0.035em;margin-left:-3px">61<span style="font-size:.5em;letter-spacing:0">%</span></div><div style="font-size:23px;line-height:1.25;margin-top:8px">Band connected</div><div style="font-size:15px;line-height:1.35;margin-top:4px">Battery · synced ${SYNC}</div></div>`
-      + `<div class="abs" style="top:384px;left:12px;right:12px;display:flex;flex-direction:column;gap:12px">` + card('Band', [['Background sync', 'Every 30 min', 'Also when the app is closed'], ['Recent syncs', chev(P.secondary), `Last ${SYNC.slice(0, 5)}, 4 min of data`], ['Forget this band', forget, 'Asks first']])
+  if (kind.startsWith('hero')) {   // UH1: hero-lost / hero-bt / hero-low are the band's unhappy states (shipped words: Band not found · Retry, Bluetooth off · Turn on, charge your band)
+    const st = { hero: ['61', 'Band connected', `Battery · synced ${SYNC}`, `${sync}&nbsp;Sync now`, `Last ${SYNC.slice(0, 5)}, 4 min of data`],
+      'hero-lost': ['61', 'Band not found', `Battery when last seen, ${LAST}`, `${sync}&nbsp;Retry`, `Last ${LAST} · not found at ${CLOCK}`],
+      'hero-bt': ['61', 'Bluetooth is off', `Turn it on to sync · last ${LAST}`, 'Turn on', `Last ${LAST} · Bluetooth off`],
+      'hero-low': ['14', 'Charge your band', `Battery low · synced ${SYNC.slice(0, 5)}`, `${sync}&nbsp;Sync now`, `Last ${SYNC.slice(0, 5)}, 4 min of data`] }[kind];
+    body = head('Band, data and reminders') + `<div class="abs btn" style="top:40px;right:20px;background:${SKYB};color:${SKYON}">${st[3]}</div>
+      <div class="abs" style="top:112px;left:22px;${kind === 'hero' ? '' : `right:${SKY_RIGHT(30)}px;`}color:${S.sky}"><div style="font-size:72px;font-weight:300;line-height:1;letter-spacing:-0.035em;margin-left:-3px">${st[0]}<span style="font-size:.5em;letter-spacing:0">%</span></div><div style="font-size:23px;line-height:1.25;margin-top:8px">${st[1]}</div><div style="font-size:15px;line-height:1.35;margin-top:4px">${st[2]}</div></div>`
+      + `<div class="abs" style="top:384px;left:12px;right:12px;display:flex;flex-direction:column;gap:12px">` + card('Band', [['Background sync', 'Every 30 min', 'Also when the app is closed'], ['Recent syncs', chev(P.secondary), st[4]], ['Forget this band', forget, 'Asks first']])
       + card('You', [['Name', 'Sam&nbsp;' + chev(P.secondary)], ['Height', '170 cm&nbsp;' + chev(P.secondary)], ['Weight', '64.2 kg · 17 Nov&nbsp;' + chev(P.secondary)]])
       + card('Reminders', [['Morning summary', tog(true), 'When your scores are ready']]) + '</div>';
   } else {
@@ -79,6 +83,9 @@ const DIRS = [
       <figure>${phone(ALT ? ALT_IMG : 'tr1/day1510.png', g, d.id)}</figure>`;
     document.getElementById('board').appendChild(el);
   }
+  const img = ALT ? ALT_IMG : 'tr1/day1510.png';
+  if (UH) uhSection('UH1 · Settings when the band is not OK', 'The hero carries the band’s state, in the shipped words; the top-right button is the one action that fixes it. The rest of the page stays as it is.',
+    [[phone(img, g, 'hero-lost'), 'Band not found: last battery, Retry'], [phone(img, g, 'hero-bt'), 'Bluetooth off: Turn on'], [phone(img, g, 'hero-low'), 'Battery under 20%: Charge your band']]);
 })();
 </script>
 </body>

@@ -33,3 +33,8 @@ window.navEdge = g => g.mode === 'dark' ? 'rgba(255,255,255,.14)' : 'rgba(255,25
 window.stackCards = (from = 440, gap = 12) => document.querySelectorAll('.phone').forEach(ph => {
   const cs = [...ph.querySelectorAll(':scope > .glass')].filter(g => g.offsetTop >= from).sort((a, b) => a.offsetTop - b.offsetTop);
   cs.forEach((g, i) => { if (i) g.style.top = cs[i - 1].offsetTop + cs[i - 1].offsetHeight + gap + 'px'; }); });
+// Round UH1: ?uh=1 draws a board's unhappy states only (band not found, Bluetooth off, low battery, offline, errors). LAST = the last good sync.
+window.UH = /[?&]uh=1/.test(location.search);
+window.LAST = { day: '13:40', dawn: '05:10', dusk: '18:20', night: '21:40' }[window.TIME];
+window.uhSection = (title, thesis, figs) => { const b = document.getElementById('board'); b.innerHTML = ''; const el = document.createElement('section'); el.className = 'dir';
+  el.innerHTML = `<div class="sheet"><h2>${title}</h2><div class="thesis">${thesis}</div></div><div class="phones">${figs.map(([h, c]) => `<figure class="uh">${h}<figcaption>${c}</figcaption></figure>`).join('')}</div>`; b.appendChild(el); };
