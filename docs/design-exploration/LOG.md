@@ -1312,3 +1312,24 @@ Load to converged 20.1 s (`loadT.js`; SH1 26.1 s): compile cost holds.
 **Board:** `md3-board.html?bad=1`, `tr2-board.html?bad=1`. STOP.
 
 **Approved (2026-11-24):** BD1 as built (Readiness with the shipped parts and a scale to 30; the Calendar glyph from the body, rain and storm; Trends naming the illness pattern).
+
+## BD2 · The bad days at night, and the haze day (2026-11-24)
+
+**Asked:** night versions of Readiness, the Calendar and Trends on the bad days, and the haze-only day.
+
+**The haze day:** HRV 52 ms (just under normal), resting HR 57 (+3), 6h 50m (score 70), skin +0.4 °C, SpO2 96% → **67** by the shipped parts (24 / 16 / 18 / 9). Skin ≥ +0.3 and resting HR ≥ +3 but short of illness: BodySky gives partly cloudy with a humid haze (milky veil round the sun, high streaks). Renders `bd2/hz-day1510.png`, `bd2/hz-night.png`; `bd2/measure.json` (g2.js, floor 3.0, sky text to x 380 by day and x 262 at night): 15:10 white 22%, glass 4.07, sky 6.47; 23:10 land `#142257` 22%, glass 6.64, sky 4.08. No veil.
+
+**Built** (`md3-board.html?bad=1`, `tr2-board.html?bad=1`, and the same with `&t=night` for 23:10 on each day's night glass; `BAD_K()` in `night.js` picks the hour; shots `BOARDS=md3,tr2 TAG=bd2d|bd2n Q=… node vp1.js`, sheets `out/bd2-day.png`, `out/bd2-night.png`):
+- **Readiness:** the haze day joins the three (67, ↓ Below normal, the vitals line "skin temp near your average": +0.4 is not "far").
+- **Calendar:** the haze day's glyph is a sun over two haze lines. The weather key is now three full rows under the readiness key ("Skin temp and resting HR a little up", "Both up: your body may be fighting something", "Both up, and readiness under 35"): on one line the three wrapped into fragments.
+- **Trends:** the haze day counts 3 of 8, and its line names the pattern: "Skin temp and resting HR are a little up: your body is under some load". At 23:10 steps and strain are the full day's ("Below your usual").
+
+**Found and fixed: colour on the sky.** The metric pages drew the hero's "↓ Below normal" in coral on the sky, but only the ink was ever measured there. Coral (`#B23A2E`) against the sky behind the word (x 22–202, y 140–166): fair 3.48, haze 3.30, very poor 3.58, **illness 2.34, storm 1.99**, PD1's dusk 2.09, VP1's dusk 1.31 (the ink: 3.24–14.1). Rule now: on the sky the arrow and word take the sky ink; coral and green stay on the glass (chart, parts, list), where they are measured. Applied to the hero helpers of `md3-board.html` and `md4-board.html` (every metric page); arrow and word carry the meaning, as before.
+
+**Measured** (TR2 colours on each day's glass, worst page band, floor 3.0): 15:10 haze bad 3.52 / good 3.64, very poor 3.68 / 3.81, illness 3.35 / 3.47, storm 3.30 / 3.42; 23:10 (night colours) haze 7.13 / 8.90, very poor 7.28 / 9.08, illness 4.35 / 5.43, storm 4.38 / 5.47.
+
+**Not done:** the haze day on Today and Coach; `md1-board.html` (history) still draws its HRV hero word in colour; past bad days opened from the Calendar.
+
+**Board:** `md3-board.html?bad=1`, `tr2-board.html?bad=1`, each also with `&t=night`. STOP.
+
+**Approved (2026-11-24):** BD2 as built (the haze day; the bad days at 23:10; the Calendar weather key in three rows; sky hero words in the sky ink, colour on the glass only).

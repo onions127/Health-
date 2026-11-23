@@ -99,17 +99,18 @@ const LAST = 89, NOV4 = 81;
     <h3>Measured: colour against the card (worst page band, floor 3.0)</h3><table class="m"><tr><th>colour</th><th></th><th>contrast</th></tr>${meas.map(([k, c, v]) => `<tr><td><i class="sw" style="background:${c}"></i>${k}</td><td>${c}</td><td class="${v < 3 ? 'bad' : ''}">${v.toFixed(2)}</td></tr>`).join('')}</table>
     <p style="margin-top:8px">Green and coral also differ in lightness, and the arrow and word carry the meaning, so it holds for colour-blind eyes.</p>`;
   if (BAD) {   // BD1: Trends on the three bad days at 15:10, under each day's sky; colours measured against each day's glass
-    const BODY = { vp: { hrv: 38, rhr: 59, sleepMin: 280, readiness: 46, steps: 2900, strain: 24, spo2: 96, skinTemp: .1 }, ill: { hrv: 44, rhr: 60, sleepMin: 365, readiness: 49, steps: 2400, strain: 20, spo2: 93, skinTemp: .8 },
-      st: { hrv: 36, rhr: 64, sleepMin: 290, readiness: 34, steps: 1100, strain: 9, spo2: 93, skinTemp: 1.1 } };
-    const ILL = 'Skin temp and resting HR are both up: your body may be fighting something';
+    const K = BAD_K(), NT = K === 'night', AT = NT ? '23:10' : '15:10';   // BD2: steps and strain at 23:10 are the full day's
+    const BODY = { hz: { hrv: 52, rhr: 57, sleepMin: 410, readiness: 67, steps: NT ? 7900 : 5200, strain: NT ? 58 : 40, spo2: 96, skinTemp: .4 }, vp: { hrv: 38, rhr: 59, sleepMin: 280, readiness: 46, steps: NT ? 4600 : 2900, strain: NT ? 31 : 24, spo2: 96, skinTemp: .1 }, ill: { hrv: 44, rhr: 60, sleepMin: 365, readiness: 49, steps: NT ? 3300 : 2400, strain: NT ? 26 : 20, spo2: 93, skinTemp: .8 },
+      st: { hrv: 36, rhr: 64, sleepMin: 290, readiness: 34, steps: NT ? 1500 : 1100, strain: NT ? 14 : 9, spo2: 93, skinTemp: 1.1 } };
+    const ILL = 'Skin temp and resting HR are both up: your body may be fighting something', HAZE = 'Skin temp and resting HR are a little up: your body is under some load';
     const figs = [], ms = [];
-    for (const [day, name] of [['vp', 'A very poor day (46)'], ['ill', 'Likely illness (49)'], ['st', 'The storm day (34)']]) {
-      const g = vp1G(day, 'day1510'), img = badImg(day, 'day1510'), R = rows(LAST, 15 + 10 / 60, BODY[day]), bands = await bandsOf(img);
+    for (const [day, name] of [['hz', 'The haze day (67)'], ['vp', 'A very poor day (46)'], ['ill', 'Likely illness (49)'], ['st', 'The storm day (34)']]) {
+      const g = vp1G(day, K), img = badImg(day, K), R = rows(LAST, NT ? 23 + 10 / 60 : 15 + 10 / 60, BODY[day]), bands = await bandsOf(img), C = COL[g.mode === 'dark' ? 'night' : 'day'];
       const outs = R.filter(r => r.dir).length; window.BD1_COUNT = Object.assign(window.BD1_COUNT || {}, { [day]: `${R.length - outs} of ${R.length}` });
-      ms.push([name, Math.round(g.a * 100), worst(g, bands, COL.day.good), worst(g, bands, COL.day.bad)]);
-      figs.push([phone(img, g, 1, R, '15:10', { detail: day === 'vp' ? null : ILL, skyRight: day === 'st' ? 150 : 30 }), `${name} · 15:10`]); }
+      ms.push([name, Math.round(g.a * 100), worst(g, bands, C.good), worst(g, bands, C.bad)]);
+      figs.push([phone(img, g, 1, R, AT, { detail: { hz: HAZE, vp: null, ill: ILL, st: ILL }[day], skyRight: day === 'st' || NT ? 150 : 30 }), `${name} · ${AT}`]); }
     document.querySelector('section.dir').style.display = 'none';
-    addSection('BD1 · Trends on the bad days', `The same list. The hero counts what is within your normal; on the illness days its line names the pattern in words (skin temp and resting HR both up), as Today’s card does, instead of a count of numbers to look at. Coral against each day’s glass: ${ms.map(m => `${m[0]} ${m[1]}% glass, bad ${m[3].toFixed(2)}, good ${m[2].toFixed(2)}`).join('; ')}.`, figs, true);
+    addSection(`BD1 · Trends on the bad days, ${AT}`, `The same list. The hero counts what is within your normal; on the illness days its line names the pattern in words (skin temp and resting HR both up), as Today’s card does, instead of a count of numbers to look at. Coral against each day’s glass: ${ms.map(m => `${m[0]} ${m[1]}% glass, bad ${m[3].toFixed(2)}, good ${m[2].toFixed(2)}`).join('; ')}.`, figs, true);
     window.BD1_M = ms; }
 })();
 </script>

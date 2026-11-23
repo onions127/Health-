@@ -49,5 +49,22 @@
   "skinTemp": 1.1,
   "rhr": 64,
   "rhrUsual": 54
+ },
+ "hz": {
+  "readiness": 67,
+  "readinessUsual": 76,
+  "sleepScore": 70,
+  "sleepMin": 410,
+  "sleepUsual": 434,
+  "hrv": 52,
+  "hrvMin": 55,
+  "hrvMax": 63,
+  "steps": 5200,
+  "stepsUsual": 8240,
+  "strain": 40,
+  "strainUsual": 75,
+  "skinTemp": 0.4,
+  "rhr": 57,
+  "rhrUsual": 54
  }
 }

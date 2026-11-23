@@ -37,6 +37,7 @@ const HD = window.HEALTH_DATA, days = HD.days, MT = HD.METRICS;
 // md1/measure.json (g2.js, floor 3.0), inlined so the board also opens as a file
 const G = { day1510: { tint: '#FFFFFF', a: .22, navA: .3, cardS: 3.75, sky: 5.55, hero: 7.04 }, nov4: { tint: '#FFFFFF', a: .22, navA: .3, cardS: 3.28, sky: 4.75, hero: 13.29 } };
 const P = NIGHT ? { primary: '#FFFFFF', secondary: '#C9D7EA' } : { primary: '#0E2A43', secondary: '#2E4A62' }, GOOD = TONE[0], BAD = TONE[1], BLUE = '#0B5FA5';   // night colours: TR2
+const skyInk = h => String(h).replace(/color:#[0-9A-Fa-f]{6}/g, 'color:' + P.primary);
 if (ALT && !NIGHT) G.day1510 = { mode: 'light', tint: '#FFFFFF', a: ALT_G.a, navA: ALT_G.navA, cardS: ALT_G.cardS, sky: ALT_G.sky, hero: ALT_G.hero };
 if (NIGHT) G.day1510 = { mode: 'dark', tint: NIGHT_G.tint, a: .22, navA: .3, cardS: NIGHT_G.cardS, sky: NIGHT_G.sky, hero: NIGHT_G.hero };
 const rgba = (h, a) => `rgba(${[1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(',')},${a})`;
@@ -194,7 +195,8 @@ function pageA5(range) { const g = G.day1510, R = RANGES[range]();
 // ---- MD3: Readiness, Weight, Skin temperature on the MD2 page ----
 const T0 = days[days.length - 1], D30 = days.slice(-30);
 const cardAt = (g, top, inner, pad = '12px 16px 10px') => `<div class="glass" style="${glass(g)};top:${top}px;left:12px;right:12px;padding:${pad}">${inner}</div>`;
-const heroU = (v, unit, word, detail) => `<div class="abs" style="top:112px;left:22px;right:${SKY_RIGHT(40)}px;color:${P.primary}"><div style="font-size:72px;font-weight:300;line-height:1;letter-spacing:-0.035em;margin-left:-3px">${v}<span style="font-size:.4em;letter-spacing:0;margin-left:6px">${unit}</span></div><div style="font-size:23px;line-height:1.25;margin-top:8px">${word}</div><div style="font-size:15px;line-height:1.35;margin-top:4px">${detail}</div></div>`;
+// BD2: on the sky the word and arrow take the sky ink; coral and green stay on the glass (coral on the illness and storm skies measured 2.34 and 1.99)
+const heroU = (v, unit, word, detail) => `<div class="abs" style="top:112px;left:22px;right:${SKY_RIGHT(40)}px;color:${P.primary}"><div style="font-size:72px;font-weight:300;line-height:1;letter-spacing:-0.035em;margin-left:-3px">${v}<span style="font-size:.4em;letter-spacing:0;margin-left:6px">${unit}</span></div><div style="font-size:23px;line-height:1.25;margin-top:8px">${skyInk(word)}</div><div style="font-size:15px;line-height:1.35;margin-top:4px">${detail}</div></div>`;
 const stTag = (s, extra = '') => `<span style="color:${s.col};font-weight:500">${s.up === null ? '' : arrow(s.up) + ' '}${s.word}</span>${extra}`;
 // a general month chart: line or bars, its own band, scale, state and grid
 function mchart(w, h, o) {
