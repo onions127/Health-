@@ -926,3 +926,38 @@ STOP: waiting for review of the mapping (thresholds, the look of each day) and t
 **Board:** `se1-board.html`. STOP for the pick.
 
 **Picked (2026-11-23):** A · Band as the hero (Settings opened from a gear on Today).
+
+## MC1 · Morning check on the scene (2026-11-23)
+
+**Asked:** design the Morning check screen (last in the brief's order).
+
+**Shipped today (control):** graphite flow: Intro ("Lie still, 60 seconds", Begin), Measuring (countdown ring, live HR), Result (updated recovery gauge, HRV and resting HR with chips, Done), plus "Couldn't save" and "Check failed".
+
+**Built:** `mc1-board.html`, the 07:10 sky (renders in `mc1/`), G2 day glass, three steps per direction. Tied to the scene: the check updates readiness (78 from last night → 82 with this morning's HRV), so the sky goes from partly cloudy to fair with the X1 fade, and the result says it in words ("78 → 82"). No ring, no gauge.
+- **A · The check on the sky:** its own page with ✕; the hero is the countdown ("60 s · Lie still", then "42 s · Keep still"), the 60 s run as a 3 px line along the shore; live heart trace in a glass card; result leads with HRV ("64 ms · Above your normal"), then readiness and HRV against the normal band.
+- **B · A sheet over Today:** Today stays; a glass sheet rises with Begin / Not now, holds the countdown, progress and trace, then lowers while Today's own hero changes 78 → 82.
+
+**Measured** (`g2.js`, `mc1/measure.json`, floor 3.0, no veil): glass text 5.45 (partly and fair, incl. B's sheet over land and water), sky text 6.58 / 7.28, hero number 5.69 / 7.62. Shots: `tools/visual-loop/mc1.js` → `out/mc1-0..5.png`.
+
+**Not done:** failed and couldn't-save states, the entry point on Today, night/early-dark mornings, phone check.
+
+**Board:** `mc1-board.html`. STOP for the pick.
+
+**Picked (2026-11-23):** B · A sheet over Today (the check rises over Today; Today's own hero changes 78 → 82 as the sky clears).
+
+## MC2 · Morning check: the rest of B (2026-11-23)
+
+**Asked:** continue with B (the sheet over Today).
+
+**Built:** `mc2-board.html`, nine phones; Today's cards now drawn behind the sheet. Rule: readiness and the sky change only when a check is **saved**; a failed or unsaved check leaves 78 and the partly cloudy sky, and says so.
+- **Starting it from Today (pick one):** E1 · a card on the lip ("Morning check · 60 s lying still · updates readiness", Begin; the cards below move down 76 px) or E2 · a blue button under the hero ("Morning check · 60 s"). Before the check the header line reads "Morning check not done"; after it, "✓ Morning check 07:11 · HRV 64 ms ›", which reopens the result (Redo there), and the entry is gone until tomorrow.
+- **When it goes wrong:** "No clean reading" (cause, how to wear the band, readiness stays 78; Try again / Not now), "Measured, not saved" (keeps 64 ms, no need to measure again; Retry save / Later: retry on the next sync, new behaviour: shipped forgets it on Done), "Band not found" (before it starts).
+- **Before sunrise, 05:20:** the same sheet on night glass (land tint, light ink, white button); measuring, result (78 → 82, the low cloud clears from the night sky), and Today after.
+
+**Measured** (`g2.js`; 07:10 from `mc1/`, 05:20 in `mc2/measure.json`, floor 3.0, no veil): day glass text 5.45, sky 6.58, number 5.69; night glass text 5.69–5.76, sky 4.53–4.57, number 5.12–5.14. Measured on the scene alone; the cards behind the sheet only add glass under it. Shots: `tools/visual-loop/mc2.js` → `out/mc2-0..8.png`.
+
+**Not done:** phone check; the result reopened from the header (with Redo); TalkBack labels for the live trace.
+
+**Board:** `mc2-board.html`. STOP for the entry pick (E1 / E2).
+
+**Picked (2026-11-23):** E1 · the card on the lip (Begin), until the check is saved; then the header line holds it.
