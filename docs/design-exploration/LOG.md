@@ -961,3 +961,22 @@ STOP: waiting for review of the mapping (thresholds, the look of each day) and t
 **Board:** `mc2-board.html`. STOP for the entry pick (E1 / E2).
 
 **Picked (2026-11-23):** E1 · the card on the lip (Begin), until the check is saved; then the header line holds it.
+
+## WT1 · Log weight (2026-11-23)
+
+**Asked:** design Log weight (one tap from Today, per the brief).
+
+**Shipped today (control):** graphite bottom sheet: decimal field prefilled with the last weight and selected, unit suffix, Date button (any day in the series), "Replaces 64.2 kg" + Update when the day has an entry, range check 30–300 kg, save error with Retry, "Saved … · Undo" snackbar.
+
+**Built:** `wt1-board.html`, a glass sheet over Today at 07:15 (after the morning check, `wt1/am0715f.png`), every shipped rule kept.
+- **A · Type it:** the shipped field with the system number keyboard; Date chip and Save in one row above the keyboard. Earlier day: the prefill selected, "Replaces 64.2 kg, logged on 17 Nov", Update.
+- **B · Nudge it:** no keyboard; opens on the last weight; drag a ruler (0.1 kg ticks) or − / + (48 dp); the change since last time shows as you move ("−0.3 since 17 Nov"); tap the number to type it (A's keyboard).
+- **After saving (both):** a solid-ink snackbar "Saved 63.9 kg for 23 Nov · Undo" (glass melted into the cards under it), and Today's top-right button shows "✓ 63.9 kg" for the rest of the day (tap to change).
+
+**Measured** (`g2.js`, `wt1/measure.json`, floor 3.0, no veil): sheet glass text 3.79 at its weakest (the taller sheet reaches the land and water), sky text 7.13, number 7.55; snackbar white on #0E2A43 at 94%.
+
+**Not done:** night state, lb, the range error and save-error states drawn, phone check.
+
+**Board:** `wt1-board.html`. STOP for the pick.
+
+**Picked (2026-11-23):** B · Nudge it (ruler and − / +, tap the number to type), with the solid snackbar and the "✓ 63.9 kg" button after saving.
