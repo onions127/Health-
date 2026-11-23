@@ -1,0 +1,126 @@
+{
+ "floors": [
+  3
+ ],
+ "states": [
+  {
+   "id": "am0715",
+   "label": "07:15"
+  },
+  {
+   "id": "dusk1945",
+   "label": "19:45"
+  },
+  {
+   "id": "night",
+   "label": "23:10"
+  }
+ ],
+ "m": {
+  "am0715": {
+   "3": {
+    "mode": "light",
+    "tint": "#FFFFFF",
+    "a": 0.22,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "skyInk": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "cardP": 8.98,
+    "cardS": 5.66,
+    "navS": 5.75,
+    "skyMode": "light",
+    "scrimT": "#FFFFFF",
+    "scrimA": 0,
+    "sky": 7.14,
+    "hero": null,
+    "btn": {
+     "fill": "#0B5FA5",
+     "ink": "#FFFFFF"
+    },
+    "btnC": 3.16
+   },
+   "pageL": 80.58202668924315,
+   "lightT": "#FFFFFF",
+   "darkT": "#202828",
+   "satD": 1
+  },
+  "dusk1945": {
+   "3": {
+    "mode": "light",
+    "tint": "#FFFFFF",
+    "a": 0.26,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "skyInk": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "cardP": 5.03,
+    "cardS": 3.16,
+    "navS": 3.29,
+    "skyMode": "light",
+    "scrimT": "#FFFFFF",
+    "scrimA": 0,
+    "sky": 3.33,
+    "hero": null,
+    "btn": {
+     "fill": "#FFFFFF",
+     "ink": "#0B3A66"
+    },
+    "btnC": 3.13
+   },
+   "pageL": 54.561555740291766,
+   "lightT": "#FFFFFF",
+   "darkT": "#222732",
+   "satD": 1
+  },
+  "night": {
+   "3": {
+    "mode": "dark",
+    "tint": "#152256",
+    "a": 0.22,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "skyInk": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "cardP": 13.46,
+    "cardS": 9.22,
+    "navS": 9.82,
+    "skyMode": "light",
+    "scrimT": "#FFFFFF",
+    "scrimA": 0.37,
+    "sky": 3.36,
+    "hero": null,
+    "btn": {
+     "fill": "#FFFFFF",
+     "ink": "#0B3A66"
+    },
+    "btnC": 3.27
+   },
+   "pageL": 18.70927317682758,
+   "lightT": "#FFFFFF",
+   "darkT": "#152256",
+   "satD": 1
+  }
+ }
+}

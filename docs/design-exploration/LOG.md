@@ -1057,3 +1057,21 @@ STOP: waiting for review of the mapping (thresholds, the look of each day) and t
 **Board:** `md3-board.html`. STOP.
 
 **Approved (2026-11-23):** the three pages as built (Readiness with its parts, Weight, Skin temperature).
+
+## CO2 · Coach through the day (2026-11-23)
+
+**Asked:** continue (open item: Coach's line at night still read as a day plan). Phone not connected (adb lists no device), so the device check waits.
+
+**Built:** `co2-board.html`, CO1 A at four hours, each on its own sky and glass (07:15 `co2/am0715.png`, 15:10 `tr1/day1510.png`, 19:45 `co2/dusk1945.png`, 23:10 `nt1/night.png`). The read, its detail, the opening exchange and the two chips follow the hour:
+- 07:15 the plan: "A good day to train hard." (readiness, HRV).
+- 15:10 progress: "Ahead of your usual day. Keep it going." (steps by now, strain vs usual).
+- 19:45 recovery: "A hard day done. Ease off from here." "Will I recover by tomorrow?" answered from strain, HRV and usual sleep.
+- 23:10 bedtime: "Bed by 23:30 tonight." (usual sleep time); "How did today go?". First try ran to three lines left of the moon; rule: the read is one sentence, at most two lines.
+
+**Measured** (`g2.js`, `co2/measure.json`, floor 3.0, no veil): 07:15 glass 5.66, sky 7.14; 19:45 white glass at 26%, glass text 3.16, sky 3.33 (dark ink; the send button and your bubbles are white at dusk, by the G2 button rule); 23:10 as NT1 (glass 6.96, sky 4.11 with the sentence left of the moon).
+
+**Not done:** the rules that pick the line (thresholds, what counts as "ahead"), a poor day's lines, phone check.
+
+**Board:** `co2-board.html`. STOP.
+
+**Approved (2026-11-23):** the read following the hour, as built.
