@@ -39,7 +39,7 @@ const chev = c => `<svg width="10" height="16" viewBox="0 0 10 16" aria-hidden="
 const bat = (c, p) => `<svg width="30" height="16" viewBox="0 0 30 16" aria-hidden="true" style="vertical-align:-2px"><rect x="1" y="1" width="25" height="14" rx="3.5" fill="none" stroke="${c}" stroke-width="1.6"/><rect x="3.5" y="3.5" width="${(20 * p).toFixed(1)}" height="9" rx="1.5" fill="${c}"/><path d="M28 5.5v5" stroke="${c}" stroke-width="2" stroke-linecap="round"/></svg>`;
 const sync = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-3px"><path d="M13 6.5A5 5 0 0 0 3.6 5M3 9.5A5 5 0 0 0 12.4 11M3.4 2.4V5.2h2.8M12.6 13.6v-2.8H9.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 function phone(img, g, kind) {
-  const P = g.ink, S = g.skyInk, BLUE = g.btn.fill, ON = g.btn.ink, line = rgba(P.primary, .10);
+  const P = g.ink, S = g.skyInk, BLUE = g.mode === 'dark' ? g.btn.fill : '#0B5FA5', ON = g.mode === 'dark' ? g.btn.ink : '#FFFFFF', SKYB = g.btn.fill, SKYON = g.btn.ink, line = rgba(P.primary, .10);
   const glass = `background:${rgba(g.tint, g.a)};${glassFx(g)}`;
   const tog = on => `<span class="tog" role="switch" aria-checked="${on}" style="background:${on ? (g.mode === 'dark' ? '#5B8FD6' : BLUE) : rgba(P.primary, .38)}"><i style="${on ? 'right:3px' : 'left:3px'}"></i></span>`;
   const row = (l, r, sub, k) => `<div class="row" style="${k ? `border-top:1px solid ${line};` : ''}padding:4px 0"><div><div style="font-size:15px">${l}</div>${sub ? `<div style="font-size:12px;color:${P.secondary}">${sub}</div>` : ''}</div><div style="display:flex;align-items:center;gap:8px;font-size:15px;color:${P.secondary};white-space:nowrap;flex:none">${r}</div></div>`;
@@ -51,13 +51,13 @@ function phone(img, g, kind) {
   const forget = `<span style="color:${P.primary};font-weight:500;text-decoration:underline;text-underline-offset:3px">Forget band…</span>`;
   let body;
   if (kind === 'hero') {
-    body = head('Band, data and reminders') + `<div class="abs btn" style="top:40px;right:20px;background:${BLUE};color:${ON}">${sync}&nbsp;Sync now</div>
-      <div class="abs" style="top:112px;left:22px;color:${S.sky}"><div style="font-size:72px;font-weight:300;line-height:1;letter-spacing:-0.035em;margin-left:-3px">61<span style="font-size:.5em;letter-spacing:0">%</span></div><div style="font-size:23px;line-height:1.25;margin-top:8px">Band connected</div><div style="font-size:15px;line-height:1.35;margin-top:4px">Battery · synced ${NIGHT ? '23:02 · next 23:32' : '15:02 · next sync 15:32'}</div></div>`
-      + `<div class="abs" style="top:384px;left:12px;right:12px;display:flex;flex-direction:column;gap:12px">` + card('Band', [['Background sync', 'Every 30 min', 'Also when the app is closed'], ['Recent syncs', chev(P.secondary), 'Last 15:02, 4 min of data'], ['Forget this band', forget, 'Asks first']])
+    body = head('Band, data and reminders') + `<div class="abs btn" style="top:40px;right:20px;background:${SKYB};color:${SKYON}">${sync}&nbsp;Sync now</div>
+      <div class="abs" style="top:112px;left:22px;color:${S.sky}"><div style="font-size:72px;font-weight:300;line-height:1;letter-spacing:-0.035em;margin-left:-3px">61<span style="font-size:.5em;letter-spacing:0">%</span></div><div style="font-size:23px;line-height:1.25;margin-top:8px">Band connected</div><div style="font-size:15px;line-height:1.35;margin-top:4px">Battery · synced ${SYNC}</div></div>`
+      + `<div class="abs" style="top:384px;left:12px;right:12px;display:flex;flex-direction:column;gap:12px">` + card('Band', [['Background sync', 'Every 30 min', 'Also when the app is closed'], ['Recent syncs', chev(P.secondary), `Last ${SYNC.slice(0, 5)}, 4 min of data`], ['Forget this band', forget, 'Asks first']])
       + card('You', [['Name', 'Sam&nbsp;' + chev(P.secondary)], ['Height', '170 cm&nbsp;' + chev(P.secondary)], ['Weight', '64.2 kg · 17 Nov&nbsp;' + chev(P.secondary)]])
       + card('Reminders', [['Morning summary', tog(true), 'When your scores are ready']]) + '</div>';
   } else {
-    body = head('Band, data and reminders') + `<div class="abs" style="top:104px;left:12px;right:12px;display:flex;flex-direction:column;gap:12px">` + card('Band', [[`${bat(P.primary, .61)}&nbsp; 61% · Connected`, `<span class="btn" style="background:${BLUE};color:${ON};height:44px;padding:0 14px;font-size:14px">${sync}&nbsp;Sync now</span>`, 'Synced 15:02 · every 30 min'], ['Recent syncs', chev(P.secondary)], ['Forget this band', forget]])
+    body = head('Band, data and reminders') + `<div class="abs" style="top:104px;left:12px;right:12px;display:flex;flex-direction:column;gap:12px">` + card('Band', [[`${bat(P.primary, .61)}&nbsp; 61% · Connected`, `<span class="btn" style="background:${BLUE};color:${ON};height:44px;padding:0 14px;font-size:14px">${sync}&nbsp;Sync now</span>`, `Synced ${SYNC.slice(0, 5)} · every 30 min`], ['Recent syncs', chev(P.secondary)], ['Forget this band', forget]])
       + card('You', [['Name', 'Sam&nbsp;' + chev(P.secondary)], ['Height', '170 cm&nbsp;' + chev(P.secondary)], ['Weight', '64.2 kg · 17 Nov&nbsp;' + chev(P.secondary)]])
       + card('Reminders', [['Morning summary', tog(true), 'When your scores are ready'], ['Bedtime reminder', `23:00 ${tog(true)}`, 'Latest bedtime 23:30']])
       + card('Data', [['Backup to home server', 'Not set&nbsp;' + chev(P.secondary)], ['Units', 'Metric&nbsp;' + chev(P.secondary)], ['Export all data', chev(P.secondary)]]) + '</div>';
@@ -71,12 +71,12 @@ const DIRS = [
     pro: ['More on the first screen', 'Plain and familiar, like the system settings', 'Battery and sync still first'], con: ['Covers most of the scene: the sky becomes a backdrop', 'Breaks the hero pattern the other tabs share'] },
 ];
 (async () => {
-  const M = await (await fetch('se1/measure.json?' + Date.now())).json(), g = NIGHT ? NIGHT_G : M.m.day1510['3'];
+  const M = await (await fetch('se1/measure.json?' + Date.now())).json(), g = ALT ? ALT_G : M.m.day1510['3'];
   for (const d of DIRS) {
     const el = document.createElement('section'); el.className = 'dir';
     el.innerHTML = `<div class="sheet"><h2>${d.name}</h2><div class="thesis">${d.thesis}</div><h3>For</h3><ul>${d.pro.map(x => `<li>${x}</li>`).join('')}</ul><h3>Against</h3><ul>${d.con.map(x => `<li>${x}</li>`).join('')}</ul>
       <h3>Measured (15:10, floor 3.0, no veil)</h3><table class="m"><tr><th>what</th><th>contrast</th></tr><tr><td>Glass text, weakest (incl. over the sky, B)</td><td>${g.cardS.toFixed(2)}</td></tr><tr><td>Sky text / number</td><td>${g.sky.toFixed(2)} / ${g.hero.toFixed(2)}</td></tr><tr><td>Sync now button vs sky</td><td>${g.btnC.toFixed(2)}</td></tr></table></div>
-      <figure>${phone(NIGHT ? NIGHT_IMG : 'tr1/day1510.png', g, d.id)}</figure>`;
+      <figure>${phone(ALT ? ALT_IMG : 'tr1/day1510.png', g, d.id)}</figure>`;
     document.getElementById('board').appendChild(el);
   }
 })();

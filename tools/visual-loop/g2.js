@@ -1,7 +1,7 @@
 // Round G2: scene glass at lower contrast floors. Same states and scene renders as G1 (design-prototype/g1/*.png).
 // The glass takes the colour of the land under it (pale by day, dark at night) and is only as strong as the floor needs:
 // per state and floor, the smallest alpha that keeps the weakest card text (secondary) at the floor, for light and for dark ink;
-// the state takes whichever needs less. Sky text the same, with a veil in the same tint. Writes design-prototype/g2/measure.json.   node g2.js   (S1: STATES='[[id, preset, hour, label]]' RECTS='[[cards...], [sky text...]]')
+// the state takes whichever needs less. Sky text the same, with a veil in the same tint. Writes design-prototype/g2/measure.json.   node g2.js   (MODE=light|dark forces the glass; S1: STATES='[[id, preset, hour, label]]' RECTS='[[cards...], [sky text...]]')
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
 const BASE = process.env.BASE || 'http://127.0.0.1:8765', OUT = path.join(__dirname, '..', '..', 'design-prototype', process.env.OUT || 'g2');   // G3: OUT=g3 SHOOT=1 also saves the scene renders
 const FLOORS = process.env.FLOORS ? process.env.FLOORS.split(',').map(Number) : [4.5, 4.0, 3.5, 3.0], SATD = +(process.env.SATD || 1.0);   // the night glass's saturate(): 1.6 lifted the blue land above the page around the cards
@@ -20,7 +20,7 @@ const STATES = process.env.STATES ? JSON.parse(process.env.STATES) : [['day13', 
     await p.evaluate(([sky, h]) => S.set({ sky: SceneGL.PRESETS[sky], hour: +h, readiness: 86 }), [sky, h]);
     await p.waitForTimeout(100); await p.waitForFunction(() => S.ready, null, { timeout: 120000, polling: 200 }); await p.waitForTimeout(300);
     if (process.env.SHOOT) await p.screenshot({ path: path.join(OUT, id + '.png') });
-    const r = await p.evaluate(([FLOORS, SATD]) => {
+    const r = await p.evaluate(([FLOORS, SATD, MODE]) => {
       const c = document.getElementById('c'), lin = v => (v /= 255) <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4, gam = v => Math.round(255 * (v <= .0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - .055));
       const Lstar = Y => Y > .008856 ? 116 * Math.cbrt(Y) - 16 : 903.3 * Y, toHex = a => '#' + a.map(v => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0')).join('').toUpperCase();
       // the page under the cards: mean linear colour (same bands as G1)
@@ -37,7 +37,7 @@ const STATES = process.env.STATES ? JSON.parse(process.env.STATES) : [['day13', 
       const res = { pageL, lightT, darkT, satD: SATD };
       for (const F of FLOORS) {
         const nl = need(cards, INK.light.secondary, lightT, 22, F), nd = need(cards, INK.dark.secondary, darkT, 22, F);
-        const mode = nl === nd ? (pageL >= 56 ? 'light' : 'dark') : (nl < nd ? 'light' : 'dark'), tint = mode === 'light' ? lightT : darkT;
+        const mode = MODE || (nl === nd ? (pageL >= 56 ? 'light' : 'dark') : (nl < nd ? 'light' : 'dark')), tint = mode === 'light' ? lightT : darkT;
         const a = Math.max(mode === 'light' ? .22 : .22, (mode === 'light' ? nl : nd) + .02);
         const navA = Math.max(.30, need(nav, INK[mode].secondary, tint, 22, F) + .02);
         const sl = need(SKY_TEXT_RECTS, INK.light.sky, lightT, 0, F), sd = need(SKY_TEXT_RECTS, INK.dark.sky, darkT, 0, F);
@@ -45,13 +45,13 @@ const STATES = process.env.STATES ? JSON.parse(process.env.STATES) : [['day13', 
         const FILLS = [{ fill: '#0B5FA5', ink: '#FFFFFF' }, { fill: '#FFFFFF', ink: '#0B3A66' }, { fill: '#082F5A', ink: '#FFFFFF' }];
         const bc = FILLS.map(f => Math.min(...glassCheck(c, [['button', 250, 40, 392, 88]], f.fill, scrimA, 0, scrimT).map(x => x.worst)));
         const bi = bc.findIndex(v => v >= 3.1), btn = FILLS[bi >= 0 ? bi : bc.indexOf(Math.max(...bc))];
-        res[F] = { mode, tint, a: +a.toFixed(2), navA: +navA.toFixed(2), ink: INK[mode], skyInk: INK[skyMode],
+        res[F] = { mode, tint, a: +a.toFixed(2), needLight: +nl.toFixed(2), needDark: +nd.toFixed(2), navA: +navA.toFixed(2), ink: INK[mode], skyInk: INK[skyMode],
           cardP: +worst(cards, INK[mode].primary, a, 22, tint, F).toFixed(2), cardS: +worst(cards, INK[mode].secondary, a, 22, tint, F).toFixed(2), navS: +worst(nav, INK[mode].secondary, navA, 22, tint, F).toFixed(2),
           skyMode, scrimT, scrimA: +scrimA.toFixed(2), sky: +Math.min(...glassCheck(c, SKY_TEXT_RECTS, INK[skyMode].sky, scrimA, 0, scrimT).filter(x => x.name !== 'hero number').map(x => x.worst)).toFixed(2),
           hero: +Math.min(...glassCheck(c, SKY_TEXT_RECTS, INK[skyMode].sky, scrimA, 0, scrimT).filter(x => x.name === 'hero number').map(x => x.worst)).toFixed(2), btn, btnC: +bc[FILLS.indexOf(btn)].toFixed(2) };
       }
       return res;
-    }, [FLOORS, SATD]);
+    }, [FLOORS, SATD, process.env.MODE || null]);
     out.m[id] = r;
     console.log(id.padEnd(12), 'L*', r.pageL.toFixed(0), r.lightT, r.darkT, FLOORS.map(F => { const o = r[F]; return `${F}: ${o.mode[0]}${Math.round(o.a * 100)} ${o.cardS} sky ${o.skyMode[0]}+${Math.round(o.scrimA * 100)} ${o.sky}/${o.hero}`; }).join(' | '));
   }

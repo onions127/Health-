@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Health++ · Round DD1 · The new screens at dawn and dusk</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:#E9EBEE; color:#14171A; font:400 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding:32px 32px 80px; }
+  header.board { max-width:1180px; margin-bottom:24px; } header.board h1 { font-size:26px; font-weight:600; margin-bottom:8px; } header.board p { color:#3A424B; max-width:110ch; margin-bottom:8px; }
+  table.m { border-collapse:collapse; font-size:12.5px; font-variant-numeric:tabular-nums; margin:8px 0 20px; background:#fff; border-radius:10px; } table.m td, table.m th { padding:5px 10px; border-bottom:1px solid #E6E9ED; text-align:right; } table.m td:first-child, table.m th:first-child { text-align:left; } table.m th { color:#6A727C; font-weight:500; }
+  .phones { display:flex; gap:16px; flex-wrap:wrap; } figure { margin:0; } figure img { width:297px; border-radius:22px; display:block; box-shadow:0 1px 2px rgba(20,23,26,.08), 0 16px 40px rgba(20,23,26,.14); }
+  figcaption { font-size:12px; color:#3A424B; margin-top:6px; max-width:297px; } figcaption a { color:#0B5FA5; }
+</style>
+</head>
+<body>
+<header class="board">
+  <h1>Round DD1 · The new screens at dawn and dusk</h1>
+  <p>Settings, Log weight and the metric pages were drawn by day and at night only. Here they are at dawn (06:30, the dawn keyframe) and dusk (19:45, Coach's dusk in CO2), fair sky. Each board takes <code>?t=dawn</code> or <code>?t=dusk</code> (shared <code>night.js</code>); day shots and the other night shots are byte-identical to before; Settings at night now shows the right sync times too.</p>
+  <p><b>Glass:</b> both hours keep the white day glass and dark ink (g2.js, forced light, over all three screens' glass areas; dusk needs 32% either way, so the same look as the day wins). Dawn 22%, blue buttons. Dusk 34%, white buttons over the sky, blue ones on the glass, and the good/bad words darker (TR2's green and coral fell to 2.35 / 2.27 there).</p>
+  <table class="m"><tr><th>Measured (dd1/measure.json, floor 3.0, no veil)</th><th>dawn 06:30</th><th>dusk 19:45</th></tr>
+    <tr><td>Glass text, weakest</td><td>3.49</td><td>3.18</td></tr><tr><td>Sky text / number</td><td>7.46 / 7.59</td><td>3.88 / 3.33</td></tr><tr><td>Button vs the sky</td><td>blue 3.23</td><td>white 3.14</td></tr>
+    <tr><td>Green / coral on the card (TR2 band method)</td><td>#17703C 3.74 / #B23A2E 3.61</td><td>#0E5A2C 3.19 / #8A2A20 3.30</td></tr></table>
+</header>
+<h2 style="font-size:19px;font-weight:600;margin:24px 0 10px">Dawn · 06:30</h2>
+<div class="phones"><figure><img src="dd1/dawn-settings.png" alt="Settings at Dawn · 06:30"><figcaption>Settings · <a href="se1-board.html?t=dawn">live</a></figcaption></figure><figure><img src="dd1/dawn-weight.png" alt="Log weight at Dawn · 06:30"><figcaption>Log weight · morning check at 06:24 · <a href="wt1-board.html?t=dawn">live</a></figcaption></figure><figure><img src="dd1/dawn-weight-saved.png" alt="After saving at Dawn · 06:30"><figcaption>After saving · <a href="wt1-board.html?t=dawn">live</a></figcaption></figure><figure><img src="dd1/dawn-metric-month.png" alt="HRV · Month at Dawn · 06:30"><figcaption>HRV · Month · <a href="md2-board.html?t=dawn">live</a></figcaption></figure><figure><img src="dd1/dawn-readiness.png" alt="Readiness, how it is made at Dawn · 06:30"><figcaption>Readiness, how it is made · <a href="md3-board.html?t=dawn">live</a></figcaption></figure><figure><img src="dd1/dawn-steps.png" alt="Steps · Today at Dawn · 06:30"><figcaption>Steps · Today · before the day starts: “Your day is starting”, no pace yet · <a href="md4-board.html?t=dawn">live</a></figcaption></figure><figure><img src="dd1/dawn-spo2.png" alt="Blood oxygen · 3M at Dawn · 06:30"><figcaption>Blood oxygen · 3M · <a href="md4-board.html?t=dawn">live</a></figcaption></figure></div>
+<h2 style="font-size:19px;font-weight:600;margin:24px 0 10px">Dusk · 19:45</h2>
+<div class="phones"><figure><img src="dd1/dusk-settings.png" alt="Settings at Dusk · 19:45"><figcaption>Settings · Sync now turns white over the sky; the toggle stays blue on the glass · <a href="se1-board.html?t=dusk">live</a></figcaption></figure><figure><img src="dd1/dusk-weight.png" alt="Log weight at Dusk · 19:45"><figcaption>Log weight · Log weight turns white over the sky; Save stays blue on the glass · <a href="wt1-board.html?t=dusk">live</a></figcaption></figure><figure><img src="dd1/dusk-weight-saved.png" alt="After saving at Dusk · 19:45"><figcaption>After saving · <a href="wt1-board.html?t=dusk">live</a></figcaption></figure><figure><img src="dd1/dusk-metric-month.png" alt="HRV · Month at Dusk · 19:45"><figcaption>HRV · Month · <a href="md2-board.html?t=dusk">live</a></figcaption></figure><figure><img src="dd1/dusk-readiness.png" alt="Readiness, how it is made at Dusk · 19:45"><figcaption>Readiness, how it is made · <a href="md3-board.html?t=dusk">live</a></figcaption></figure><figure><img src="dd1/dusk-steps.png" alt="Steps · Today at Dusk · 19:45"><figcaption>Steps · Today · 1,230 ahead of your usual by 19:45 · <a href="md4-board.html?t=dusk">live</a></figcaption></figure><figure><img src="dd1/dusk-spo2.png" alt="Blood oxygen · 3M at Dusk · 19:45"><figcaption>Blood oxygen · 3M · <a href="md4-board.html?t=dusk">live</a></figcaption></figure></div>
+</body>
+</html>

@@ -1097,3 +1097,21 @@ STOP: waiting for review of the mapping (thresholds, the look of each day) and t
 **Board:** `md4-board.html`. STOP.
 
 **Approved (2026-11-23):** the five pages as built (Daily score, Recovery, Sleep score with their parts; Steps against your usual pace, Today and Month; Blood oxygen on 3M with the 95% line).
+
+## DD1 · The new screens at dawn and dusk (2026-11-23)
+
+**Asked:** continue with dusk and dawn (open item: Settings, Log weight and the metric pages were drawn by day and at night only).
+
+**Built:** `night.js` takes `?t=dawn` (06:30, the dawn keyframe) or `?t=dusk` (19:45, Coach's dusk in CO2) besides `?night=1`; `se1`, `wt1`, `md2`, `md3`, `md4` boards follow it. `dd1-board.html` shows Settings, Log weight (and after saving), HRV Month, Readiness, Steps Today and Blood oxygen at both hours; shots `tools/visual-loop/dd1.js` → `design-prototype/dd1/<t>-<name>.png`. Day shots and the other night shots are byte-identical to before; `nt1/settings.png` is re-shot for the sync times.
+- **Glass:** both hours keep the white day glass and dark ink. `g2.js` gained `MODE=light|dark` (force the glass) and records `needLight` / `needDark`; over all three screens' glass areas (x 12–400, y 286–851, and the nav) dusk needs 32% either way, so the day look wins: dawn 22%, dusk 34%.
+- **Buttons:** the button over the sky follows the measured sky button (dawn blue, dusk white with dark ink); buttons and toggles on the glass stay blue. Before, Settings' toggle went white at dusk and Log weight's header button stayed blue.
+- **Good/bad words at dusk:** TR2's green and coral fell to 2.35 / 2.27 on the dusk card, so dusk uses `#0E5A2C` / `#8A2A20`; dawn keeps the day pair.
+- **Hour fixes:** Log weight's morning check reads 06:24 at dawn (it said 07:11, after the clock); Steps before the day has started (usual by now under 500) says "Your day is starting · A full day is usually 8,400" and "too early to compare" instead of "Usually 0 · Ahead of usual"; Settings' "Last" and "Synced" times follow the hour (they said 15:02 at every hour, at night too).
+
+**Measured** (`dd1/measure.json`, floor 3.0, no veil): dawn glass 3.49, sky 7.46, number 7.59, blue button 3.23, green / coral 3.74 / 3.61; dusk glass 3.18, sky 3.88, number 3.33, white button 3.14, green / coral 3.19 / 3.30.
+
+**Open:** Coach at dusk uses 26% (CO2, measured over its own layout) and these screens 34%: one value for the hour would look the same across tabs. Phone check.
+
+**Board:** `dd1-board.html`. STOP.
+
+**Approved (2026-11-23):** dawn and dusk as built (white day glass with dark ink at both hours; dusk 34%, white buttons over the sky, darker green and coral).

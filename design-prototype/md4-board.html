@@ -36,7 +36,8 @@
 const HD = window.HEALTH_DATA, days = HD.days, MT = HD.METRICS;
 // md1/measure.json (g2.js, floor 3.0), inlined so the board also opens as a file
 const G = { day1510: { tint: '#FFFFFF', a: .22, navA: .3, cardS: 3.75, sky: 5.55, hero: 7.04 }, nov4: { tint: '#FFFFFF', a: .22, navA: .3, cardS: 3.29, sky: 5.07, hero: 10.45 } };
-const P = NIGHT ? { primary: '#FFFFFF', secondary: '#C9D7EA' } : { primary: '#0E2A43', secondary: '#2E4A62' }, GOOD = NIGHT ? '#7BE3A4' : '#17703C', BAD = NIGHT ? '#FFA095' : '#B23A2E', BLUE = '#0B5FA5';   // night colours: TR2
+const P = NIGHT ? { primary: '#FFFFFF', secondary: '#C9D7EA' } : { primary: '#0E2A43', secondary: '#2E4A62' }, GOOD = TONE[0], BAD = TONE[1], BLUE = '#0B5FA5';   // night colours: TR2
+if (ALT && !NIGHT) G.day1510 = { mode: 'light', tint: '#FFFFFF', a: ALT_G.a, navA: ALT_G.navA, cardS: ALT_G.cardS, sky: ALT_G.sky, hero: ALT_G.hero };
 if (NIGHT) G.day1510 = { mode: 'dark', tint: NIGHT_G.tint, a: .22, navA: .3, cardS: NIGHT_G.cardS, sky: NIGHT_G.sky, hero: NIGHT_G.hero };
 const rgba = (h, a) => `rgba(${[1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(',')},${a})`;
 const glass = g => `background:${rgba(g.tint, g.a)};${glassFx(g)}`;
@@ -77,7 +78,7 @@ const shell = (img, g, body, on = 'Trends') => `<div class="phone" style="color:
 
 // A · chart in a card
 function pageA(sel) { const g = G.day1510;
-  return shell(NIGHT ? NIGHT_IMG : 'md1/day1510.png', g, head('HRV', 'Heart rate variability') + hero(64, `Today · your normal ${LO}–${HI} ms`) + seg(g, 'Month')
+  return shell(ALT ? ALT_IMG : 'md1/day1510.png', g, head('HRV', 'Heart rate variability') + hero(64, `Today · your normal ${LO}–${HI} ms`) + seg(g, 'Month')
     + `<div class="glass" style="${glass(g)};top:452px;left:12px;right:12px;padding:12px 16px 10px"><div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:15px;font-weight:500">${sel === 29 ? 'Today' : S30[sel].label} · ${V[sel]} ms</div><div style="font-size:12.5px">${tag(V[sel])}</div></div>
       <div style="margin-top:12px">${chart(334, 140, sel, { grid: 1 })}</div><div style="display:flex;justify-content:space-between;font-size:11px;color:${P.secondary};margin-top:4px"><span>${S30[0].shortDate}</span><span>${S30[15].shortDate}</span><span style="margin-right:22px">Today</span></div>
       <div style="font-size:11.5px;color:${P.secondary};margin-top:4px">━ 3-day average · ○ outside your normal · band = your normal</div>
@@ -86,7 +87,7 @@ function pageA(sel) { const g = G.day1510;
 }
 // B · the line on the sky, under the number; the cards hold the picked day
 function pageB(sel) { const g = G.day1510;
-  return shell(NIGHT ? NIGHT_IMG : 'md1/day1510.png', g, head('HRV', 'Heart rate variability') + hero(64, 'Today · last 30 days below')
+  return shell(ALT ? ALT_IMG : 'md1/day1510.png', g, head('HRV', 'Heart rate variability') + hero(64, 'Today · last 30 days below')
     + `<div class="abs" style="top:272px;left:22px">${chart(214, 60, sel, { band: .16 })}</div>`
     + seg(g, 'Month') + dayCard(g, 452, sel, sel === 29 ? 'Tap the line in the sky, or swipe this card, to pick a day.' : '') + avgRow(g, sel === 29 ? 578 : 554) + about(g, sel === 29 ? 654 : 630));
 }
@@ -97,7 +98,7 @@ function calendar(selDate) { const g = G.day1510, byDay = {}; days.filter(d => d
   const today = days[days.length - 1].dayNum, lead = 6;   // 1 Nov 2026 is a Sunday; weeks start on Monday
   const cells = Array.from({ length: lead }, () => '<div></div>').concat(Array.from({ length: 30 }, (_, k) => { const n = k + 1, d = byDay[n], fut = n > today, sel = n === selDate;
     return `<div style="height:56px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;${sel ? `box-shadow:inset 0 0 0 2px ${P.primary}` : ''};${n === today ? `background:${rgba(P.primary, .08)}` : ''}"><div style="font-size:14px;${n === today ? 'font-weight:600' : ''};color:${fut ? rgba(P.primary, .4) : P.primary}">${n}</div>${d && !fut ? glyph(d.readiness, 22) : '<div style="height:17px"></div>'}</div>`; })).join('');
-  return shell(NIGHT ? NIGHT_IMG : 'md1/day1510.png', g, `<div class="abs" style="top:12px;left:20px;font:500 12px Roboto, 'Segoe UI';color:${P.primary}">${CLOCK}</div><div class="abs" style="top:40px;left:20px;color:${P.primary}"><div style="font-size:19px;font-weight:500">Trends</div><div style="font-size:12px;margin-top:2px">Last 30 days · against your normal</div></div>
+  return shell(ALT ? ALT_IMG : 'md1/day1510.png', g, `<div class="abs" style="top:12px;left:20px;font:500 12px Roboto, 'Segoe UI';color:${P.primary}">${CLOCK}</div><div class="abs" style="top:40px;left:20px;color:${P.primary}"><div style="font-size:19px;font-weight:500">Trends</div><div style="font-size:12px;margin-top:2px">Last 30 days · against your normal</div></div>
     <div class="abs" style="top:112px;left:22px;color:${P.primary}"><div style="font-size:72px;font-weight:300;line-height:1;letter-spacing:-0.035em">5<span style="font-size:.4em;letter-spacing:0"> of 8</span></div><div style="font-size:23px;margin-top:8px">within your normal</div></div>
     <div class="glass" style="${glass(g)};z-index:3;left:0;right:0;top:262px;bottom:-26px;border-radius:28px 28px 0 0;padding:10px 16px 40px"><div style="width:36px;height:4px;border-radius:2px;background:${rgba(P.primary, .3)};margin:0 auto 6px"></div>
       <div style="display:flex;align-items:center;justify-content:space-between"><span class="btn" style="width:48px;padding:0;transform:scaleX(-1)" aria-label="October">${chev}</span><div style="text-align:center"><div style="font-size:19px;font-weight:500">November 2026</div><div style="font-size:12px;color:${P.secondary}">Each day’s sky, from its readiness</div></div><span class="btn" style="width:48px;padding:0;opacity:.35" aria-label="December">${chev}</span></div>
@@ -185,7 +186,7 @@ const RANGES = {
 };
 const seg5 = (g, on) => `<div class="glass" style="${glass(g)};top:384px;left:12px;right:12px;height:56px;padding:4px;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;border-radius:28px">${Object.keys(RANGES).map(r => `<div class="btn" style="height:48px;padding:0;${r === on ? `background:${P.primary};color:${NIGHT ? '#0E2A43' : '#fff'}` : `color:${P.secondary}`}">${r}</div>`).join('')}</div>`;
 function pageA5(range) { const g = G.day1510, R = RANGES[range]();
-  return shell(NIGHT ? NIGHT_IMG : 'md1/day1510.png', g, head('HRV', 'Heart rate variability') + hero(64, `Today · your normal ${LO}–${HI} ms`) + seg5(g, range)
+  return shell(ALT ? ALT_IMG : 'md1/day1510.png', g, head('HRV', 'Heart rate variability') + hero(64, `Today · your normal ${LO}–${HI} ms`) + seg5(g, range)
     + `<div class="glass" style="${glass(g)};top:452px;left:12px;right:12px;padding:12px 16px 10px"><div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:15px;font-weight:500">${R.title}</div><div style="font-size:12.5px">${R.right}</div></div>
       <div style="margin-top:14px">${R.chart}</div><div style="font-size:11.5px;color:${P.secondary};margin-top:2px">${R.legend}</div>${R.note ? `<div style="font-size:12px;color:${P.secondary};margin-top:6px">${R.note}</div>` : ''}</div>`
     + `<div class="glass" style="${glass(g)};top:${R.note ? 762 : 712}px;left:12px;right:12px;height:64px;padding:0 16px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:15px">${R.avg[0]}</div><div style="font-size:12.5px;color:${P.secondary}">${R.avg[1]}</div></div><div style="font-size:15px;font-weight:500">${R.avg[2]}</div></div>`);
@@ -230,13 +231,13 @@ const R0 = x => Math.round(x);
 // 1 · Daily score: readiness 42%, sleep 36%, strain 22% (dailyParts)
 function dailyPage() { const g = G.day1510, N = normalOf('dailyScore', () => 3), parts = [['Readiness', .42 * T0.readiness, `Readiness ${T0.readiness} × 42%`], ['Sleep', .36 * T0.sleepScore, `Sleep score ${T0.sleepScore} × 36%`], ['Strain', .22 * T0.strain, `Strain ${T0.strain} so far × 22%`]];
   const score = R0(parts.reduce((a, p) => a + p[1], 0)), st = band(N.lo, N.hi, 1)(score);
-  return shell(NIGHT ? NIGHT_IMG : 'md1/day1510.png', g, head('Daily score', 'Your day in one number') + heroU(score, '', stTag(st), `Today so far · your normal ${R0(N.lo)}–${R0(N.hi)}`) + seg5(g, 'Month')
+  return shell(ALT ? ALT_IMG : 'md1/day1510.png', g, head('Daily score', 'Your day in one number') + heroU(score, '', stTag(st), `Today so far · your normal ${R0(N.lo)}–${R0(N.hi)}`) + seg5(g, 'Month')
     + scoreChart(g, 452, 'dailyScore', N, 96, `30-day average ${R0(N.m)}`)
     + partsCard(g, 638, `How today’s ${score} is made`, 'points', parts, score, `<div style="font-size:11.5px;color:${P.secondary};margin:2px 0 4px">Strain adds as the day goes on, so the score can still rise.</div>`)); }
 
 // 2 · Recovery: HRV × 0.92 + (90 − resting HR) × 0.72, today only (recoveryParts); not against your averages, unlike Readiness
 function recoveryPage() { const g = G.day1510, N = normalOf('recovery', () => 3), a = .92 * T0.hrv, b = .72 * (90 - T0.rhr), score = R0(a + b), st = band(N.lo, N.hi, 1)(score);
-  return shell(NIGHT ? NIGHT_IMG : 'md1/day1510.png', g, head('Recovery', 'From today’s HRV and resting HR') + heroU(score, '', stTag(st), `Today · your normal ${R0(N.lo)}–${R0(N.hi)}`) + seg5(g, 'Month')
+  return shell(ALT ? ALT_IMG : 'md1/day1510.png', g, head('Recovery', 'From today’s HRV and resting HR') + heroU(score, '', stTag(st), `Today · your normal ${R0(N.lo)}–${R0(N.hi)}`) + seg5(g, 'Month')
     + scoreChart(g, 452, 'recovery', N, 96, `30-day average ${R0(N.m)}`)
     + partsCard(g, 638, `How today’s ${score} is made`, 'points', [['HRV', a, `${T0.hrv} ms × 0.92`], ['Resting HR', b, `(90 − ${T0.rhr} bpm) × 0.72`]], score,
       `<div style="font-size:12px;color:${P.secondary};margin:6px 0 6px;padding-top:8px;border-top:1px solid ${rgba(P.primary, .12)}">Recovery reads today’s numbers as they are. Readiness compares them with your own averages and adds sleep, so the two can differ.</div>`)); }
@@ -247,7 +248,7 @@ function sleepPage() { const g = G.day1510, N = normalOf('sleepScore', () => 3),
   const parts = [['Duration', .4 * dur, `${T0.sleepFormatted} of the 7h 30m that scores full`], ['Deep + REM share', .2 * rest, `${R0(SL.share * 100)}% of your sleep · full at 38%`], ['Efficiency', .1 * SL.eff, `asleep ${SL.eff}% of the time in bed`],
     ['Regular timing', .15 * reg, `middle of the night 2h 06m later than usual`], ['Asleep by 02:00', .15 * 100, `asleep at ${SL.asleep}`]];
   const score = R0(parts.reduce((a, p) => a + p[1], 0)), st = band(N.lo, N.hi, 1)(score);
-  return shell(NIGHT ? NIGHT_IMG : 'md1/day1510.png', g, head('Sleep score', 'Last night') + heroU(score, '', stTag(st), `${T0.sleepFormatted} asleep · your normal ${R0(N.lo)}–${R0(N.hi)}`) + seg5(g, 'Month')
+  return shell(ALT ? ALT_IMG : 'md1/day1510.png', g, head('Sleep score', 'Last night') + heroU(score, '', stTag(st), `${T0.sleepFormatted} asleep · your normal ${R0(N.lo)}–${R0(N.hi)}`) + seg5(g, 'Month')
     + scoreChart(g, 452, 'sleepScore', N, 60, `30-day average ${R0(N.m)}`)
     + partsCard(g, 600, `How last night’s ${score} is made`, 'points', parts, score)); }
 
@@ -273,10 +274,10 @@ function stepsToday(w, h) { const top = 11000, X = t => 4 + (w - 8) * t / 24, Y 
   if (NOW < 21) s += `<text x="${X(24) - 2}" y="${Y(PACE) - 7}" font-size="11" font-weight="500" fill="${P.primary}" text-anchor="end">about ${k(PACE)}</text>`;
   const xl = [[0, '00'], [.25, '06'], [.5, '12'], [.75, '18'], [1, '24']].map(([x, t]) => `<span style="position:absolute;left:${4 + (w - 8) * x}px;transform:translateX(${x > .97 ? '-100%' : x < .03 ? '0' : '-50%'})">${t}</span>`).join('');
   return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true" style="display:block;overflow:visible">${s}</svg><div style="position:relative;height:16px;font-size:11px;color:${P.secondary};margin-top:4px">${xl}</div>`; }
-const stepsHead = () => head('Steps', 'Against your own pace') + heroU(k(SO_FAR), 'steps', stTag({ up: 1, word: 'Ahead of usual', col: GOOD }), `Usually ${k(BY_NOW)} by ${CLOCK} · ${k(SO_FAR - BY_NOW)} ahead`);
+const EARLY = usualBy(NOW) < 500, stepsHead = () => head('Steps', 'Against your own pace') + heroU(k(SO_FAR), 'steps', EARLY ? 'Your day is starting' : stTag({ up: 1, word: 'Ahead of usual', col: GOOD }), EARLY ? `A full day is usually ${k(USUAL)}` : `Usually ${k(BY_NOW)} by ${CLOCK} · ${k(SO_FAR - BY_NOW)} ahead`);
 function stepsPageToday() { const g = G.day1510;
-  return shell(NIGHT ? NIGHT_IMG : 'md1/day1510.png', g, stepsHead() + seg5(g, 'Today')
-    + cardAt(g, 452, `<div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:15px;font-weight:500">Today so far · ${k(SO_FAR)}</div><div style="font-size:12.5px;color:${P.secondary}">usual by now ${k(BY_NOW)}</div></div>
+  return shell(ALT ? ALT_IMG : 'md1/day1510.png', g, stepsHead() + seg5(g, 'Today')
+    + cardAt(g, 452, `<div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:15px;font-weight:500">Today so far · ${k(SO_FAR)}</div><div style="font-size:12.5px;color:${P.secondary}">${EARLY ? 'too early to compare' : 'usual by now ' + k(BY_NOW)}</div></div>
       <div style="margin-top:14px">${stepsToday(334, 150)}</div><div style="font-size:11.5px;color:${P.secondary};margin-top:2px">━ today · ┅ your usual day · band = most of your days · ╍ the rest as usual</div>`)
     + cardAt(g, 712, `<div style="display:flex;justify-content:space-between;align-items:center;min-height:40px"><div><div style="font-size:15px">If the rest goes as usual</div><div style="font-size:12.5px;color:${P.secondary}">your full day is usually ${k(USUAL)}</div></div><div style="font-size:15px;font-weight:500">about ${k(PACE)}</div></div>`, '12px 16px')); }
 function stepsPageMonth() { const g = G.day1510, st = band(ST.lo, ST.hi, 1), v = D30.map((d, i) => i === 29 ? SO_FAR : d.steps), w = 334, h = 140, lo = 0, hi = 14000, n = 30;
@@ -287,7 +288,7 @@ function stepsPageMonth() { const g = G.day1510, st = band(ST.lo, ST.hi, 1), v =
     s += today ? `<rect x="${X(i) - bw / 2}" y="${Y(PACE)}" width="${bw}" height="${Y(0) - Y(PACE)}" rx="1.5" fill="none" stroke="${P.primary}" stroke-width="1.2" stroke-dasharray="2 2"/><rect x="${X(i) - bw / 2}" y="${Y(x)}" width="${bw}" height="${Y(0) - Y(x)}" rx="1.5" fill="${P.primary}"/>`
       : `<rect x="${X(i) - bw / 2}" y="${Y(x)}" width="${bw}" height="${Y(0) - Y(x)}" rx="1.5" fill="${out ? 'none' : P.primary}" fill-opacity=".55" stroke="${out ? o.col : 'none'}" stroke-width="1.6"/>`; });
   const nOut = v.slice(0, 29).filter(x => x < ST.lo || x > ST.hi).length;
-  return shell(NIGHT ? NIGHT_IMG : 'md1/day1510.png', g, stepsHead() + seg5(g, 'Month')
+  return shell(ALT ? ALT_IMG : 'md1/day1510.png', g, stepsHead() + seg5(g, 'Month')
     + cardAt(g, 452, `<div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:15px;font-weight:500">Full days</div><div style="font-size:12.5px;color:${P.secondary}">your normal ${k(R0(ST.lo / 100) * 100)}–${k(R0(ST.hi / 100) * 100)}</div></div>
       <div style="margin-top:12px"><svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true" style="display:block;overflow:visible">${s}</svg><div style="display:flex;justify-content:space-between;font-size:11px;color:${P.secondary};margin:4px 22px 0 0"><span>${D30[0].shortDate}</span><span>${D30[15].shortDate}</span><span>Today</span></div></div>
       <div style="font-size:11.5px;color:${P.secondary};margin-top:2px">▮ each day · ▯ outside your normal · today: so far, ┆ about ${k(PACE)} if as usual</div>`)
@@ -304,7 +305,7 @@ function spo2Page() { const g = G.day1510, N = normalOf('spo2', () => 1), all = 
   all.forEach((v, i) => { const o = st(v), sel = i === iLow; if (v < 95) s += `<circle cx="${X(i)}" cy="${Y(v)}" r="${sel ? 5 : 3.4}" fill="${sel ? o.col : 'none'}" stroke="${o.col}" stroke-width="1.8"/>`; });
   const firsts = days.map((d, i) => [i, d.dayNum]).filter(([, dn]) => dn === 1).map(([i]) => [i / (n - 1), mon(days[i])]).filter(([x]) => x < .85).concat([[1, 'Today']]);
   const xl = firsts.map(([x, t]) => `<span style="position:absolute;left:${4 + (w - 8) * x}px;transform:translateX(${x > .97 ? '-100%' : '-50%'})">${t}</span>`).join('');
-  return shell(NIGHT ? NIGHT_IMG : 'md1/day1510.png', g, head('Blood oxygen', 'SpO₂, overnight') + heroU(T0.spo2, '%', stTag(st(T0.spo2)), `Last night · your normal ${R0(N.lo)}–${Math.min(100, R0(N.hi))}%`) + seg5(g, '3M')
+  return shell(ALT ? ALT_IMG : 'md1/day1510.png', g, head('Blood oxygen', 'SpO₂, overnight') + heroU(T0.spo2, '%', stTag(st(T0.spo2)), `Last night · your normal ${R0(N.lo)}–${Math.min(100, R0(N.hi))}%`) + seg5(g, '3M')
     + cardAt(g, 452, `<div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:15px;font-weight:500">${dl.label} · ${dl.spo2}%</div><div style="font-size:12.5px">${stTag(st(dl.spo2))}</div></div>
       <div style="margin-top:14px"><svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true" style="display:block;overflow:visible">${s}</svg><div style="position:relative;height:16px;font-size:11px;color:${P.secondary};margin-top:4px">${xl}</div></div>
       <div style="font-size:11.5px;color:${P.secondary};margin-top:2px">━ 7-day average · ○ under 95% · ┅ 95%, where Today warns · band = your normal</div>
