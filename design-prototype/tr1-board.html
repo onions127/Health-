@@ -30,7 +30,7 @@
   <p>Outside normal is never shown by colour alone: the row says "Above normal" or "Below normal", and the day's dot is ringed. Every metric opens its detail (range, chart, difference from your average), unchanged for now.</p>
 </header>
 <main id="board"></main>
-<script src="data.js"></script>
+<script src="scores.js"></script><script src="data.js"></script>
 <script>
 const HD = window.HEALTH_DATA, days = HD.days, t = HD.today, M = HD.METRICS, last30 = days.slice(-30);
 const rgba = (h, a) => `rgba(${[1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(',')},${a})`;

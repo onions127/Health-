@@ -31,7 +31,7 @@
   <p>Only last night has real stage data in the prototype. The older nights are made from it, scaled to each night's real sleep time with a varied bedtime, so the layout can be judged.</p>
 </header>
 <section class="dir"><div class="sheet" id="sheet"></div><div id="live"></div></section>
-<script src="data.js"></script>
+<script src="scores.js"></script><script src="data.js"></script>
 <script>
 const HD = window.HEALTH_DATA, days = HD.days, LAST = 89, FIRST = LAST - 29;
 const hm = m => `${Math.floor(m / 60)}<span class="u">h</span>${String(Math.round(m % 60)).padStart(2, '0')}<span class="u">m</span>`, hmT = m => m >= 60 ? `${Math.floor(m / 60)}h ${String(Math.round(m % 60)).padStart(2, '0')}m` : `${Math.round(m)}m`;

@@ -31,11 +31,11 @@
   <p>Drawn here for HRV on today's sky (15:10), G2 day glass, TR2's good/bad colours (HRV above normal = good, green; below = coral, always with the arrow and word). Prototype data: the last 30 days of <code>data.js</code>, today 64 ms, normal 55–63 ms.</p>
 </header>
 <main id="board"></main>
-<script src="data.js"></script>
+<script src="scores.js"></script><script src="data.js"></script>
 <script>
 const HD = window.HEALTH_DATA, days = HD.days, MT = HD.METRICS;
 // md1/measure.json (g2.js, floor 3.0), inlined so the board also opens as a file
-const G = { day1510: { tint: '#FFFFFF', a: .22, navA: .3, cardS: 3.75, sky: 5.55, hero: 7.04 }, nov4: { tint: '#FFFFFF', a: .22, navA: .3, cardS: 3.28, sky: 4.75, hero: 13.29 } };
+const G = { day1510: { tint: '#FFFFFF', a: .22, navA: .3, cardS: 3.75, sky: 5.55, hero: 7.04 }, nov4: { tint: '#FFFFFF', a: .22, navA: .3, cardS: 3.57, sky: 9.79, hero: 13.29 } };
 const P = { primary: '#0E2A43', secondary: '#2E4A62' }, GOOD = '#17703C', BAD = '#B23A2E', BLUE = '#0B5FA5';
 const rgba = (h, a) => `rgba(${[1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(',')},${a})`;
 const glass = g => `background:${rgba(g.tint, g.a)};-webkit-backdrop-filter:blur(22px) saturate(1.6);backdrop-filter:blur(22px) saturate(1.6);box-shadow:0 1px 1px rgba(14,42,67,.05), 0 10px 28px rgba(14,42,67,.10)`;

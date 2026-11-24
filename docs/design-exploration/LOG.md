@@ -1377,3 +1377,41 @@ Load to converged 20.1 s (`loadT.js`; SH1 26.1 s): compile cost holds.
 **Board:** `md3-board.html?bad=1` (BD4, last section). STOP.
 
 **Approved (2026-11-24):** BD4 as built (one pace threshold at 1.15; Calendar glyphs from the body for any month; a past bad day under its own sky).
+
+## BD5 · The sample data from the app's formulas, and a stricter sleep score (2026-11-24)
+
+**Asked:** continue (open since BD4: regenerate the prototype data from the formula; one "your normal"; the PD1 / 4 Nov haze). Picked: both formulas (sleep score and readiness), then, on what that showed, draft a stricter sleep score.
+
+**Built:**
+- **`scores.js`**: the app's formulas, ported from `android-app/…/domain`: `sleepScoreParts` (stages available), `readinessParts`, `recoveryParts`, `dailyParts`, and "your normal" (`MetricInsights.baseline`: the 30 days before, mean ± max(SD, 3)). Plus **S2**, a proposed sleep score. Every board that loads `data.js` loads it first (wt1 and mc2 now load `data.js` too).
+- **`data.js`** scores all 90 days with them, each day against the days before it. Each night has inputs from a second generator (asleep time, deep + REM share, efficiency; every other series is unchanged). The hand pins are gone (today 86, 4 Nov 54, and the 6 Oct fix). The resting-HR series sits 1 bpm higher, so its 30-day mean is the 54 the pages and bad days were built on. `METRICS.readiness` (average, normal, chip) comes from the data, and `vsNormal(r)` writes "N below your normal 81".
+- **One "your normal": 81 (73–89)** on every board: metric pages, Today, Coach, the morning check (it was 79 / 72–85 on the metric pages and 76 on Today and Coach, both by hand).
+- **`bd5-board.html`**: both sleep scores and both readiness series over the 90 days, the bad days under each, and the S2 change. Every board runs S2; `?sleep=app` runs the app's.
+
+**Found: the app's sleep score barely drops after a poor night.** Duration is minutes ÷ 7h30 (4h40 earns 62 of 100), deep + REM is share ÷ 38%, and efficiency is the raw % (78% earns 78). Over the 90 days it reads 82–99 (median 96); a 4h40 night that starts at 01:20 scores 73. The consequences: BodySky's morning fog (from 78) shows on 0 of 90 nights, and the designed bad days can't happen. Under the app's score, with the nights below: haze 67 → 72, very poor 46 → 54 and illness 49 → 56 (both stratocumulus, not stratus), storm 34 → 42 (rain, no storm: that needs under 35).
+
+**S2** (proposed; the app is untouched until lock): the same five parts, weights and 03:00 cap. Duration 0 at 4h30 → 100 at 7h30; deep + REM 0 at 20% → 100 at 38%; efficiency 0 at 75% → 100 at 95%. Timing parts unchanged. Over the 90 days: 61–99, median 91, fog on 4 nights (6 Sep, 8 Sep, 6 Oct, 4 Nov). Readiness: normal 81 (app 82); last 30 days 16 fair / 13 partly / 1 stratocumulus (app 18 / 11 / 1). Today 12 Nov: sleep 98, readiness 90 under both. Each designed bad day now has a night (`SCORES.BAD_NIGHTS`) for which S2 gives exactly the sleep score its readiness was built on (haze 70, illness 56, very poor 42, storm 40), so those numbers and skies stay true. `md3` checks each body's sleep score against its night.
+
+**PD1's poor day is 4 Nov.** Same body. Its night (6h 05m, asleep 00:40, deep + REM 27%, 80% efficient) gives S2 sleep 61 and readiness **58**, PD1's number, now from the data on every page (the Readiness page recomputed 59 against fixed bases; Today's tile said sleep 58 by hand).
+
+**Re-rendered with its haze** (`g2.js` with PD1's body through BodySky: readiness 58, sleep 61, 6h 05m, HRV 46, skin +0.4 °C, resting HR 58 against 54 → stratocumulus, humid haze, morning fog; floor 3.0; glass y 236–851 + nav, sky text to x 380 by day and x 262 at night; 19:45 `MODE=light`). `pd1/*.png`, `pd1/measure.json`, `night.js` `POOR_G`: 07:15 white 22%, glass 3.81, sky 8.71; 15:10 white 22%, 3.57, sky 9.79; 19:45 white 35%, 3.19, sky 3.89, dark button `#082F5A` 3.74; 23:10 land `#11225A` 22%, 6.28, sky 3.27, number 3.22. No veil. `md1/nov4.png` = the 15:10 render (same body and hour; md1 now shows PD1's rects' values, sky 9.79, where it showed 4.75 with its own). The haze is subtle, as on BD2's haze day: a milky band over the far water at 07:15 and on the horizon by day and dusk. Compare: `tools/visual-loop/out/bd5-pd1.png` (preset above, BodySky below); boards `out/pd1-*.png`, `out/bd5-pd1-boards.png`, board `out/bd5-board.png`.
+
+**Not done (waits for the pick):** Today's own story is still hand-set (78 → 82 around the morning check, sleep "Score 81"); the data's today is 90 with sleep 98, both fair, so "the sky cleared with it" would no longer hold. The other metrics' normals stay hand-set: by the app's rule HRV is 54–64 (pages: 55–63) and resting HR 52–56 (51–56). The old round boards (R1–R5, S1–S4) pick up the new data unchanged.
+
+**Board:** `bd5-board.html`; PD1 with `?poor=1` on `wt1`, `co2`, `md3`. STOP.
+
+**Approved (2026-11-24):** BD5 as built, and **S2 adopted** as the sleep score (to replace `sleepScoreParts` in the app at lock). Review it after at least a week of real nights (TODOS.md).
+
+## BD6 · Today's morning-check story from the data (2026-11-24)
+
+**Asked:** continue (open since BD5: Today's own story was hand-set, 78 → 82 around the morning check, sleep "Score 81"). Picked: lower the overnight HRV so the sky still clears.
+
+**The numbers:** with the app's readiness and S2, today's night (7h 20m, deep + REM 47%, 95% efficient) scores sleep **98**. Before the check the app scores readiness with the overnight HRV (`scoreHrvMs`); at the old 57 ms that is 84, fair, so the check would not move the sky. Overnight HRV is now **51 ms** (`data.js` `today.hrvOvernight`): **79** before the check (partly cloudy), **90** after it with the check's 64 ms (fair). The story and every approved render stay; only the numbers change.
+
+**Built:** `data.js` adds `today.hrvOvernight`, `readinessOvernight`, `sleepUsual` (434 min, the 30 days before) and `sleepSub` ("6 min more than usual"). `wt1-board.html` and `mc2-board.html` read them (`TD`, `PRE`, `POST`): the hero (79 / 90, "2 below" / "9 above your normal 81"), the header line and HRV tile (51 ms overnight, 64 ms morning check), the sleep tile (Score 98, 6 min more than usual), the check result ("HRV 64 ms, above your normal (55–63)", the old sheet said 48–60; resting HR 52, it said 54; "Readiness 79 → 90"), the failed-check line and the 05:20 caption. Coach already read the data: "Readiness 90 · HRV 64 ms, above your normal"; its canned answers (64 ms is 8% over 59, recovery 86) match. `mc1-board.html` (superseded by MC2) is left as history.
+
+**Measured:** no new renders. Same skies, same text boxes; only digits change (two-digit hero, detail line one character longer than "2 above your normal 76"), so MC1/MC2/WT1's measurements hold (day: glass 5.45, sky text 6.58, number 5.69; night 05:20: glass 5.69, sky text 4.53, number 5.12; floor 3.0). Shots: `node wt1.js`, `node mc2.js`, `node co2.js` → `out/wt1-*.png`, `out/mc2-*.png`, `out/co2-*.png`; sheet `out/bd6.png`.
+
+**Board:** `wt1-board.html`, `mc2-board.html`, `co2-board.html`. STOP.
+
+**Approved (2026-11-24):** BD6 as built (overnight HRV 51: readiness 79 before the morning check, 90 after; Today, the check and Coach on the data).

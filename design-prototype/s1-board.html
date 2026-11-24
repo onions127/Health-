@@ -32,7 +32,7 @@
   <p>Contrast is measured on the rendered scene with the G2 glass (floor 3.0). Every text and the drawn night line pass with no veil.</p>
 </header>
 <main id="board"></main>
-<script src="data.js"></script>
+<script src="scores.js"></script><script src="data.js"></script>
 <script>
 const HD = window.HEALTH_DATA, t = HD.today, days = HD.days, prev = days.slice(-31, -1), mean = k => prev.reduce((a, d) => a + d[k], 0) / prev.length;
 const hm = m => `${Math.floor(m / 60)}<span class="u">h</span>${String(Math.round(m % 60)).padStart(2, '0')}<span class="u">m</span>`, hmT = m => `${Math.floor(m / 60)}h ${String(Math.round(m % 60)).padStart(2, '0')}m`;

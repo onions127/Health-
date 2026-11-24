@@ -9,7 +9,7 @@
   },
   {
    "id": "nov4",
-   "label": "4 Nov, 15:10 stratocumulus"
+   "label": "4 Nov, 15:10 (BD5: BodySky, stratocumulus with haze; = pd1/day1510)"
   }
  ],
  "m": {
@@ -53,7 +53,7 @@
     "mode": "light",
     "tint": "#FFFFFF",
     "a": 0.22,
-    "needLight": 0.18,
+    "needLight": 0.12,
     "needDark": 0.62,
     "navA": 0.3,
     "ink": {
@@ -66,13 +66,13 @@
      "secondary": "#2E4A62",
      "sky": "#0E2A43"
     },
-    "cardP": 5.2,
-    "cardS": 3.28,
+    "cardP": 5.66,
+    "cardS": 3.57,
     "navS": 5.6,
     "skyMode": "light",
     "scrimT": "#FFFFFF",
     "scrimA": 0,
-    "sky": 4.75,
+    "sky": 9.79,
     "hero": 13.29,
     "btn": {
      "fill": "#0B5FA5",
@@ -80,7 +80,7 @@
     },
     "btnC": 4.34
    },
-   "pageL": 79.0710904289023,
+   "pageL": 79.10137276104396,
    "lightT": "#FFFFFF",
    "darkT": "#1E2929",
    "satD": 1

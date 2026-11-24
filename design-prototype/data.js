@@ -11,6 +11,11 @@
     seed = (seed * 16807) % 2147483647;
     return (seed - 1) / 2147483646;
   }
+  let seed2 = 7717;   // BD5: the nights' sleep-score inputs only
+  function rand2() {
+    seed2 = (seed2 * 16807) % 2147483647;
+    return (seed2 - 1) / 2147483646;
+  }
 
   function formatSleep(totalMin) {
     const m = Math.round(totalMin);
@@ -38,7 +43,7 @@
     // Smooth physiological wave + slight noise
     const wave = Math.sin(i / 4.5) * 3.5 + Math.cos(i / 9.0) * 2.0;
     let hrv = Math.round(59 + wave + (rand() - 0.5) * 5);
-    let rhr = Math.round(53 - wave * 0.45 + (rand() - 0.5) * 2);
+    let rhr = Math.round(54 - wave * 0.45 + (rand() - 0.5) * 2);
     let sleepMin = Math.round(432 + wave * 6 + (rand() - 0.5) * 26);
     let sleepScore = Math.min(96, Math.max(48, Math.round((sleepMin - 300) * 0.42 + (rand() - 0.5) * 6)));
     let strain = Math.round(74 + Math.sin(i / 3.2) * 10 + (rand() - 0.5) * 8);
@@ -114,9 +119,16 @@
       skinTemp = 0.1;
     }
 
-    const readiness = Math.min(98, Math.max(38, Math.round(hrv * 0.85 + (100 - rhr) * 0.65)));
-    const recovery = Math.min(98, Math.max(36, Math.round(hrv * 0.92 + (90 - rhr) * 0.72)));
-    const dailyScore = Math.round(readiness * 0.42 + sleepScore * 0.36 + strain * 0.22);
+    // BD5: the night's inputs to the shipped sleep score (onset in minutes from noon, deep + REM share of staged
+    // time, efficiency %), from a second generator so every other series stays as it was.
+    const lateN = sleepMin < 400 ? 40 : 0;
+    let night = { onset: Math.round(675 + (rand2() - 0.5) * 80 + lateN + (rand2() < 0.12 ? 70 : 0)),
+      share: Math.round((0.38 + (rand2() - 0.5) * 0.12) * 1000) / 1000, eff: Math.round(89 + (rand2() - 0.5) * 9) };
+    if (i === 24) night = { onset: 790, share: 0.31, eff: 84 };          // travel: late, light, broken
+    else if (i === 52) night = { onset: 710, share: 0.33, eff: 82 };     // illness: restless
+    else if (i === 74) night = { onset: 650, share: 0.44, eff: 95 };     // peak night
+    else if (i === 81) night = { onset: 760, share: 0.27, eff: 80 };     // 4 Nov (PD1's poor day): late, short, light
+    else if (i === 89) night = { onset: 680, share: 0.466, eff: 95 };    // today: HYPNOGRAM (deep 1h35, REM 1h50 of 7h20; awake 22m)
 
     days.push({
       index: i,
@@ -127,9 +139,10 @@
       dowName,
       label,
       shortDate,
-      dailyScore: i === 89 ? 84 : (i === 81 ? 56 : dailyScore),
-      recovery: i === 89 ? 86 : (i === 81 ? 52 : recovery),
-      readiness: i === 89 ? 86 : (i === 81 ? 54 : readiness),
+      dailyScore: null,   // BD5: sleep score, readiness, recovery and daily score come from the shipped formulas below
+      recovery: null,
+      readiness: null,
+      night,
       sleepScore,
       sleepMin,
       sleepFormatted: formatSleep(sleepMin),
@@ -142,6 +155,31 @@
       outlierMetric
     });
   }
+
+  // BD5: the scores the app computes (scores.js: the app's formulas; the sleep score is S2, the proposed stricter one,
+  // unless ?sleep=app), each day against the days before it. The band was worn before 15 Aug: the first days take the
+  // first week as their history, so every day has a score.
+  const SC = window.SCORES, mean = (a) => a.reduce((s, x) => s + x, 0) / a.length;
+  const nightMid = (d) => d.night.onset + d.sleepMin / 2;
+  days.forEach((d, i) => {
+    const hist = (n) => (i >= 3 ? days.slice(Math.max(0, i - n), i) : days.slice(0, 7).filter((x) => x !== d));
+    const mids = hist(14).map(nightMid).sort((a, b) => a - b), n = mids.length;
+    const med = n % 2 ? mids[n >> 1] : (mids[n / 2 - 1] + mids[n / 2]) / 2;
+    const nt = { min: d.sleepMin, share: d.night.share, eff: d.night.eff, off: Math.abs(nightMid(d) - med), onset: d.night.onset };
+    const sl = SC.sleep(nt);
+    d.night.off = Math.round(nt.off);
+    d.sleepScore = sl.score;
+    d.sleepParts = sl.parts;
+    d.sleepScoreApp = SC.sleepApp(nt).score;
+    const p30 = hist(30), base = { hrv: mean(p30.map((x) => x.hrv)), rhr: mean(p30.map((x) => x.rhr)) };
+    const td = Math.round((d.skinTemp - mean(p30.map((x) => x.skinTemp))) * 100) / 100;
+    const r = SC.readiness({ hrv: d.hrv, rhr: d.rhr, sleepScore: d.sleepScore, spo2: d.spo2, tempDelta: td }, base);
+    d.readiness = r.score;
+    d.readinessParts = r.pts;
+    d.readyBase = { hrv: Math.round(base.hrv), rhr: Math.round(base.rhr), tempDelta: td, tempFar: r.far };
+    d.recovery = SC.recovery(d.hrv, d.rhr);
+    d.dailyScore = SC.daily(d.readiness, d.sleepScore, d.strain);
+  });
 
   // Compute 3-day rolling averages for every numeric metric
   const metricKeys = ['dailyScore', 'recovery', 'readiness', 'sleepScore', 'sleepMin', 'strain', 'hrv', 'rhr', 'steps', 'spo2', 'skinTemp'];
@@ -342,6 +380,30 @@
       'That drove your 86 Recovery score this morning.'
     ]
   };
+
+  // BD5: "your normal" for readiness is the app's (MetricInsights.baseline): the 30 days before today, mean ± max(SD, 3).
+  // One source: every board reads it from here (was 79 / 72–85 by hand here and 76 on Today and Coach).
+  {
+    const R = METRICS.readiness, t = days[89], nm = SC.normal(days.slice(59, 89).map((d) => d.readiness), 3), dv = t.readiness - nm.avg;
+    Object.assign(R, { current: t.readiness, avg30: nm.avg, normalMin: nm.lo, normalMax: nm.hi, normalText: `${nm.lo}–${nm.hi} normal`,
+      context: t.readiness > nm.hi ? `↑ ${dv} vs normal` : t.readiness < nm.lo ? `↓ ${-dv} vs normal` : 'Within normal',
+      trendDir: dv >= 0 ? 'up' : 'down' });
+  }
+
+  // BD6: today before the morning check. The app scores readiness with the overnight HRV until the check replaces it
+  // (DayMetrics.scoreHrvMs): 51 ms overnight gives 79 (partly cloudy), the check's 64 ms gives 90 (fair): the sky clears.
+  {
+    const t = days[89], b = t.readyBase, base = { hrv: mean(days.slice(59, 89).map((x) => x.hrv)), rhr: mean(days.slice(59, 89).map((x) => x.rhr)) };
+    t.hrvOvernight = 51;
+    t.readinessOvernight = SC.readiness({ hrv: t.hrvOvernight, rhr: t.rhr, sleepScore: t.sleepScore, spo2: t.spo2, tempDelta: b.tempDelta }, base).score;
+    const usual = Math.round(mean(days.slice(59, 89).map((x) => x.sleepMin))), dm = t.sleepMin - usual;
+    t.sleepUsual = usual;
+    t.sleepSub = dm === 0 ? 'as usual' : `${Math.abs(dm)} min ${dm > 0 ? 'more' : 'less'} than usual`;
+  }
+
+  // "9 below your normal 81" (short: without the number), from the one normal above.
+  window.vsNormal = (r, short) => { const N = METRICS.readiness.avg30, d = r - N;
+    return d === 0 ? `at your normal${short ? '' : ' ' + N}` : `${Math.abs(d)} ${d > 0 ? 'above' : 'below'} your normal${short ? '' : ' ' + N}`; };
 
   window.HEALTH_DATA = {
     days,

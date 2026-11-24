@@ -32,7 +32,7 @@
   <p>S3's sleep and bedtime charts were hard to read: 30 tall bars each, side by side. <b>Sleep</b> is now a line over your normal band, with a dot on the night shown. <b>Bedtime and wake</b> comes in two versions to compare. <b>A · Two lines</b>: falling asleep and waking as two lines on the clock, the night between them softly filled, and late nights (asleep after midnight) as hollow dots on the bedtime line. <b>B · Bars</b>: S3's bars, unchanged. Everything else is as in S3: tap a night in a chart to open it.</p>
 </header>
 <section class="dir"><div class="sheet" id="sheet"></div><div class="phones"><figure><div id="live"></div><figcaption>A · Bedtime and wake as two lines</figcaption></figure><figure><div id="live2"></div><figcaption>B · Bedtime and wake as bars (S3)</figcaption></figure></div></section>
-<script src="data.js"></script>
+<script src="scores.js"></script><script src="data.js"></script>
 <script>
 const HD = window.HEALTH_DATA, days = HD.days, LAST = 89, FIRST = LAST - 29;
 const hm = m => `${Math.floor(m / 60)}<span class="u">h</span>${String(Math.round(m % 60)).padStart(2, '0')}<span class="u">m</span>`, hmT = m => m >= 60 ? `${Math.floor(m / 60)}h ${String(Math.round(m % 60)).padStart(2, '0')}m` : `${Math.round(m)}m`;

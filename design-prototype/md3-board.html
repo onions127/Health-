@@ -30,7 +30,7 @@
   <p>The approved metric page (MD1 A with MD2's five ranges) for the metrics that work differently from HRV: a score (Readiness, with how it is made), a logged value (Weight, with Log / Edit / Delete) and a difference (Skin temperature). Month range shown; the other ranges follow MD2. Prototype data from <code>data.js</code> (today = 12 Nov there); weight entries are made up.</p>
 </header>
 <main id="board"></main>
-<script src="data.js"></script>
+<script src="scores.js"></script><script src="data.js"></script>
 <script src="night.js"></script>
 <script>
 const HD = window.HEALTH_DATA, days = HD.days, MT = HD.METRICS;
@@ -100,7 +100,7 @@ const glyph = (v, w = 26, wx) => { const st = ` stroke="${P.primary}" stroke-wid
 // BD4: a day's weather from its body, as BodySky: likely illness when skin temp >= +0.5 and resting HR >= +5 over the 30 days before (storm under 35), haze at +0.3 / +3
 const wxOf = (d, ready) => { const prev = days.slice(Math.max(0, d.index - 30), d.index), usual = prev.length ? prev.reduce((a, x) => a + x.rhr, 0) / prev.length : d.rhr, dR = d.rhr - Math.round(usual);
   return d.skinTemp >= .5 && dR >= 5 ? (ready < 35 ? 'storm' : 'rain') : d.skinTemp >= .3 && dR >= 3 ? 'haze' : null; };
-const READY_FIX = { '6 Oct': 49 };   // the shipped formula's score where data.js's hand-set one is far off and the day is shown with its parts (6 Oct: 63 hand-set)
+const READY_FIX = {};   // BD5: empty; data.js now scores every day with the app's formulas (6 Oct was hand-set 63, then fixed to 49 here)
 function calendar(selDate, o = {}) { const g = o.g || G.day1510, byDay = {};   // BD1: o = { g, img, ready, wx, count } for a bad today
   const mon = o.month || 'Nov', MONTH = { Oct: ['October', 3, 31], Nov: ['November', 6, 30] }[mon];   // BD4: lead days (weeks start on Monday): 1 Oct 2026 is a Thursday, 1 Nov a Sunday
   days.filter(d => d.monthName === mon).forEach(d => byDay[d.dayNum] = d);
@@ -214,7 +214,7 @@ function pageA5(range) { const g = G.day1510, R = RANGES[range]();
     + `<div class="glass" style="${glass(g)};top:${R.note ? 762 : 712}px;left:12px;right:12px;height:64px;padding:0 16px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:15px">${R.avg[0]}</div><div style="font-size:12.5px;color:${P.secondary}">${R.avg[1]}</div></div><div style="font-size:15px;font-weight:500">${R.avg[2]}</div></div>`);
 }
 // ---- MD3: Readiness, Weight, Skin temperature on the MD2 page ----
-const D30 = POOR ? days.slice(52, 82).map(d => ({ ...d })) : days.slice(-30); if (POOR) Object.assign(D30[29], { readiness: 58, label: 'Today', shortDate: 'Today' }); const T0 = POOR ? D30[29] : days[days.length - 1]; window.T0R = T0;
+const D30 = POOR ? days.slice(52, 82).map(d => ({ ...d })) : days.slice(-30); if (POOR) Object.assign(D30[29], { label: 'Today', shortDate: 'Today' }); const T0 = POOR ? D30[29] : days[days.length - 1]; window.T0R = T0;
 const cardAt = (g, top, inner, pad = '12px 16px 10px') => `<div class="glass" style="${glass(g)};top:${top}px;left:12px;right:12px;padding:${pad}">${inner}</div>`;
 // BD2: on the sky the word and arrow take the sky ink; coral and green stay on the glass (coral on the illness and storm skies measured 2.34 and 1.99)
 const heroU = (v, unit, word, detail) => `<div class="abs" style="top:112px;left:22px;right:${SKY_RIGHT(40)}px;color:${P.primary}"><div style="font-size:72px;font-weight:300;line-height:1;letter-spacing:-0.035em;margin-left:-3px">${v}<span style="font-size:.4em;letter-spacing:0;margin-left:6px">${unit}</span></div><div style="font-size:23px;line-height:1.25;margin-top:8px">${skyInk(word)}</div><div style="font-size:15px;line-height:1.35;margin-top:4px">${detail}</div></div>`;
@@ -240,9 +240,8 @@ function readinessPage(bd) { const g = bd ? bd.g : G.day1510, R = MT.readiness, 
       vit = Math.min(100, Math.max(20, 95 - (far ? 25 : 0) - (T0.spo2 < 95 ? (95 - T0.spo2) * 8 : 0))), ex = [.4 * hv, .25 * rv, .25 * T0.sleepScore, .1 * vit], sc = Math.round(ex.reduce((a, b) => a + b, 0));
     const fl = ex.map(Math.floor); let left = sc - fl.reduce((a, b) => a + b, 0); ex.map((e, i) => [e - fl[i], i]).sort((a, b) => b[0] - a[0]).forEach(([, i]) => { if (left > 0) { fl[i]++; left--; } });
     bd.pts = fl; bd.vit = `SpO₂ ${T0.spo2}%${T0.spo2 < 95 ? ' (below 95%)' : ''} · skin temp ${far ? 'far from' : 'near'} your average`; if (sc !== T0.readiness) console.error('BD1 score', sc, T0.readiness); }
-  if (POOR) { const hv = Math.min(100, Math.max(20, 75 + (T0.hrv / MT.hrv.avg30 - 1) * 125)), rv = Math.min(100, Math.max(20, 78 + (MT.rhr.avg30 - T0.rhr) * 4.5)), ex = [.4 * hv, .25 * rv, .25 * T0.sleepScore, .1 * 95], sc = Math.round(ex.reduce((a, b) => a + b, 0));
-    const fl = ex.map(Math.floor); let left = sc - fl.reduce((a, b) => a + b, 0); ex.map((e, i) => [e - fl[i], i]).sort((a, b) => b[0] - a[0]).forEach(([, i]) => { if (left > 0) { fl[i]++; left--; } }); T0.readiness = sc; window.PD1_PTS = fl; }
-  const PT = bd ? bd.pts : POOR ? PD1_PTS : [34, 22, 21, 9], parts = [['HRV vs your average', PT[0], `${T0.hrv} ms vs your ${MT.hrv.avg30}`], ['Resting HR vs your average', PT[1], `${T0.rhr} bpm, your average ${MT.rhr.avg30}`], ['Sleep', PT[2], `Sleep score ${T0.sleepScore}`], ['Blood oxygen and skin temp', PT[3], bd ? bd.vit : `SpO₂ ${T0.spo2}% · skin temp near your average`]];
+  if (POOR) window.PD1_PTS = T0.readinessParts;   // BD5: 4 Nov's own score and parts from data.js (it recomputed against fixed bases)
+  const PT = bd ? bd.pts : POOR ? PD1_PTS : T0.readinessParts, RB = POOR ? T0.readyBase : { hrv: MT.hrv.avg30, rhr: MT.rhr.avg30 }, parts = [['HRV vs your average', PT[0], `${T0.hrv} ms vs your ${RB.hrv}`], ['Resting HR vs your average', PT[1], `${T0.rhr} bpm, your average ${RB.rhr}`], ['Sleep', PT[2], `Sleep score ${T0.sleepScore}`], ['Blood oxygen and skin temp', PT[3], bd ? bd.vit : `SpO₂ ${T0.spo2}% · skin temp near your average`]];
   const op = [1, .7, .48, .3], total = parts.reduce((a, p) => a + p[1], 0);
   return shell(bd ? bd.img : ALT ? ALT_IMG : 'md1/day1510.png', g, head('Readiness', 'From your body this morning') + heroU(T0.readiness, '', stTag(st(T0.readiness)), `Today · your normal ${R.normalMin}–${R.normalMax}`) + seg5(g, 'Month')
     + cardAt(g, 452, `<div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:15px;font-weight:500">Today · ${T0.readiness}</div><div style="font-size:12.5px;color:${P.secondary}">30-day average ${R.avg30}</div></div><div style="margin-top:10px">${mchart(334, 96, { n: 30, lo, hi: 95, band: [R.normalMin, R.normalMax], grid, sel: 29, state: st, line: sm.map((x, i) => [i, x]), pts: v.map((x, i) => [i, x]) })}</div>`)
@@ -282,6 +281,7 @@ document.getElementById('board').appendChild(sec);
 if (POOR) uhSection('PD1 · Readiness on a poor day', 'The same page; the parts show where the points went: HRV and resting HR against your averages took most of them.', [[readinessPage(), 'Readiness 58: how it is made']]);
 if (window.BAD) {   // BD1: Readiness on the three bad days, and the Calendar on the illness days (15:10, each day's sky and glass)
   const K = BAD_K(), BODY = { hz: { readiness: 67, hrv: 52, rhr: 57, sleepScore: 70, spo2: 96, skinTemp: .4 }, vp: { readiness: 46, hrv: 38, rhr: 59, sleepScore: 42, spo2: 96, skinTemp: .1 }, ill: { readiness: 49, hrv: 44, rhr: 60, sleepScore: 56, spo2: 93, skinTemp: .8 }, st: { readiness: 34, hrv: 36, rhr: 64, sleepScore: 40, spo2: 93, skinTemp: 1.1 } };
+  Object.entries(BODY).forEach(([k, b]) => { const sl = SCORES.sleep(SCORES.BAD_NIGHTS[k]).score; if (sl !== b.sleepScore) console.error('BD5 sleep', k, sl, b.sleepScore); });   // BD5: each body's sleep score from its night
   const bdOf = day => { const D = days.slice(-30).map(d => ({ ...d })); Object.assign(D[29], BODY[day]); return { g: vp1G(day, K), img: badImg(day, K), D30: D, T0: D[29] }; };
   const NAME = { hz: 'The haze day', vp: 'A very poor day', ill: 'Likely illness', st: 'The storm day' }, AT = K === 'night' ? '23:10' : '15:10';
   addSection(`BD1 · Readiness on the bad days, ${AT}`, 'The same page. The chart’s scale drops to 30 so the day stays on it, ringed in coral below your normal. The parts follow the shipped formula: on the illness days the vitals part falls too (skin temp far from your average, SpO₂ under 95%) and says so.',
