@@ -441,6 +441,27 @@
     };
   }
 
+  // FW1: a new band. The same last 8 days, as if the band arrived on 5 Nov: each day knows only the days since then, with the
+  // app's minimums (readiness after 3 nights, normals after 7 days, a usual bedtime after 5 nights, sleep regularity from night 2).
+  {
+    const W = days.slice(82, 90), FW = [];
+    W.forEach((d, k) => {
+      const prior = W.slice(0, k), mids = prior.map((x) => x.night.onset + x.sleepMin / 2).sort((a, b) => a - b), n = mids.length;
+      const med = n ? (n % 2 ? mids[n >> 1] : (mids[n / 2 - 1] + mids[n / 2]) / 2) : null;
+      const sl = SC.sleep({ min: d.sleepMin, share: d.night.share, eff: d.night.eff, off: med == null ? 0 : Math.abs(d.night.onset + d.sleepMin / 2 - med), onset: d.night.onset }).score;
+      const ready = k >= 3 ? SC.readiness({ hrv: d.hrv, rhr: d.rhr, sleepScore: sl, spo2: d.spo2, tempDelta: d.skinTemp - mean(prior.map((x) => x.skinTemp)) },
+        { hrv: mean(prior.map((x) => x.hrv)), rhr: mean(prior.map((x) => x.rhr)) }).score : null;
+      const normal = k >= 7, hn = normal ? SC.normal(prior.map((x) => x.hrv), 3) : null, on = W.slice(0, k + 1).map((x) => x.night.onset).sort((a, b) => a - b);   // tonight's bedtime: the nights so far, this one included
+      FW.push({ day: k + 1, date: d.shortDate, dow: DOWS[d.dateObj.getDay()], readiness: ready, sleepScore: sl, sleepMin: d.sleepMin, hrv: d.hrv, rhr: d.rhr, spo2: d.spo2, steps: d.steps, strain: d.strain,
+        skinTemp: k >= 3 ? Math.round((d.skinTemp - mean(prior.map((x) => x.skinTemp))) * 10) / 10 : null, nights: k + 1,
+        hrvMin: normal ? hn.lo : null, hrvMax: normal ? hn.hi : null, rhrUsual: normal ? Math.round(mean(prior.map((x) => x.rhr))) : null,
+        sleepUsual: normal ? Math.round(mean(prior.map((x) => x.sleepMin))) : null, stepsUsual: normal ? Math.round(mean(prior.map((x) => x.steps))) : null,
+        strainUsual: normal ? Math.round(mean(prior.map((x) => x.strain))) : null, onsetUsual: on.length >= 5 ? (on.length % 2 ? on[on.length >> 1] : (on[on.length / 2 - 1] + on[on.length / 2]) / 2) : null });
+    });
+    FW.forEach((f, k) => { f.readyDays = FW.slice(0, k).filter((x) => x.readiness != null).length; });   // readiness's own normal needs 7 of them (day 11)
+    window.FIRST_WEEK = FW;
+  }
+
   // "9 below your normal 81" (short: without the number), from the one normal above.
   window.vsNormal = (r, short) => { const N = METRICS.readiness.avg30, d = r - N;
     return d === 0 ? `at your normal${short ? '' : ' ' + N}` : `${Math.abs(d)} ${d > 0 ? 'above' : 'below'} your normal${short ? '' : ' ' + N}`; };

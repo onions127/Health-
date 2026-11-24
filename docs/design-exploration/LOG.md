@@ -1465,3 +1465,25 @@ Load to converged 20.1 s (`loadT.js`; SH1 26.1 s): compile cost holds.
 **Board:** `cr1-board.html`; Coach on `co2-board.html` (also `?poor=1`, `?bad=1`). STOP.
 
 **Approved (2026-11-24):** CR1 as built (Coach's read from `coach-rules.js` on BodySky's thresholds; the four hand inconsistencies fixed).
+
+## FW1 · The first week (2026-11-24)
+
+**Asked:** continue. Open since UH1: what the sky, the hero and Coach show before a normal exists. Since BD5–CR1 the sky, Today and Coach all stand on normals, so this is where they have none.
+
+**The app's minimums** (`android-app/…/domain`): readiness after 3 nights of HRV and resting HR (`MIN_READINESS_BASE_DAYS`, so **day 4**); a skin-temp average after 3 nights; a normal after 7 days (`MIN_BASELINE_DAYS`, **day 8**); a usual bedtime after 5 trusted nights (`BedtimeReminder.MIN_TRUSTED`, **day 5**); sleep regularity scores 100 until there is a night before. Readiness's own normal needs 7 readiness days, so it arrives on **day 11**.
+
+**Built:**
+- **`data.js` `FIRST_WEEK`**: the last 8 days of the data as if the band arrived on 5 Nov, each day knowing only the days since then: day 1–3 no readiness (sleep 88, 89, 89), day 4 readiness **82**, day 5 78, day 6 85, day 7 90, day 8 **93** (HRV normal 54–60 from 7 days; it is 90 with the full history). Each scored with `scores.js` on its short history.
+- **`coach-rules.js`** without the usuals: no readiness → *Getting to know you.* (Sleep score 88 · readiness from day 4); readiness but no normal → the readiness rules, with "HRV 57 ms, your normal from day 8"; no usual day → *Learning your usual day.* (steps and strain, no pace); no usual strain → *A day done. Sleep on time.*; under 5 nights → *Aim for seven and a half hours.* (Your usual bedtime after 5 nights · 1 so far). Haze, rain and the storm need a usual resting HR, so they wait for day 8; BodySky already does the same when its inputs are missing.
+- **Today (`wt1-board.html?first=1`)**: the header reads "Day N with your band"; the week strip shows — for the days with no readiness and nothing before the band; Sleep tile "your first night" / "your usual from day 8"; Steps "learning your day". Day 4 and 8: the number and its word as usual, the detail "Readiness · your normal from day 11". **Day 1 has no number, two ways:** **A** says the day ("Day 1", *Getting to know you*, readiness from day 4 · after 3 nights); **B** leads with the only score there is (88, *Slept well*, sleep score · 6h 59m).
+- **Coach (`co2-board.html?first=1`)**: day 1, 4 and 8 at 07:15, and day 1 and day 5 at 23:10 (*Aim for seven and a half hours* → *Bed by 22:50 tonight*, the first usual bedtime). Example answers for "When will my readiness show?", "Is 82 good?", "What changed today?".
+
+**The sky:** a plain fair sky until there is a readiness (BodySky: "A plain fair sky: there is no readiness score yet today"); from day 4 the low cloud follows readiness; the high cloud and haze wait for the normals (day 8). All three stages here read fair, so the existing fair renders (`wt1/am0715f.png`, `co2/am0715.png`, `nt1/night.png`) are the right skies: no new renders. Same text boxes, so their measurements hold (Today 07:15: glass 3.79, sky 7.13, number 7.55; "Day 1" sits inside the number's box).
+
+**Found:** with only 3–7 days behind it, readiness runs high: day 8 is 93 against 90 with the full history (a short base sits lower). The first week will read "Ready" more often than later; the detail says the normal is still coming.
+
+**Shots:** `out/fw1-0…8.png`, sheet `out/fw1-sheet.png`. No page errors on wt1, co2 (also `?bad=1`), cr1.
+
+**Board:** `wt1-board.html?first=1`, `co2-board.html?first=1`. Pick A or B for day 1. STOP.
+
+**Approved (2026-11-24):** FW1 with **A** for day 1: the hero says the day ("Day 1", *Getting to know you*, readiness from day 4 · after 3 nights). B (leading with the sleep score) removed from the board.

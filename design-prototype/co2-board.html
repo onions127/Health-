@@ -153,6 +153,21 @@ window.CO2_NEW = 1;
     ['hz', 'vp', 'ill', 'st'].forEach((day, n) => { VP1_HOURS.forEach(([k, , h]) => Object.assign(HOURS[h], { img: badImg(day, k) }, L[day][h])); RULE(day);
       addSection(TT[day][0], TT[day][1], VP1_HOURS.map(([k, clock, h]) => { HOUR = h; window.NIGHT = k === 'night'; window.BOLT = day === 'st'; return [phone(HOURS[h].img, vp1G(day, k), 'chat'), `${clock} · ${HOURS[h].line}`]; }), !n); }); window.BOLT = false;
     window.NIGHT = TIME === 'night'; }
+  if (/[?&]first=1/.test(location.search)) {   // FW1: Coach in a new band's first week (data.js FIRST_WEEK, coach-rules.js without the usuals)
+    const FWD = FIRST_WEEK, QA = {
+      0: ['When will my readiness show?', 'On day 4. Readiness compares each morning with your own average, so it needs three nights of HRV and resting HR first. Sleep is scored from the first night.', 'From the band’s first night', ['What does the band measure?', 'Wear it at night?']],
+      3: ['Is 82 good?', 'It is a good morning against your first three nights. For a few weeks readiness is still learning you: your normal for it starts on day 11, after seven readiness days.', 'From HRV, resting HR and sleep, this morning', ['When is my normal ready?', 'What should I train?']],
+      7: ['What changed today?', 'You have a week of data now, so HRV, resting HR and steps have a normal, and the sky can show haze or rain if your body needs it. Today HRV is above it.', 'From your first seven days', ['What is my normal?', 'What should I train?']] };
+    const at = (k, h, img, g, steps, strain) => { HOUR = h; window.NIGHT = h > 21.5; const r = CoachRules.read({ ...FWD[k], steps, strain }, h);
+      Object.assign(HOURS[h], { img, line: r.line, detail: r.detail, rule: r.rule });
+      if (h < 12) Object.assign(HOURS[h], { q: QA[k][0], a: QA[k][1], foot: QA[k][2], chips: QA[k][3] });
+      else Object.assign(HOURS[h], { q: 'When should I sleep?', a: FWD[k].onsetUsual == null ? 'Seven and a half hours suits most adults. After five nights Coach knows when you usually fall asleep and can suggest a bedtime from that.' : 'Around your usual time keeps your sleep regular, and regular sleep scores better.', foot: FWD[k].onsetUsual == null ? 'From your first nights' : 'From your last nights', chips: ['Why does bedtime matter?', 'What about tomorrow?'] });
+      return [phone(img, g, 'chat'), `Day ${FWD[k].day} · ${HOURS[h].clock} · ${r.rule}`]; };
+    uhSection('FW1 · Coach in the first week', 'The same rules, before the usuals exist. Morning: no readiness yet says so; with readiness but no normal, the read stands on readiness alone. Afternoon and dusk: no pace or strain judgement until a usual day exists (day 8). Night: no bedtime until five nights give a usual one (day 5). Illness and haze wait for a usual resting HR.',
+      [at(0, 7.25, 'co2/am0715.png', G4[7.25], 240, 4), at(3, 7.25, 'co2/am0715.png', G4[7.25], 240, 4), at(7, 7.25, 'co2/am0715.png', G4[7.25], 240, 4),
+       at(0, 23.17, 'nt1/night.png', G4[23.17], FWD[0].steps, FWD[0].strain), at(4, 23.17, 'nt1/night.png', G4[23.17], FWD[4].steps, FWD[4].strain)]);
+    window.NIGHT = TIME === 'night';
+  }
   if (UH) { window.NIGHT = TIME === 'night'; HOUR = NIGHT ? 23.17 : 15.17; uhSection('UH1 · Coach offline', 'The read on the sky comes from rules on the phone, so it still works. A question with no connection gets the shipped fallback: the numbers it would rest on, from the phone, and Try again. The Claude app hand-off goes, since it needs the connection too.', [[phone(NIGHT ? 'nt1/night.png' : 'tr1/day1510.png', NIGHT ? N : D, 'offline'), 'No connection: your numbers, Try again']]); }
 })();
 </script>
