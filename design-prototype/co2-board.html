@@ -34,23 +34,24 @@
 <script src="night.js"></script>
 <script>
 const HD = window.HEALTH_DATA, t = HD.today, Mt = HD.METRICS, R = HD.COACH_RESPONSES;
+const HW = t.hrv > Mt.hrv.normalMax ? 'above' : t.hrv < Mt.hrv.normalMin ? 'below' : t.hrv === Mt.hrv.normalMax ? 'at the top of' : 'within';   // BD7: against the band as shown
 const rgba = (h, a) => `rgba(${[1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(',')},${a})`;
 const Q = Object.keys(R);   // the suggested questions, with their prototype answers
 let HOUR = 15.17;
 const read0 = { line: t.readiness >= 80 ? 'A good day to train hard.' : t.readiness >= 65 ? 'A steady day: train, but not to the limit.' : 'An easy day will pay off tomorrow.',
-  detail: `Readiness ${t.readiness} · HRV ${t.hrv} ms, ${t.hrv > Mt.hrv.normalMax ? 'above' : 'within'} your normal` };
+  detail: `Readiness ${t.readiness} · HRV ${t.hrv} ms, ${HW} your normal` };
 const HOURS = {
-  7.25: { clock: '07:15', img: 'co2/am0715.png', m: 'am0715', line: 'A good day to train hard.', detail: `Readiness ${t.readiness} · HRV ${t.hrv} ms, above your normal`,
+  7.25: { clock: '07:15', img: 'co2/am0715.png', m: 'am0715', line: 'A good day to train hard.', detail: `Readiness ${t.readiness} · HRV ${t.hrv} ms, ${HW} your normal`,
     q: 'Can I push hard today?', a: null, foot: 'From HRV and readiness, this morning', chips: ['What should I train?', 'How was my deep sleep?'] },
   15.17: { clock: '15:10', img: 'tr1/day1510.png', m: null, line: 'Ahead of your usual day. Keep it going.', detail: `${t.steps.toLocaleString('en-US')} steps by 15:10 · strain ${t.strain}, your usual ${Mt.strain.avg30}`,
     q: 'Can I push hard today?', a: null, foot: 'From HRV and readiness, this morning', chips: ['Is it too late for a run?', 'How was my deep sleep?'] },
   19.75: { clock: '19:45', img: 'co2/dusk1945.png', m: 'dusk1945', line: 'A hard day done. Ease off from here.', detail: `Strain ${t.strain}, above your usual ${Mt.strain.avg30} · readiness was ${t.readiness}`,
-    q: 'Will I recover by tomorrow?', a: `Likely. You trained hard (strain ${t.strain}, above your usual ${Mt.strain.avg30}), but your HRV was ${t.hrv} ms this morning, above your normal. Sleep seven hours or more and tomorrow should read steady or better.`, foot: 'From strain, HRV and your usual sleep', chips: ['How should I wind down?', 'When should I sleep?'] },
+    q: 'Will I recover by tomorrow?', a: `Likely. You trained hard (strain ${t.strain}, above your usual ${Mt.strain.avg30}), but your HRV was ${t.hrv} ms this morning, ${HW} your normal. Sleep seven hours or more and tomorrow should read steady or better.`, foot: 'From strain, HRV and your usual sleep', chips: ['How should I wind down?', 'When should I sleep?'] },
   23.17: { clock: '23:10', img: 'nt1/night.png', m: 'night', line: 'Bed by 23:30 tonight.', detail: 'Keeps your sleep on track · you usually fall asleep at 23:10',
     q: 'How did today go?', a: `A strong day: readiness ${t.readiness}, ${t.steps.toLocaleString('en-US')} steps and strain ${t.strain}. Your heart rate is settling toward your resting ${t.rhr} bpm.`, foot: 'From readiness, steps, strain and heart rate today', chips: ['Why does bedtime matter?', 'What about tomorrow?'] } };
 // PD1: a poor day (readiness 58; HRV 46 below your normal, resting HR 58 above it, 6h 05m asleep, skin +0.4): the read eases off all day
 if (POOR) Object.assign(HOURS[7.25], { img: 'pd1/am0715.png', line: 'An easy day will pay off tomorrow.', detail: 'Readiness 58 · HRV 46 ms, below your normal',
-    q: 'Should I still train?', a: 'Keep it light. Your HRV is 46 ms, below your normal 55–63, and resting HR is 58, above it. A walk or an easy spin is fine; save hard sessions for a day that reads steady or better.', foot: 'From HRV, resting HR and sleep, this morning', chips: ['Why is my HRV low?', 'What helps most today?'] }),
+    q: 'Should I still train?', a: 'Keep it light. Your HRV is 46 ms, below your normal ' + Mt.hrv.normalMin + '–' + Mt.hrv.normalMax + ', and resting HR is 58, above it. A walk or an easy spin is fine; save hard sessions for a day that reads steady or better.', foot: 'From HRV, resting HR and sleep, this morning', chips: ['Why is my HRV low?', 'What helps most today?'] }),
   Object.assign(HOURS[15.17], { img: 'pd1/day1510.png', line: 'Easy so far. Keep it that way.', detail: '3,240 steps by 15:10 · strain 31, your usual 75',
     q: 'Can I go for a run later?', a: 'A short, easy one, if you feel like it: keep it conversational. Your body read 58 this morning, so today is for recovery, not fitness.', foot: 'From readiness and strain so far', chips: ['How easy is easy?', 'Why is my HRV low?'] }),
   Object.assign(HOURS[19.75], { img: 'pd1/dusk1945.png', line: 'An easy day done. An early night next.', detail: 'Strain 49, under your usual 75 · readiness was 58',
@@ -58,7 +59,7 @@ if (POOR) Object.assign(HOURS[7.25], { img: 'pd1/am0715.png', line: 'An easy day
   Object.assign(HOURS[23.17], { img: 'pd1/night.png', line: 'Bed by 23:00 tonight.', detail: 'Half an hour early: last night was short, 6h 05m',
     q: 'How did today go?', a: 'Easy, as planned: 4,820 steps and strain 49. Tonight matters most: aim for seven hours or more.', foot: 'From steps, strain and last night’s sleep', chips: ['Why does bedtime matter?', 'What about tomorrow?'] });
 const H = () => HOURS[HOUR], read = { get line() { return HOUR === 15.17 && !window.CO2_NEW ? read0.line : H().line; }, get detail() { return H().detail; } };
-const points = [['Readiness', `${t.readiness}`, `${Math.abs(t.readiness - Mt.readiness.avg30)} above your usual ${Mt.readiness.avg30}`], ['HRV', `${t.hrv} ms`, `above your normal ${Mt.hrv.normalMin}–${Mt.hrv.normalMax}`], ['Sleep', HD.formatSleep(t.sleepMin), `score ${t.sleepScore}, deep sleep 1h 35m`]];
+const points = [['Readiness', `${t.readiness}`, `${Math.abs(t.readiness - Mt.readiness.avg30)} above your usual ${Mt.readiness.avg30}`], ['HRV', `${t.hrv} ms`, `${HW} your normal ${Mt.hrv.normalMin}–${Mt.hrv.normalMax}`], ['Sleep', HD.formatSleep(t.sleepMin), `score ${t.sleepScore}, deep sleep 1h 35m`]];
 const send = c => `<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6" fill="none" stroke="${c}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const out = c => `<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-2px"><path d="M5 11 11 5M6 5h5v5" fill="none" stroke="${c}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 function phone(img, g, kind) {
@@ -75,7 +76,7 @@ function phone(img, g, kind) {
   const nav = `<nav class="nav" style="background:${rgba(g.tint, g.navA)};color:${P.secondary};border-top-color:${navEdge(g)};${glassFx(g).split(';box-shadow')[0]}">${['Today', 'Sleep', 'Trends', 'Coach'].map(l => `<span class="${l === 'Coach' ? 'on' : ''}" style="${l === 'Coach' ? 'color:' + P.primary : ''}">${l}</span>`).join('')}</nav>`;
   let body = '';
   if (kind === 'offline') {
-    body = `<div class="abs" style="top:384px;left:12px;right:12px;display:flex;flex-direction:column;gap:10px">${me(H().q)}${coach(`Coach is offline, so here are your numbers: readiness ${t.readiness}, ${t.readiness - Mt.readiness.avg30} above your usual; HRV ${t.hrv} ms, above your normal ${Mt.hrv.normalMin}–${Mt.hrv.normalMax}; sleep ${HD.formatSleep(t.sleepMin)}, score ${t.sleepScore}.`, 'From this phone · nothing was sent')}</div>`
+    body = `<div class="abs" style="top:384px;left:12px;right:12px;display:flex;flex-direction:column;gap:10px">${me(H().q)}${coach(`Coach is offline, so here are your numbers: readiness ${t.readiness}, ${t.readiness - Mt.readiness.avg30} above your usual; HRV ${t.hrv} ms, ${HW} your normal ${Mt.hrv.normalMin}–${Mt.hrv.normalMax}; sleep ${HD.formatSleep(t.sleepMin)}, score ${t.sleepScore}.`, 'From this phone · nothing was sent')}</div>`
       + chips(['Try again'], 628, false) + `<div class="abs" style="top:684px;left:24px;font-size:13px;color:${P.secondary};height:48px;display:flex;align-items:center">No connection · the read on the sky works offline</div>` + input(772);
   } else if (kind === 'chat') {
     body = `<div class="abs" style="top:384px;left:12px;right:12px;display:flex;flex-direction:column;gap:10px">
@@ -111,7 +112,7 @@ window.CO2_NEW = 1;
   if (BAD) {   // VP1: Coach through a very poor day and through likely illness (rest all day; illness names the signs and when to see a doctor)
     const L = {
       vp: { 7.25: { line: 'Rest today.', detail: 'Readiness 46 · HRV 38 ms, well under your normal',
-          q: 'Should I still train?', a: 'Not today. Your HRV is 38 ms, well under your normal 55–63, resting HR is 59, above it, and you slept 4h 40m. A short walk is fine; leave training for a day that reads steady.', foot: 'From HRV, resting HR and sleep, this morning', chips: ['Why is my HRV so low?', 'Can I nap today?'] },
+          q: 'Should I still train?', a: 'Not today. Your HRV is 38 ms, well under your normal ' + Mt.hrv.normalMin + '–' + Mt.hrv.normalMax + ', resting HR is 59, above it, and you slept 4h 40m. A short walk is fine; leave training for a day that reads steady.', foot: 'From HRV, resting HR and sleep, this morning', chips: ['Why is my HRV so low?', 'Can I nap today?'] },
         15.17: { line: 'Resting so far. Good.', detail: '2,900 steps by 15:10 · strain 24, your usual 75',
           q: 'Can I nap?', a: 'A short one helps: 20 to 30 minutes, before 16:00, so it does not push back tonight’s sleep. Last night was 4h 40m, so tonight matters most.', foot: 'From last night’s sleep and your usual bedtime', chips: ['How do I catch up on sleep?', 'Why is my HRV so low?'] },
         19.75: { line: 'A quiet day done. Sleep early.', detail: 'Strain 31, under your usual 75 · readiness was 46',

@@ -365,7 +365,7 @@
 
   const COACH_RESPONSES = {
     'Can I push hard today?': [
-      'Yes. Your HRV reached 64 ms, 8% above normal.',
+      'Yes. Your HRV reached 64 ms, 8% above your average.',
       'Deep sleep hit 1h 35m and RHR dropped to 52 bpm.',
       'Target high-intensity intervals or heavy lifting today.'
     ],
@@ -388,6 +388,27 @@
     Object.assign(R, { current: t.readiness, avg30: nm.avg, normalMin: nm.lo, normalMax: nm.hi, normalText: `${nm.lo}–${nm.hi} normal`,
       context: t.readiness > nm.hi ? `↑ ${dv} vs normal` : t.readiness < nm.lo ? `↓ ${-dv} vs normal` : 'Within normal',
       trendDir: dv >= 0 ? 'up' : 'down' });
+  }
+
+  // BD7: every metric's normal is the app's too (MetricInsights.baseline: the 30 days before today, mean ± max(SD, the
+  // metric's floor); skin temp is centred on 0, its half-width from the distance to 0). They were set by hand
+  // (HRV 55–63, resting HR 51–56, sleep 6h 50m–7h 45m, steps 7k–10k, SpO2 95–99, strain 65–82, skin ±0.3).
+  {
+    const prior = days.slice(59, 89), t = days[89], r = (x, q) => Math.round(x / q) * q;
+    const spec = { hrv: ['hrv', 3, 1, ' ms'], rhr: ['rhr', 2, 1, ' bpm'], sleep: ['sleepMin', 20, 1, ''], steps: ['steps', 'pct10', 10, ''],
+      spo2: ['spo2', 1, 1, '%'], strain: ['strain', 3, 1, ''] };
+    for (const [id, [k, fl, q, unit]] of Object.entries(spec)) {
+      const M = METRICS[id], v = prior.map((d) => d[k]), m = mean(v), sd = Math.sqrt(mean(v.map((x) => (x - m) ** 2)));
+      const hw = Math.max(sd, fl === 'pct10' ? m * 0.1 : fl), lo = r(m - hw, q), hi = r(m + hw, q), now = t[k], out = now > hi || now < lo;   // against the band as shown (the app tests the unrounded one: see LOG BD7)
+      const pct = Math.round((now - m) / m * 100), fmt = id === 'sleep' ? formatSleep : id === 'steps' ? (x) => (x / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : (x) => x;
+      Object.assign(M, { avg30: r(m, q), normalMin: lo, normalMax: hi, normalText: `${fmt(lo)}–${fmt(hi)}${unit} normal`,
+        context: out ? `${pct >= 0 ? '↑' : '↓'} ${Math.abs(pct)}% vs normal` : 'Within normal', trendDir: out ? (pct >= 0 ? 'up' : 'down') : 'steady' });
+      if (id === 'sleep') M.avg30Formatted = formatSleep(r(m, 1));
+    }
+    const S = METRICS.skinTemp, a = prior.map((d) => Math.abs(d.skinTemp)), am = mean(a), asd = Math.sqrt(mean(a.map((x) => (x - am) ** 2)));
+    const hiT = Math.round((am + Math.max(asd, 0.2)) * 10) / 10;
+    Object.assign(S, { avg30: Math.round(mean(prior.map((d) => d.skinTemp)) * 10) / 10, normalMin: -hiT, normalMax: hiT, normalText: `±${hiT} °C normal`,
+      context: Math.abs(t.skinTemp) > am + Math.max(asd, 0.2) ? `${t.skinTemp > 0 ? '↑' : '↓'} vs normal` : 'Within normal' });
   }
 
   // BD6: today before the morning check. The app scores readiness with the overnight HRV until the check replaces it

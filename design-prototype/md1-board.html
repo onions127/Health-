@@ -48,7 +48,7 @@ const S30 = days.slice(-30), V = S30.map(d => d.hrv), LO = MT.hrv.normalMin, HI 
 const SM = V.map((_, i) => { const w = V.slice(Math.max(0, i - 2), i + 1); return w.reduce((a, b) => a + b, 0) / w.length; });
 const iNov4 = S30.findIndex(d => d.shortDate === '4 Nov');
 const state = v => v > HI ? { up: 1, word: 'Above normal', col: GOOD } : v < LO ? { up: 0, word: 'Below normal', col: BAD } : { up: null, word: 'Within normal', col: P.primary };
-const tag = (v, extra = '') => { const s = state(v); return `<span style="color:${s.col};font-weight:500">${s.up === null ? '' : arrow(s.up) + ' '}${s.word}</span>${extra}`; };
+const tag = (v, extra = '', sky) => { const s = state(v); return `<span style="color:${sky || s.col};font-weight:500">${s.up === null ? '' : arrow(s.up) + ' '}${s.word}</span>${extra}`; };
 // a chart of the 30 days: band, smoothed line, daily dots (outside normal: ringed, in its colour), the picked day with a guide
 function chart(w, h, sel, o = {}) {
   const lo = 42, hi = 72, x = i => 4 + (w - 8) * i / 29, y = v => h - 4 - (h - 8) * (v - lo) / (hi - lo);
@@ -64,7 +64,7 @@ const seg = (g, on) => `<div class="glass" style="${glass(g)};top:384px;left:12p
 const head = (title, sub) => `<div class="abs" style="top:12px;left:20px;font:500 12px Roboto, 'Segoe UI';color:${P.primary}">15:10</div>
   <div class="abs" style="top:40px;left:6px;width:48px;height:48px;display:flex;align-items:center;justify-content:center;color:${P.primary}" aria-label="Back to Trends">${back}</div>
   <div class="abs" style="top:40px;left:56px;color:${P.primary}"><div style="font-size:19px;font-weight:500">${title}</div><div style="font-size:12px;margin-top:2px">${sub}</div></div>`;
-const hero = (v, detail) => `<div class="abs" style="top:112px;left:22px;color:${P.primary}"><div style="font-size:72px;font-weight:300;line-height:1;letter-spacing:-0.035em;margin-left:-3px">${v}<span style="font-size:.4em;letter-spacing:0;margin-left:6px">ms</span></div><div style="font-size:23px;line-height:1.25;margin-top:8px">${tag(v)}</div><div style="font-size:15px;line-height:1.35;margin-top:4px">${detail}</div></div>`;
+const hero = (v, detail) => `<div class="abs" style="top:112px;left:22px;color:${P.primary}"><div style="font-size:72px;font-weight:300;line-height:1;letter-spacing:-0.035em;margin-left:-3px">${v}<span style="font-size:.4em;letter-spacing:0;margin-left:6px">ms</span></div><div style="font-size:23px;line-height:1.25;margin-top:8px">${tag(v, '', 'currentColor')}</div><div style="font-size:15px;line-height:1.35;margin-top:4px">${detail}</div></div>`;
 const dayCard = (g, top, i, hint) => { const d = S30[i], v = V[i], low = Math.min(...V), today = i === 29;
   return `<div class="glass" style="${glass(g)};top:${top}px;left:12px;right:12px;padding:12px 16px">
     <div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-size:15px;font-weight:500">${today ? 'Today' : d.label}</div><div style="font-size:23px;font-weight:300">${v} ms</div></div>

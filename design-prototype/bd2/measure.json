@@ -39,21 +39,21 @@
      "secondary": "#2E4A62",
      "sky": "#0E2A43"
     },
-    "cardP": 6.46,
-    "cardS": 4.07,
-    "navS": 5.62,
+    "cardP": 6.48,
+    "cardS": 4.08,
+    "navS": 5.61,
     "skyMode": "light",
     "scrimT": "#FFFFFF",
     "scrimA": 0,
-    "sky": 6.45,
-    "hero": null,
+    "sky": 6.51,
+    "hero": 6.45,
     "btn": {
      "fill": "#0B5FA5",
      "ink": "#FFFFFF"
     },
-    "btnC": 3.76
+    "btnC": 3.68
    },
-   "pageL": 79.63851476656006,
+   "pageL": 79.62329904660422,
    "lightT": "#FFFFFF",
    "darkT": "#1E2929",
    "satD": 1
@@ -77,20 +77,20 @@
      "sky": "#F2F6FB"
     },
     "cardP": 9.68,
-    "cardS": 6.64,
-    "navS": 9.84,
+    "cardS": 6.63,
+    "navS": 9.85,
     "skyMode": "dark",
     "scrimT": "#142257",
     "scrimA": 0,
-    "sky": 4.08,
-    "hero": null,
+    "sky": 4.69,
+    "hero": 4.08,
     "btn": {
      "fill": "#FFFFFF",
      "ink": "#0B3A66"
     },
-    "btnC": 6.84
+    "btnC": 7.02
    },
-   "pageL": 18.377357749904434,
+   "pageL": 18.411019111729907,
    "lightT": "#FFFFFF",
    "darkT": "#142257",
    "satD": 1
@@ -114,20 +114,20 @@
      "sky": "#0E2A43"
     },
     "cardP": 6.55,
-    "cardS": 4.12,
+    "cardS": 4.13,
     "navS": 5.71,
     "skyMode": "light",
     "scrimT": "#FFFFFF",
     "scrimA": 0,
-    "sky": 5.6,
-    "hero": null,
+    "sky": 6.96,
+    "hero": 5.6,
     "btn": {
      "fill": "#0B5FA5",
      "ink": "#FFFFFF"
     },
-    "btnC": 3.18
+    "btnC": 3.11
    },
-   "pageL": 79.86125130248318,
+   "pageL": 79.8564260085616,
    "lightT": "#FFFFFF",
    "darkT": "#202828",
    "satD": 1
@@ -156,19 +156,19 @@
     "skyMode": "light",
     "scrimT": "#FFFFFF",
     "scrimA": 0.04,
-    "sky": 3.25,
-    "hero": null,
+    "sky": 3.45,
+    "hero": 3.26,
     "btn": {
      "fill": "#082F5A",
      "ink": "#FFFFFF"
     },
-    "btnC": 4.16
+    "btnC": 4.1
    },
-   "pageL": 54.58675183496308,
+   "pageL": 54.601920969300565,
    "lightT": "#FFFFFF",
    "darkT": "#222732",
    "satD": 1
   }
  },
- "note": "BD2: the haze-only day (readiness 67, skin +0.4, resting HR +3). g2.js FLOORS=3, glass y 236-851 + nav; sky text to x 380 by day, to x 262 at night. BD3: 07:15, and 19:45 with MODE=light (white glass at dusk). 15:10 re-rendered with 4,700 steps (BD3)."
+ "note": "BD2: the haze-only day (readiness 67, skin +0.4, resting HR +3). g2.js FLOORS=3, glass y 236-851 + nav; sky text to x 380 by day, to x 262 at night. BD3: 07:15, and 19:45 with MODE=light (white glass at dusk). 15:10 re-rendered with 4,700 steps (BD3). BD7: all four re-rendered with HRV normal 54-64 (the app's rule; was 55-63 by hand): the high cloud has fewer hooks. Steps usual 8,390."
 }

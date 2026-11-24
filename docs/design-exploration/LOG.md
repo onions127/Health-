@@ -1415,3 +1415,22 @@ Load to converged 20.1 s (`loadT.js`; SH1 26.1 s): compile cost holds.
 **Board:** `wt1-board.html`, `mc2-board.html`, `co2-board.html`. STOP.
 
 **Approved (2026-11-24):** BD6 as built (overnight HRV 51: readiness 79 before the morning check, 90 after; Today, the check and Coach on the data).
+
+## BD7 · Every normal from the data, and md1's hero word in the sky ink (2026-11-24)
+
+**Asked:** continue. Open: the other metrics' normals were still hand-set (BD5); `md1-board.html` drew its hero word in colour on the sky (since BD2).
+
+**Built:**
+- **`data.js`**: every metric's normal follows the app's rule (`MetricInsights.baseline`: the 30 days before today, mean ± max(SD, floor); skin temp centred on 0). Was → now: HRV 55–63 → **54–64 ms**, resting HR 51–56 → **52–56 bpm**, sleep 6h 50m–7h 45m → **6h 50m–7h 37m**, steps 7k–10k → **6.8k–10k** (average 8,240 → 8,390), SpO₂ 95–99 → **96–98%**, strain 65–82 → **66–84**, skin ±0.3 °C (unchanged). Text, chips and status read them.
+- **Hand ranges replaced:** the haze day's sky note on Today, the poor and very poor days' Coach answers (HRV "below your normal 55–63").
+- **md1:** the hero word ("Within normal") takes the sky ink; colour stays on the glass (chart, chip), as BD2's rule.
+
+**Found:**
+- **Today's HRV 64 is now the top of the band.** By the band as shown (54–64) it is within; the app tests the unrounded band (54.1–63.7) and would say "↑ 9% vs your normal" next to "54–64". The prototype tests the shown band everywhere: md1 "Within normal", the morning check "At the top of your normal (54–64)", Coach "HRV 64 ms, at the top of your normal" (it said "above"; its canned answer now says "8% above your average", which is true). The app fix is a lock item in TODOS.md.
+- **The haze day's sky moves with the HRV band.** BodySky draws HRV 52 against the band: 55–63 gave the HRV layer 0.45 (hooked streaks 0.88), 54–64 gives 0.16 (hooks 0.21). Re-rendered `bd2/hz-*.png` (four hours, BodySky with the new band and steps usual 8,390; g2.js as BD2/BD3): 07:15 white 22%, glass 4.13, sky 6.96; 15:10 22%, 4.08, 6.51; 19:45 white 30%, 3.19, sky 3.45 with the 4% veil; 23:10 land `#142257` 22%, 6.63, 4.69. The high cloud has fewer hooks and straighter streaks (`out/bd7-hz.png`, before above, after below); the sky note still names the streaks. The other bad days (HRV 36–46) sit past the bottom of either band, so their skies are unchanged.
+
+**Shots:** `TAG=bd7 BOARDS=wt1,co2,md3 node vp1.js`, `node md1.js`, `node co2.js`, `node mc2.js`; sheet `out/bd7-sheet.png`. No page errors on any live board.
+
+**Board:** `md1-board.html`, the haze day on `wt1` / `co2` / `md3` (`?bad=1`), `mc2-board.html`. STOP.
+
+**Approved (2026-11-24):** BD7 as built (every normal from the data; status against the band as shown; md1's hero word in the sky ink; the haze day re-rendered).
