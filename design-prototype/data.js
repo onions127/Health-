@@ -422,6 +422,25 @@
     t.sleepSub = dm === 0 ? 'as usual' : `${Math.abs(dm)} min ${dm > 0 ? 'more' : 'less'} than usual`;
   }
 
+  // CR1: the days the boards draw, as Coach's rules (coach-rules.js) read them: one body each, with steps and strain at the
+  // boards' four hours (07:15, 15:10, 19:45, 23:10). Today and 4 Nov (PD1) from the data; the others as built in VP1, ST1, BD2.
+  {
+    const p14 = days.slice(75, 89).map((d) => d.night.onset).sort((a, b) => a - b);
+    const base = { hrvMin: METRICS.hrv.normalMin, hrvMax: METRICS.hrv.normalMax, rhrUsual: METRICS.rhr.avg30, sleepUsual: days[89].sleepUsual || Math.round(mean(days.slice(59, 89).map((x) => x.sleepMin))),
+      stepsUsual: METRICS.steps.avg30, strainUsual: METRICS.strain.avg30, onsetUsual: (p14[6] + p14[7]) / 2 };
+    const d81 = days[81], t = days[89], day = (o) => ({ ...base, ...o });
+    window.COACH_DAYS = {
+      hours: [7.25, 15.17, 19.75, 23.17],
+      today: day({ readiness: t.readiness, hrv: t.hrv, rhr: t.rhr, skinTemp: t.skinTemp, sleepMin: t.sleepMin, steps: [240, t.steps, t.steps, t.steps], strain: [4, t.strain, t.strain, t.strain] }),
+      pd: day({ readiness: d81.readiness, hrv: d81.hrv, rhr: d81.rhr, skinTemp: d81.skinTemp, sleepMin: d81.sleepMin, steps: [300, 3240, 4500, d81.steps], strain: [5, 31, d81.strain, d81.strain] }),
+      hz: day({ readiness: 67, hrv: 52, rhr: 57, skinTemp: 0.4, sleepMin: 410, steps: [300, 4700, 7100, 7900], strain: [5, 36, 52, 58] }),
+      vp: day({ readiness: 46, hrv: 38, rhr: 59, skinTemp: 0.1, sleepMin: 280, steps: [180, 2900, 4100, 4600], strain: [3, 24, 31, 31] }),
+      ill: day({ readiness: 49, hrv: 44, rhr: 60, skinTemp: 0.8, sleepMin: 365, steps: [120, 2400, 3050, 3300], strain: [2, 20, 26, 26] }),
+      st: day({ readiness: 34, hrv: 36, rhr: 64, skinTemp: 1.1, sleepMin: 290, steps: [60, 1100, 1400, 1500], strain: [1, 9, 12, 14] }),
+      at: (b, i) => ({ ...b, steps: b.steps[i], strain: b.strain[i] })   // the body at the i-th hour
+    };
+  }
+
   // "9 below your normal 81" (short: without the number), from the one normal above.
   window.vsNormal = (r, short) => { const N = METRICS.readiness.avg30, d = r - N;
     return d === 0 ? `at your normal${short ? '' : ' ' + N}` : `${Math.abs(d)} ${d > 0 ? 'above' : 'below'} your normal${short ? '' : ' ' + N}`; };

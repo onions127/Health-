@@ -32,6 +32,7 @@
 <main id="board"></main>
 <script src="scores.js"></script><script src="data.js"></script>
 <script src="night.js"></script>
+<script src="body-sky.js"></script><script src="coach-rules.js"></script>
 <script>
 const HD = window.HEALTH_DATA, t = HD.today, Mt = HD.METRICS, R = HD.COACH_RESPONSES;
 const HW = t.hrv > Mt.hrv.normalMax ? 'above' : t.hrv < Mt.hrv.normalMin ? 'below' : t.hrv === Mt.hrv.normalMax ? 'at the top of' : 'within';   // BD7: against the band as shown
@@ -41,23 +42,26 @@ let HOUR = 15.17;
 const read0 = { line: t.readiness >= 80 ? 'A good day to train hard.' : t.readiness >= 65 ? 'A steady day: train, but not to the limit.' : 'An easy day will pay off tomorrow.',
   detail: `Readiness ${t.readiness} · HRV ${t.hrv} ms, ${HW} your normal` };
 const HOURS = {
-  7.25: { clock: '07:15', img: 'co2/am0715.png', m: 'am0715', line: 'A good day to train hard.', detail: `Readiness ${t.readiness} · HRV ${t.hrv} ms, ${HW} your normal`,
+  7.25: { clock: '07:15', img: 'co2/am0715.png', m: 'am0715', 
     q: 'Can I push hard today?', a: null, foot: 'From HRV and readiness, this morning', chips: ['What should I train?', 'How was my deep sleep?'] },
-  15.17: { clock: '15:10', img: 'tr1/day1510.png', m: null, line: 'Ahead of your usual day. Keep it going.', detail: `${t.steps.toLocaleString('en-US')} steps by 15:10 · strain ${t.strain}, your usual ${Mt.strain.avg30}`,
+  15.17: { clock: '15:10', img: 'tr1/day1510.png', m: null, 
     q: 'Can I push hard today?', a: null, foot: 'From HRV and readiness, this morning', chips: ['Is it too late for a run?', 'How was my deep sleep?'] },
-  19.75: { clock: '19:45', img: 'co2/dusk1945.png', m: 'dusk1945', line: 'A hard day done. Ease off from here.', detail: `Strain ${t.strain}, above your usual ${Mt.strain.avg30} · readiness was ${t.readiness}`,
-    q: 'Will I recover by tomorrow?', a: `Likely. You trained hard (strain ${t.strain}, above your usual ${Mt.strain.avg30}), but your HRV was ${t.hrv} ms this morning, ${HW} your normal. Sleep seven hours or more and tomorrow should read steady or better.`, foot: 'From strain, HRV and your usual sleep', chips: ['How should I wind down?', 'When should I sleep?'] },
-  23.17: { clock: '23:10', img: 'nt1/night.png', m: 'night', line: 'Bed by 23:30 tonight.', detail: 'Keeps your sleep on track · you usually fall asleep at 23:10',
+  19.75: { clock: '19:45', img: 'co2/dusk1945.png', m: 'dusk1945', 
+    q: 'Will I recover by tomorrow?', a: `Likely. A full day (strain ${t.strain}, near your usual ${Mt.strain.avg30}), and your HRV was ${t.hrv} ms this morning, ${HW} your normal. Sleep seven hours or more and tomorrow should read ready again.`, foot: 'From strain, HRV and your usual sleep', chips: ['How should I wind down?', 'When should I sleep?'] },
+  23.17: { clock: '23:10', img: 'nt1/night.png', m: 'night', 
     q: 'How did today go?', a: `A strong day: readiness ${t.readiness}, ${t.steps.toLocaleString('en-US')} steps and strain ${t.strain}. Your heart rate is settling toward your resting ${t.rhr} bpm.`, foot: 'From readiness, steps, strain and heart rate today', chips: ['Why does bedtime matter?', 'What about tomorrow?'] } };
 // PD1: a poor day (readiness 58; HRV 46 below your normal, resting HR 58 above it, 6h 05m asleep, skin +0.4): the read eases off all day
-if (POOR) Object.assign(HOURS[7.25], { img: 'pd1/am0715.png', line: 'An easy day will pay off tomorrow.', detail: 'Readiness 58 · HRV 46 ms, below your normal',
+if (POOR) Object.assign(HOURS[7.25], { img: 'pd1/am0715.png', 
     q: 'Should I still train?', a: 'Keep it light. Your HRV is 46 ms, below your normal ' + Mt.hrv.normalMin + '–' + Mt.hrv.normalMax + ', and resting HR is 58, above it. A walk or an easy spin is fine; save hard sessions for a day that reads steady or better.', foot: 'From HRV, resting HR and sleep, this morning', chips: ['Why is my HRV low?', 'What helps most today?'] }),
-  Object.assign(HOURS[15.17], { img: 'pd1/day1510.png', line: 'Easy so far. Keep it that way.', detail: '3,240 steps by 15:10 · strain 31, your usual 75',
+  Object.assign(HOURS[15.17], { img: 'pd1/day1510.png', 
     q: 'Can I go for a run later?', a: 'A short, easy one, if you feel like it: keep it conversational. Your body read 58 this morning, so today is for recovery, not fitness.', foot: 'From readiness and strain so far', chips: ['How easy is easy?', 'Why is my HRV low?'] }),
-  Object.assign(HOURS[19.75], { img: 'pd1/dusk1945.png', line: 'An easy day done. An early night next.', detail: 'Strain 49, under your usual 75 · readiness was 58',
+  Object.assign(HOURS[19.75], { img: 'pd1/dusk1945.png', 
     q: 'Will I recover by tomorrow?', a: 'An easy day and a full night usually lift HRV. If skin temperature and resting HR are still up tomorrow, take another easy day.', foot: 'From strain, HRV, resting HR and skin temperature', chips: ['How should I wind down?', 'When should I sleep?'] }),
-  Object.assign(HOURS[23.17], { img: 'pd1/night.png', line: 'Bed by 23:00 tonight.', detail: 'Half an hour early: last night was short, 6h 05m',
+  Object.assign(HOURS[23.17], { img: 'pd1/night.png', 
     q: 'How did today go?', a: 'Easy, as planned: 4,820 steps and strain 49. Tonight matters most: aim for seven hours or more.', foot: 'From steps, strain and last night’s sleep', chips: ['Why does bedtime matter?', 'What about tomorrow?'] });
+// CR1: the read (line + detail) comes from the rules (coach-rules.js) for the day's body (data.js COACH_DAYS)
+const RULE = key => COACH_DAYS.hours.forEach((h, i) => { const r = CoachRules.read(COACH_DAYS.at(COACH_DAYS[key], i), h); Object.assign(HOURS[h], { line: r.line, detail: r.detail, rule: r.rule }); });
+RULE(POOR ? 'pd' : 'today');
 const H = () => HOURS[HOUR], read = { get line() { return HOUR === 15.17 && !window.CO2_NEW ? read0.line : H().line; }, get detail() { return H().detail; } };
 const points = [['Readiness', `${t.readiness}`, `${Math.abs(t.readiness - Mt.readiness.avg30)} above your usual ${Mt.readiness.avg30}`], ['HRV', `${t.hrv} ms`, `${HW} your normal ${Mt.hrv.normalMin}–${Mt.hrv.normalMax}`], ['Sleep', HD.formatSleep(t.sleepMin), `score ${t.sleepScore}, deep sleep 1h 35m`]];
 const send = c => `<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6" fill="none" stroke="${c}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
@@ -111,42 +115,42 @@ window.CO2_NEW = 1;
     Object.keys(HOURS).map(h => { HOUR = +h; window.NIGHT = h === '23.17'; return [phone(HOURS[h].img, G4[h], 'chat'), `${HOURS[h].clock} · ${HOURS[h].line}`]; }));
   if (BAD) {   // VP1: Coach through a very poor day and through likely illness (rest all day; illness names the signs and when to see a doctor)
     const L = {
-      vp: { 7.25: { line: 'Rest today.', detail: 'Readiness 46 · HRV 38 ms, well under your normal',
+      vp: { 7.25: { 
           q: 'Should I still train?', a: 'Not today. Your HRV is 38 ms, well under your normal ' + Mt.hrv.normalMin + '–' + Mt.hrv.normalMax + ', resting HR is 59, above it, and you slept 4h 40m. A short walk is fine; leave training for a day that reads steady.', foot: 'From HRV, resting HR and sleep, this morning', chips: ['Why is my HRV so low?', 'Can I nap today?'] },
-        15.17: { line: 'Resting so far. Good.', detail: '2,900 steps by 15:10 · strain 24, your usual 75',
+        15.17: { 
           q: 'Can I nap?', a: 'A short one helps: 20 to 30 minutes, before 16:00, so it does not push back tonight’s sleep. Last night was 4h 40m, so tonight matters most.', foot: 'From last night’s sleep and your usual bedtime', chips: ['How do I catch up on sleep?', 'Why is my HRV so low?'] },
-        19.75: { line: 'A quiet day done. Sleep early.', detail: 'Strain 31, under your usual 75 · readiness was 46',
+        19.75: { 
           q: 'Will I recover by tomorrow?', a: 'A full night does the most: last night was 4h 40m. Aim for eight hours tonight; HRV usually climbs back over a night or two.', foot: 'From sleep, HRV and strain', chips: ['How should I wind down?', 'When should I sleep?'] },
-        23.17: { line: 'Bed now, if you can.', detail: 'Last night was 4h 40m · you usually fall asleep at 23:10',
+        23.17: { 
           q: 'How did today go?', a: 'A rest day, as it should be: 4,600 steps and strain 31. Sleep is what moves readiness most now.', foot: 'From steps, strain and last night’s sleep', chips: ['Why does bedtime matter?', 'What about tomorrow?'] } },
-      ill: { 7.25: { line: 'Rest, and see how you feel.', detail: 'Skin +0.8 °C · resting HR 60, 6 above usual',
+      ill: { 7.25: { 
           q: 'Am I getting sick?', a: 'Maybe. Your skin temperature is 0.8 °C above your usual and resting HR is 60, 6 above it; together they can be an early sign of illness. Rest, drink water, and skip training today. If you feel unwell or it lasts, talk to a doctor.', foot: 'From skin temperature and resting HR, last night', chips: ['Should I train at all?', 'What does skin temp tell me?'] },
-        15.17: { line: 'Keep it a rest day.', detail: '2,400 steps by 15:10 · strain 20, your usual 75',
+        15.17: { 
           q: 'Can I go for a walk?', a: 'A gentle one, if you feel fine. Skip anything hard until skin temperature and resting HR are back near your usual.', foot: 'From skin temperature, resting HR and strain', chips: ['When can I train again?', 'What does skin temp tell me?'] },
-        19.75: { line: 'An early night helps most.', detail: 'Strain 26, under your usual 75 · readiness was 49',
+        19.75: { 
           q: 'Will I be better tomorrow?', a: 'Tomorrow morning will show it: if skin temperature and resting HR come back down, the sky clears with them. If they stay up or you feel worse, rest again and consider seeing a doctor.', foot: 'From skin temperature and resting HR', chips: ['How should I wind down?', 'When should I sleep?'] },
-        23.17: { line: 'Bed early. Rest helps.', detail: 'Last night 6h 05m · you usually fall asleep at 23:10',
+        23.17: { 
           q: 'How did today go?', a: 'A rest day: 3,300 steps and strain 26. Tonight’s sleep and tomorrow’s numbers will show if your body is settling.', foot: 'From steps, strain and last night’s sleep', chips: ['Why does bedtime matter?', 'What about tomorrow?'] } } };
-    L.hz = { 7.25: { line: 'A steady day. Keep it moderate.', detail: 'Skin +0.4 °C · resting HR 57, 3 above usual',
+    L.hz = { 7.25: { 
         q: 'Can I train today?', a: 'Yes, at a moderate effort. Skin temperature and resting HR are a little up, so your body is under some load. Keep hard sessions for a day that reads ready.', foot: 'From skin temperature and resting HR, this morning', chips: ['What does the haze mean?', 'How hard is moderate?'] },
-      15.17: { line: 'On pace. Keep it moderate.', detail: '4,700 steps by 15:10 · strain 36, your usual 75',
+      15.17: { 
         q: 'Is a run OK this evening?', a: 'An easy one is fine: keep it conversational. With skin temperature and resting HR a little up, a hard effort costs more than usual.', foot: 'From skin temperature, resting HR and strain', chips: ['How hard is moderate?', 'What does the haze mean?'] },
-      19.75: { line: 'A fair day done. Sleep on time.', detail: 'Strain 52, under your usual 75 · readiness was 67',
+      19.75: { 
         q: 'Will I recover by tomorrow?', a: 'Likely, with a full night. If skin temperature and resting HR are back near your usual in the morning, the haze clears with them; if they rise further, take an easy day.', foot: 'From skin temperature, resting HR and strain', chips: ['How should I wind down?', 'When should I sleep?'] },
-      23.17: { line: 'Bed by 23:10 tonight.', detail: 'Last night: 6h 50m',
+      23.17: { 
         q: 'How did today go?', a: 'A moderate day: 7,900 steps and strain 58. A full night should settle skin temperature and resting HR.', foot: 'From steps, strain and last night’s sleep', chips: ['Why does bedtime matter?', 'What about tomorrow?'] } };
-    L.st = { 7.25: { line: 'Rest. Your body needs it.', detail: 'Skin +1.1 °C · resting HR 64, 10 above usual',
+    L.st = { 7.25: { 
         q: 'Am I sick?', a: 'Your body may be fighting something: skin temperature is 1.1 °C above your usual and resting HR is 64, 10 above it. Rest, drink water and skip training. If you have a fever or feel unwell, talk to a doctor.', foot: 'From skin temperature and resting HR, last night', chips: ['When can I train again?', 'What does skin temp tell me?'] },
-      15.17: { line: 'Rest is the plan today.', detail: '1,100 steps by 15:10 · strain 9, your usual 75',
+      15.17: { 
         q: 'Is a short walk OK?', a: 'Only if you feel well enough, and keep it gentle. With skin temperature and resting HR this far up, rest does more for you than movement today.', foot: 'From skin temperature, resting HR and strain', chips: ['When can I train again?', 'What helps most today?'] },
-      19.75: { line: 'Wind down early tonight.', detail: 'Strain 12, under your usual 75 · readiness was 34',
+      19.75: { 
         q: 'Will I be better tomorrow?', a: 'Tomorrow morning will show it. If skin temperature and resting HR come down, the storm clears with them. If they stay up or you feel worse, rest again and talk to a doctor.', foot: 'From skin temperature and resting HR', chips: ['How should I wind down?', 'When should I sleep?'] },
-      23.17: { line: 'Sleep now if you can.', detail: 'Last night 4h 50m · you usually fall asleep at 23:10',
+      23.17: { 
         q: 'How did today go?', a: 'You rested: 1,500 steps and strain 14. Sleep is the best thing you can do for tomorrow.', foot: 'From steps, strain and last night’s sleep', chips: ['Why does bedtime matter?', 'What about tomorrow?'] } };
     const TT = { hz: ['BD3 · Coach on the haze day', 'Steady, a step gentler: the morning names the two small rises and keeps the effort moderate; the evening says what tomorrow decides. No talk of illness: the numbers do not say it.'], vp: ['VP1 · Coach on a very poor day', 'Rest is the whole plan: rest in the morning, resting in the afternoon, sleep early at dusk, bed now at night. Every answer names its sources.'],
       ill: ['VP1 · Coach with likely illness', 'The morning names the two signs and what they can mean, in the D6 words (can be an early sign of illness, never a diagnosis); the answers say when to talk to a doctor. Rest all day; tomorrow’s numbers decide.'],
       st: ['ST1 · Coach on the storm day', 'The same voice as the rain day, a step firmer: the morning names all three signs, every answer says rest, and when to talk to a doctor. Tomorrow’s numbers decide; the storm clears with them.'] };
-    ['hz', 'vp', 'ill', 'st'].forEach((day, n) => { VP1_HOURS.forEach(([k, , h]) => Object.assign(HOURS[h], { img: badImg(day, k) }, L[day][h]));
+    ['hz', 'vp', 'ill', 'st'].forEach((day, n) => { VP1_HOURS.forEach(([k, , h]) => Object.assign(HOURS[h], { img: badImg(day, k) }, L[day][h])); RULE(day);
       addSection(TT[day][0], TT[day][1], VP1_HOURS.map(([k, clock, h]) => { HOUR = h; window.NIGHT = k === 'night'; window.BOLT = day === 'st'; return [phone(HOURS[h].img, vp1G(day, k), 'chat'), `${clock} · ${HOURS[h].line}`]; }), !n); }); window.BOLT = false;
     window.NIGHT = TIME === 'night'; }
   if (UH) { window.NIGHT = TIME === 'night'; HOUR = NIGHT ? 23.17 : 15.17; uhSection('UH1 · Coach offline', 'The read on the sky comes from rules on the phone, so it still works. A question with no connection gets the shipped fallback: the numbers it would rest on, from the phone, and Try again. The Claude app hand-off goes, since it needs the connection too.', [[phone(NIGHT ? 'nt1/night.png' : 'tr1/day1510.png', NIGHT ? N : D, 'offline'), 'No connection: your numbers, Try again']]); }

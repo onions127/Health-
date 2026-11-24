@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Health++ · Round CR1 · The rules that pick Coach's read</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:#E9EBEE; color:#14171A; font:400 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding:32px 32px 80px; }
+  header.board { max-width:1180px; margin-bottom:24px; } header.board h1 { font-size:26px; font-weight:600; margin-bottom:8px; } header.board p { color:#3A424B; max-width:110ch; margin-bottom:8px; }
+  section.dir { display:flex; gap:24px; align-items:flex-start; padding:28px 0; border-top:1px solid #D5DAE0; }
+  .sheet { width:340px; flex:none; background:#fff; border-radius:14px; padding:18px; font-size:12.5px; line-height:1.5; color:#30363D; }
+  .sheet h2 { font-size:19px; font-weight:600; color:#111; margin-bottom:4px; } .sheet h3 { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#6A727C; margin:12px 0 4px; } .sheet ul { padding-left:16px; } .sheet li { margin-bottom:3px; }
+  .card { background:#fff; border-radius:14px; padding:16px 18px; }
+  table.m { border-collapse:collapse; font-size:12.5px; font-variant-numeric:tabular-nums; } table.m td, table.m th { padding:4px 9px; border-bottom:1px solid #E6E9ED; text-align:left; vertical-align:top; }
+  table.m th { font-weight:600; color:#4A525B; font-size:11.5px; } table.m td.r { text-align:right; } table.m tr.part td { background:#F4F6F8; font-weight:600; color:#4A525B; font-size:11.5px; letter-spacing:.04em; text-transform:uppercase; }
+  .was { color:#8A3A2E; text-decoration:line-through; } .now { color:#17603A; font-weight:500; } .dim { color:#8A929B; }
+  #fit { position:absolute; left:-9999px; top:0; font-family:Roboto, "Segoe UI", system-ui, sans-serif; }
+  #fit div { font-size:36px; font-weight:300; line-height:1.15; letter-spacing:-0.02em; text-wrap:balance; }
+</style>
+</head>
+<body>
+<header class="board">
+  <h1>Round CR1 · The rules that pick Coach's read</h1>
+  <p>Coach's headline over the sky, and the line of numbers under it, were picked by hand for each day we drew. <code>coach-rules.js</code> now picks them: one function of the body and the hour, like BodySky, using BodySky's own thresholds for haze, likely illness, the storm and pace, so the sky and the read cannot disagree. Per part of the day, the first rule that matches wins. The detail line always holds the numbers the read rests on.</p>
+  <p>The answers in the chat stay as drawn: they show the kind of answer Coach gives and are not picked by rules.</p>
+</header>
+<div id="root"></div>
+<div id="fit"></div>
+<script src="scores.js"></script><script src="data.js"></script><script src="body-sky.js"></script><script src="coach-rules.js"></script>
+<script>
+const { days, METRICS } = window.HEALTH_DATA, S = window.SCORES, CR = window.CoachRules, C = window.COACH_DAYS, BT = BodySky.T, T = CR.T;
+const mean = a => a.reduce((s, x) => s + x, 0) / a.length, HOURS = C.hours, CLOCK = ['07:15', '15:10', '19:45', '23:10'];
+
+// 1 · The rules, in order
+const RULES = [
+  ['Morning, to 12:00 · the plan from this morning\'s body', [
+    ['am.storm', `Likely illness and readiness under ${BT.stormReadiness} (the storm)`, 'Rest. Your body needs it.', 'skin and resting HR against usual'],
+    ['am.ill', `Likely illness: skin ≥ +${BT.illSkin} °C and resting HR ≥ +${BT.illRhr}`, 'Rest, and see how you feel.', 'skin and resting HR'],
+    ['am.rest', `Readiness under ${T.rest}`, 'Rest today.', 'readiness and HRV against your normal'],
+    ['am.easy', `Readiness under ${T.easy}`, 'An easy day will pay off tomorrow.', 'readiness and HRV'],
+    ['am.haze', `Haze: skin ≥ +${BT.hazeSkin} °C and resting HR ≥ +${BT.hazeRhr}`, 'A steady day. Keep it moderate.', 'skin and resting HR'],
+    ['am.steady', `Readiness under ${T.ready}`, 'A steady day: train, but not to the limit.', 'readiness and HRV'],
+    ['am.ready', `Readiness ${T.ready} or more`, 'A good day to train hard.', 'readiness and HRV']]],
+  ['Afternoon, to 18:00 · progress against your usual day', [
+    ['pm.storm', 'The storm', 'Rest is the plan today.', 'steps by now, strain against usual'],
+    ['pm.ill', 'Likely illness', 'Keep it a rest day.', ''],
+    ['pm.over', `Readiness under ${T.easy} and ahead of pace (≥ ${T.ahead} ×)`, 'More than planned. Ease off now.', ''],
+    ['pm.rest', `Readiness under ${T.rest}`, 'Resting so far. Good.', ''],
+    ['pm.easy', `Readiness under ${T.easy}`, 'Easy so far. Keep it that way.', ''],
+    ['pm.haze.*', 'Haze: by pace (ahead / on / behind)', 'Ahead of pace · On pace · A quiet day. Keep it moderate.', ''],
+    ['pm.*', `By pace: ahead ≥ ${T.ahead} ×, behind < ${T.behind} × your usual for the hour`, 'Ahead of your usual day. Keep it going. · On pace for your usual day. · Behind your usual day. A walk would help.', '']]],
+  ['Dusk, to 21:30 · how hard the day was', [
+    ['dusk.storm', 'The storm', 'Wind down early tonight.', 'strain against usual, readiness'],
+    ['dusk.ill', 'Likely illness', 'An early night helps most.', ''],
+    ['dusk.rest', `Readiness under ${T.rest}`, 'A quiet day done. Sleep early.', ''],
+    ['dusk.easy', `Readiness under ${T.easy}`, 'An easy day done. An early night next.', ''],
+    ['dusk.haze', 'Haze', 'A fair day done. Sleep on time.', ''],
+    ['dusk.*', `By strain: hard ≥ ${T.hard} ×, light < ${T.light} × your usual`, 'A hard day done. Ease off from here. · A full day done. Sleep on time. · A light day done. Sleep on time.', '']]],
+  ['Night · bedtime against your usual', [
+    ['night.storm', 'The storm', 'Sleep now if you can.', 'last night, your usual sleep time'],
+    ['night.ill', 'Likely illness', 'Bed early. Rest helps.', ''],
+    ['night.rest', `Readiness under ${T.rest}`, 'Bed now, if you can.', ''],
+    ['night.short', `Last night ${T.short}+ min under your usual`, `Bed by (usual − ${T.early} min) tonight.`, 'how short last night was'],
+    ['night.usual', 'Otherwise', 'Bed by (your usual) tonight.', 'your usual sleep time']]]];
+
+// 2 · Every day in the data, at the four hours (each day against its own 30 days before; steps and strain accrue through the day as BodySky assumes)
+const NIGHTLINE = new Set(), MORNLINE = new Set(), dayFrac = h => Math.min(1, Math.max(.05, (h - 7) / 14)), count = {}, where = {};
+for (let i = 30; i < 90; i++) {
+  const d = days[i], p = days.slice(i - 30, i), p14 = days.slice(i - 14, i).map(x => x.night.onset).sort((a, b) => a - b), hn = S.normal(p.map(x => x.hrv), 3);
+  const b = { readiness: d.readiness, hrv: d.hrv, hrvMin: hn.lo, hrvMax: hn.hi, rhr: d.rhr, rhrUsual: Math.round(mean(p.map(x => x.rhr))), skinTemp: Math.round(d.readyBase.tempDelta * 10) / 10,
+    sleepMin: d.sleepMin, sleepUsual: Math.round(mean(p.map(x => x.sleepMin))), stepsUsual: Math.round(mean(p.map(x => x.steps))), strainUsual: Math.round(mean(p.map(x => x.strain))), onsetUsual: (p14[6] + p14[7]) / 2 };
+  HOURS.forEach((h, k) => { const r = CR.read({ ...b, steps: Math.round(d.steps * dayFrac(h)), strain: Math.round(d.strain * dayFrac(h)) }, h);
+    count[r.rule] = (count[r.rule] || 0) + 1; (where[r.rule] = where[r.rule] || []).push(d.shortDate); (count['L:' + r.line] = r); if (h > 21.5) NIGHTLINE.add(r.line); if (h < 12) MORNLINE.add(r.line); });
+}
+const lines = Object.keys(count).filter(k => k.startsWith('L:')).map(k => count[k].line);
+
+// 3 · The drawn days, before (as approved) and now
+const WAS = { today: ['A good day to train hard.', 'Ahead of your usual day. Keep it going.', 'A hard day done. Ease off from here.', 'Bed by 23:30 tonight.'],
+  pd: ['An easy day will pay off tomorrow.', 'Easy so far. Keep it that way.', 'An easy day done. An early night next.', 'Bed by 23:00 tonight.'],
+  hz: ['A steady day. Keep it moderate.', 'On pace. Keep it moderate.', 'A fair day done. Sleep on time.', 'Bed by 23:10 tonight.'],
+  vp: ['Rest today.', 'Resting so far. Good.', 'A quiet day done. Sleep early.', 'Bed now, if you can.'],
+  ill: ['Rest, and see how you feel.', 'Keep it a rest day.', 'An early night helps most.', 'Bed early. Rest helps.'],
+  st: ['Rest. Your body needs it.', 'Rest is the plan today.', 'Wind down early tonight.', 'Sleep now if you can.'] };
+const NAME = { today: 'Today (fair)', pd: 'Poor day (PD1, 4 Nov)', hz: 'Haze day (BD2)', vp: 'Very poor (VP1)', ill: 'Likely illness (VP1)', st: 'Storm (ST1)' };
+let same = 0, diff = 0;
+const drawn = Object.keys(WAS).map(k => `<tr class="part"><td colspan="4">${NAME[k]}</td></tr>` + HOURS.map((h, i) => { const r = CR.read(C.at(C[k], i), h), ok = r.line === WAS[k][i]; ok ? same++ : diff++;
+  return `<tr><td>${CLOCK[i]}</td><td class="dim">${r.rule}</td><td>${ok ? r.line : `<span class="was">${WAS[k][i]}</span><br><span class="now">${r.line}</span>`}</td><td class="dim">${r.detail}</td></tr>`; }).join('')).join('');
+
+// 4 · Does every read fit? Two lines at most, 36 px light: 358 px wide by day, 240 px at night (the moon) and under the storm's bolt (SKY_RIGHT)
+const fitEl = document.getElementById('fit'), uses = new Map();   // line -> the narrowest width it is shown at
+const use = (line, w) => uses.set(line, Math.min(uses.get(line) || 999, w));
+lines.forEach(l => use(l, NIGHTLINE.has(l) ? 240 : 358));
+Object.keys(WAS).forEach(k => HOURS.forEach((h, i) => use(CR.read(C.at(C[k], i), h).line, h > 21.5 || k === 'st' ? 240 : 358)));
+const fit = [...uses].map(([l, w]) => { fitEl.innerHTML = `<div style="width:${w}px">${l}</div>`; return [l, w, Math.round(fitEl.firstChild.getBoundingClientRect().height / (36 * 1.15))]; });
+const over = fit.filter(f => f[2] > 2), dawn = [...MORNLINE, ...Object.keys(WAS).map(k => CR.read(C.at(C[k], 0), 7.25).line)].filter((l, i, a) => a.indexOf(l) === i).filter(l => { fitEl.innerHTML = `<div style="width:240px">${l}</div>`; return fitEl.firstChild.getBoundingClientRect().height / (36 * 1.15) > 2.5; });
+
+document.getElementById('root').innerHTML = `
+<section class="dir"><div class="sheet"><h2>The rules</h2>
+  <p>First match wins, top to bottom, within the part of the day. Illness and the storm come first at every hour: they are the only reads that change the advice from training to rest whatever readiness says.</p>
+  <h3>Shared with the sky</h3><ul><li>Haze, likely illness and the storm: BodySky's thresholds (<code>BodySky.T</code>)</li><li>Pace: steps against your usual for the hour, 07:00 → 21:00, ahead from ${T.ahead} × (BD4)</li><li>Your normal and your usual: the 30 days before today (BD5, BD7)</li></ul>
+  <h3>New here</h3><ul><li>Readiness ${T.rest} / ${T.easy} / ${T.ready}: the sky's regimes (stratus / stratocumulus / partly / fair)</li><li>A hard or light day: strain ${T.hard} × / ${T.light} × your usual, the same margin as pace</li><li>A short night: ${T.short} min under your usual; bedtime then ${T.early} min earlier</li><li>Your usual sleep time: the median of the last 14 nights, to 5 min</li></ul></div>
+  <div class="card"><table class="m"><tr><th>Rule</th><th>When</th><th>Read</th><th>Detail line holds</th></tr>${RULES.map(([part, rs]) => `<tr class="part"><td colspan="4">${part}</td></tr>` + rs.map(r => `<tr><td class="dim">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td class="dim">${r[3]}</td></tr>`).join('')).join('')}</table></div></section>
+
+<section class="dir"><div class="sheet"><h2>The days we drew</h2>
+  <p>Six days × four hours. The rules give the approved read on <b>${same} of ${same + diff}</b>. Where they differ, the hand copy was inconsistent:</p>
+  <ul><li><b>Fair dusk:</b> "a hard day" at strain 78. Your usual by 19:45 is 68 (75 for the whole day), so 78 is 1.14 ×, just under where a hard day starts (${T.hard} ×). It reads "A full day done", and the chat answer no longer says "you trained hard". A little more strain and the old line returns: the rule only needs to be the same on every day.</li>
+  <li><b>Bedtimes:</b> the fair night said "Bed by 23:30" with "you usually fall asleep at 23:10", and PD1's "half an hour early" was 23:00. Your usual is now the data's: 23:20. So fair and haze say 23:20, and PD1 says 22:50.</li></ul>
+  <p>PD1's morning detail now says HRV 46 ms is "well under your normal" (more than half the band under 54), as on the very poor day.</p></div>
+  <div class="card"><table class="m"><tr><th>Hour</th><th>Rule</th><th>Read (approved → rules)</th><th>Detail</th></tr>${drawn}</table></div></section>
+
+<section class="dir"><div class="sheet"><h2>Every day in the data</h2>
+  <p>The 60 days with a full 30 days before them (14 Sep – 12 Nov), at the four hours: ${60 * 4} reads. Each day uses its own normals; steps and strain accrue evenly from 07:00, so a day's pace at 15:10 is its total against its usual.</p>
+  <h3>Reads fit</h3><p>${fit.length} distinct reads, each at the width it is shown (36 px light; 358 px by day, 240 px at night and under the storm's bolt): ${over.length ? `<span class="was">${over.map(f => f[0]).join(' · ')} run past two lines</span>` : 'all fit in two lines'}. ${dawn.length ? `Before sunrise the moon narrows the morning too: ${dawn.map(l => `<i>${l}</i>`).join(', ')} would take three lines there.` : ''}</p></div>
+  <div class="card"><table class="m"><tr><th>Rule</th><th class="r">Reads</th><th>Days</th></tr>${Object.keys(count).filter(k => !k.startsWith('L:')).sort().map(k => `<tr><td>${k}</td><td class="r">${count[k]}</td><td class="dim">${where[k].length > 12 ? where[k].slice(0, 12).join(', ') + ', …' : where[k].join(', ')}</td></tr>`).join('')}</table></div></section>`;
+</script>
+</body>
+</html>

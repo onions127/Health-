@@ -1434,3 +1434,34 @@ Load to converged 20.1 s (`loadT.js`; SH1 26.1 s): compile cost holds.
 **Board:** `md1-board.html`, the haze day on `wt1` / `co2` / `md3` (`?bad=1`), `mc2-board.html`. STOP.
 
 **Approved (2026-11-24):** BD7 as built (every normal from the data; status against the band as shown; md1's hero word in the sky ink; the haze day re-rendered).
+
+## CR1 · The rules that pick Coach's read (2026-11-24)
+
+**Asked:** the rules that pick Coach's line (open since CO2: each day's headline and detail were picked by hand).
+
+**Built:**
+- **`coach-rules.js`** (`CoachRules.read(body, hour)`): one pure function, like BodySky, on BodySky's own thresholds (haze, likely illness, the storm) and the shared pace (ahead from 1.15 × your usual for the hour, BD4). One priority list per part of the day; the first match wins. Illness and the storm come first at every hour.
+  - **Morning** (the plan): storm, illness, readiness under 50 (rest), under 65 (easy), haze (moderate), under 80 (steady), else train hard.
+  - **Afternoon** (progress): storm, illness, a low day ahead of pace ("More than planned. Ease off now."), rest, easy, haze by pace, then ahead, on pace or behind.
+  - **Dusk** (the day done): storm, illness, rest, easy, haze, then hard (≥ 1.15 ×), full or light (< 0.85 ×) by strain against your usual by this hour.
+  - **Night** (bedtime): storm, illness, rest ("Bed now"), then a short night (30+ min under your usual) bringing bedtime 30 min earlier, else your usual. "Your usual" is the median sleep time of the last 14 nights, to 5 min.
+  - The detail line always holds the numbers the read rests on: readiness and HRV, the two signs, steps and strain against your usual, or last night and your usual sleep time.
+- **`data.js` `COACH_DAYS`**: the six drawn days as bodies with steps and strain at the four hours (today and 4 Nov from the data; haze, very poor, illness and storm as built).
+- **`co2-board.html`** takes every read from the rules (24 hand lines and details removed); the chat answers stay as drawn (examples of Coach's answers, not rule-picked).
+- **`cr1-board.html`**: the rules, the drawn days approved vs now, every day in the data, and a fit check.
+
+**Measured:**
+- **The drawn days:** the rules give the approved read on **20 of 24**. The 4 that change were inconsistent by hand:
+  - Fair dusk said "a hard day" at strain 78. Your usual by 19:45 is 68, so that is 1.14 ×, just under hard (1.15 ×): now "A full day done. Sleep on time.", and its chat answer no longer says "you trained hard".
+  - Bedtimes: fair said "Bed by 23:30" beside "you usually fall asleep at 23:10", and PD1's "half an hour early" was 23:00. The data's usual is 23:20: fair and haze say 23:20, PD1 says 22:50, and the bad nights' details say 23:20.
+  - PD1's morning detail says HRV 46 is "well under your normal" (more than half the band under 54), as on the very poor day.
+- **Every day in the data** (60 days with a full 30 before them, 4 hours, 240 reads): morning 42 ready, 16 steady, 1 easy (4 Nov), 1 illness (6 Oct); afternoon 33 on pace, 14 ahead, 11 behind; dusk 48 full, 6 hard, 4 light; night 56 usual, 3 short (1, 2, 4 Nov). Every read resolves; no day falls through.
+- **Fit:** 37 distinct reads, each at the width it is shown (36 px light; 358 px by day, 240 px at night and under the storm's bolt): all fit in two lines. Same renders and text boxes as CO2/VP1/ST1, so their contrast holds.
+
+**Open:** before sunrise the moon narrows the morning read to 240 px, where three reads take three lines ("A steady day: train, but not to the limit.", "An easy day will pay off tomorrow.", "A steady day. Keep it moderate."). Coach has not been drawn before sunrise; shorter forms or a third line there is a choice for that round.
+
+**Shots:** `node co2.js`, `TAG=cr1 BOARDS=co2 node vp1.js`, `node pd1.js`; sheet `out/cr1-sheet.png`; board `out/cr1-board.png`.
+
+**Board:** `cr1-board.html`; Coach on `co2-board.html` (also `?poor=1`, `?bad=1`). STOP.
+
+**Approved (2026-11-24):** CR1 as built (Coach's read from `coach-rules.js` on BodySky's thresholds; the four hand inconsistencies fixed).
