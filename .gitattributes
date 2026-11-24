@@ -1,0 +1,2 @@
+# Golden files are compared byte for byte by unit tests: keep LF on every OS
+android-app/app/src/test/resources/golden/** text eol=lf

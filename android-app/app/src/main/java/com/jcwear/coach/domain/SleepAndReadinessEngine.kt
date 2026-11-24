@@ -198,29 +198,44 @@ object SleepAndReadinessEngine {
     fun isMainSleepCandidate(onset: LocalTime): Boolean = minutesFromNoon(onset) >= 360
 
     /**
-     * Sleep score v2 (plan 1.4), 0-100: duration 40%, restorative 20%, efficiency 10%,
-     * regularity 15% (midpoint vs median of [priorMidpointsMfn]; none yet = full marks),
+     * Sleep score S2 (design round BD5, adopted at lock 2026-11-24), 0-100: duration 40%, restorative 20%,
+     * efficiency 10%, regularity 15% (midpoint vs median of [priorMidpointsMfn]; none yet = full marks),
      * timing 15% (asleep by 02:00 full, 0 by 04:00). Onset after 03:00 caps the score at 70.
+     * S2 stops three parts giving credit for a poor night: duration 0 at 4h30 → 100 at 7h30, deep + REM
+     * 0 at 20% → 100 at 38% of staged time, efficiency 0 at 75% → 100 at 95%.
      * No stages recorded: restorative is dropped and the rest reweighted (50 / 12.5 / 18.75 / 18.75).
      */
     fun sleepScore(s: StitchedSleepSession, priorMidpointsMfn: List<Int>): Int = sleepScoreParts(s, priorMidpointsMfn).score
 
     fun sleepScoreParts(s: StitchedSleepSession, priorMidpointsMfn: List<Int>): ScoreBreakdown {
-        val duration = (s.totalSleepMin / 450.0 * 100.0).coerceIn(0.0, 100.0)
         val staged = s.deepMin + s.lightMin + s.remMin // unstaged minutes stay out of the share
         val restorativeShare = if (staged > 0) (s.deepMin + s.remMin).toDouble() / staged else 0.0
-        val restorative = (restorativeShare / 0.38 * 100.0).coerceIn(0.0, 100.0)
-        val regularity = if (priorMidpointsMfn.isEmpty()) 100.0 else {
+        val offMin = if (priorMidpointsMfn.isEmpty()) null else {
             val sorted = priorMidpointsMfn.sorted()
             val median = if (sorted.size % 2 == 1) sorted[sorted.size / 2].toDouble()
             else (sorted[sorted.size / 2 - 1] + sorted[sorted.size / 2]) / 2.0
-            val off = abs(minutesFromNoon(midpoint(s).toLocalTime()) - median)
-            ((180.0 - off) / 150.0 * 100.0).coerceIn(0.0, 100.0)
+            abs(minutesFromNoon(midpoint(s).toLocalTime()) - median)
         }
-        val onset = minutesFromNoon(s.startTime.toLocalTime())
+        return sleepScoreParts(
+            asleepMin = s.totalSleepMin.toDouble(), restorativeShare = restorativeShare,
+            efficiencyPct = s.sleepEfficiencyPct.toDouble(), offMin = offMin,
+            onsetMfn = minutesFromNoon(s.startTime.toLocalTime()), stagesAvailable = s.stagesAvailable,
+            priorNights = priorMidpointsMfn.size
+        )
+    }
+
+    /** S2 on a night's numbers ([offMin] = how far the midpoint is from your usual; null = no history yet). */
+    fun sleepScoreParts(
+        asleepMin: Double, restorativeShare: Double, efficiencyPct: Double, offMin: Double?,
+        onsetMfn: Int, stagesAvailable: Boolean, priorNights: Int
+    ): ScoreBreakdown {
+        val duration = ((asleepMin - 270.0) / 180.0 * 100.0).coerceIn(0.0, 100.0)
+        val restorative = ((restorativeShare - 0.20) / 0.18 * 100.0).coerceIn(0.0, 100.0)
+        val efficiency = ((efficiencyPct - 75.0) / 20.0 * 100.0).coerceIn(0.0, 100.0)
+        val regularity = if (offMin == null) 100.0 else ((180.0 - offMin) / 150.0 * 100.0).coerceIn(0.0, 100.0)
+        val onset = onsetMfn
         val timing = ((960.0 - onset) / 120.0 * 100.0).coerceIn(0.0, 100.0) // 02:00 = 840, 04:00 = 960
-        val efficiency = s.sleepEfficiencyPct.toDouble()
-        val parts = if (s.stagesAvailable) listOf(
+        val parts = if (stagesAvailable) listOf(
             ScorePart("Duration", 0.40, duration),
             ScorePart("Deep + REM share", 0.20, restorative),
             ScorePart("Efficiency", 0.10, efficiency),
@@ -235,7 +250,7 @@ object SleepAndReadinessEngine {
         return ScoreBreakdown(
             parts,
             cap = 70.takeIf { onset >= 900 }, // 03:00 = 900
-            basis = "Last night + ${priorMidpointsMfn.size} nights for your routine"
+            basis = "Last night + $priorNights nights for your routine"
         )
     }
 }

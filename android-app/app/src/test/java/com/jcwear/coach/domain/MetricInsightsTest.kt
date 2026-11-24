@@ -23,6 +23,21 @@ class MetricInsightsTest {
     }
 
     @Test
+    fun statusFollowsTheBandAsShown() {
+        // BD7: a band of 54.1–63.7 shows as 54–64, so HRV 64 is within it and 65 is above (the word agrees with the numbers)
+        val base = Baseline(mean = 58.9, halfWidth = 4.8, n = 30)
+        assertEquals(Status.NORMAL, MetricInsights.status(Metrics.hrv, 64.0, base))
+        assertEquals(Status.NORMAL, MetricInsights.status(Metrics.hrv, 63.6, base)) // shows as 64
+        assertEquals(Status.NORMAL, MetricInsights.status(Metrics.hrv, 54.0, base))
+        assertEquals(Status.GOOD, MetricInsights.status(Metrics.hrv, 65.0, base))
+        assertEquals(Status.BAD, MetricInsights.status(Metrics.hrv, 53.0, base))
+        // one decimal: skin temp ±0.34 shows as ±0.3, so +0.36 (shows 0.4) is out and +0.33 (shows 0.3) is in
+        val skin = Baseline(mean = 0.14, halfWidth = 0.2, n = 30)
+        assertEquals(Status.NORMAL, MetricInsights.status(Metrics.skinTemp, 0.33, skin))
+        assertEquals(Status.BAD, MetricInsights.status(Metrics.skinTemp, 0.36, skin))
+    }
+
+    @Test
     fun lowOutlierCountsBackToTheLastLowerDay() {
         val days = (30 downTo 1).map { d ->
             DayMetrics(today.minusDays(d.toLong()), hrvMs = if (d == 21) 30.0 else 58.0 + d % 3)

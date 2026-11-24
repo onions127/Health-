@@ -32,7 +32,8 @@
       : b.hrv === b.hrvMax ? 'at the top of your normal' : 'within your normal';
   }
 
-  function read(b, hour) {
+  function read(b0, hour) {
+    const b = { ...b0, steps: b0.steps ?? 0, strain: b0.strain ?? 0 };   // LOCK: no step data yet reads as 0, not NaN
     const s = body(b), r = b.readiness;
     const signs = s.dR == null ? '' : `Skin +${b.skinTemp.toFixed(1)} °C · resting HR ${b.rhr}, ${s.dR} above usual`, rh = `Readiness ${r} · HRV ${b.hrv} ms, ${hrvWord(b)}`;
     const R = (rule, line, detail) => ({ rule, line, detail });

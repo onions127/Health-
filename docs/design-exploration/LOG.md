@@ -1535,3 +1535,29 @@ All nine evening rules fit two lines at 240 px; the read box ends at y 241 on ev
 **Shots:** `TAG=tw1 BOARDS=co2 Q=tw=1 node vp1.js` → `out/tw1-co2-0…5.png`, sheet `out/tw1-sheet.png`, board `out/tw1-board.png`. No page errors on co2 (plain, `?bad=1`, `?poor=1`, `?first=1`, `?dawn=1`, `?tw=1`) or cr1. STOP.
 
 **Approved (2026-11-24):** TW1 as built: sky text keeps left of x 262 while the moon is up (20:00 → 05:45) and on the storm day; every evening read in the *A … day. What next.* pattern. `cr1-board.html`'s approved reads take the new evening words (back to 20 of 24; the four differences are the CR1 hand inconsistencies).
+
+## LOCK (2026-11-24)
+
+The user said **lock**. Every round above is approved; the work moves into `android-app/` following `docs/plans/2026-11-24-lock.md` (decisions: GLES 3.0 renderer, glass from the renderer's own blur, bake the likely sky, screen by screen behind a "Sky (preview)" switch, tint without blur on Android 8–9). Phase 1 first: the logic ports with parity tests against this prototype.
+
+## L1-P1 · Lock phase 1: the logic in the app, with parity tests (2026-11-24)
+
+**Built** (`android-app/`, no screen changes; under the current look):
+- **S2 sleep score** replaces the old formula in `SleepAndReadinessEngine.sleepScoreParts` (now a pure function on a night's numbers, which the session path calls). Applied to the no-stages variant too (duration and efficiency take the same S2 curves).
+- **"Your normal" as shown:** `MetricInsights.status` compares the value as shown with the band as shown (BD7): HRV 64 against a band shown as 54–64 is within it.
+- **`domain/sky/BodySky.kt`** (+ `SkyState`, `SkyRegime`, `SkyPalette`, `BodyInputs`): the weather of the body, 1:1 with `body-sky.js`, including the tap note and TalkBack text.
+- **`domain/CoachRules.kt`**: Coach's read, 1:1 with `coach-rules.js` (PS1 and TW1 words).
+- **`domain/sky/GlassRule.kt`**: the glass measured on the frame (`glass-check.js` + `g2.js` decision): mode, strength, nav, sky ink and veil, the button fill, from the renderer's pixels.
+- **Prototype fix:** `coach-rules.js` read "NaN steps … strain undefined" when a body had no step data; missing steps and strain now read as 0.
+- **Test fix:** the dashboard golden failed on Windows only because git checked it out with CRLF; `.gitattributes` keeps golden files LF.
+
+**Parity** (`tools/visual-loop/parity.js` writes `android-app/app/src/test/resources/parity/*.tsv` from the prototype's own functions; the Kotlin ports must match):
+- Sleep: 94 nights (the sample data and the four designed bad nights), every part to 1e-5 and every score exact.
+- BodySky: 622 bodies × hours (60 days at nine hours incl. 05:20 and 20:30, the six drawn days, the first week, an empty body, three rare branches): every SkyState field to 1e-9, regime, palette, layers and the TalkBack sentence exact.
+- CoachRules: the same 622: rule, line and detail exact; all 35 rules covered.
+- Glass: the 13 renders of PS1 and TW1 against g2.js's measurements: mode, sky ink and button exact; strengths within .02, contrasts within .05.
+- The dashboard golden re-recorded: 7-hour nights 97 → 93 under S2, readiness −1, daily −1 to −2; nothing else moved.
+
+**Tests:** 141, all pass (`./gradlew testDebugUnitTest`).
+
+**Next (plan §4):** the spikes on the S21 (renderer compile time and frame cost; the two-image hand-off and one glass card while scrolling), then the renderer port.

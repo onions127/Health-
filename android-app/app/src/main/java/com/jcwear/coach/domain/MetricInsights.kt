@@ -138,9 +138,21 @@ object MetricInsights {
         return Baseline(mean, max(sd, def.minNormalHalfWidth(mean)), v.size)
     }
 
+    /** A value as the screen shows it: rounded to the metric's displayed step (1, or 0.1 for one decimal). */
+    fun shown(def: MetricDef, x: Double): Double {
+        val step = Math.pow(10.0, -def.decimals.toDouble())
+        return Math.round(x / step) * step
+    }
+
+    /**
+     * Within normal when the value as shown lies inside the band as shown (design round BD7, lock 2026-11-24):
+     * HRV 64 against a band shown as 54–64 is within it, though the unrounded top is 63.7.
+     */
     fun status(def: MetricDef, value: Double, base: Baseline): Status {
         val v = if (def.direction == Direction.CLOSER_TO_ZERO_IS_BETTER) abs(value) else value
-        if (abs(v - base.mean) <= base.halfWidth) return Status.NORMAL
+        val sv = shown(def, v)
+        val lo = if (def.direction == Direction.CLOSER_TO_ZERO_IS_BETTER) Double.NEGATIVE_INFINITY else shown(def, base.low)
+        if (sv >= lo - 1e-9 && sv <= shown(def, base.high) + 1e-9) return Status.NORMAL
         val above = v > base.mean
         return when (def.direction) {
             Direction.HIGHER_IS_BETTER -> if (above) Status.GOOD else Status.BAD

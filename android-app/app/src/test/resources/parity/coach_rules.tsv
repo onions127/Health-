@@ -1,0 +1,623 @@
+hour	readiness	readinessUsual	sleepScore	sleepMin	sleepUsual	hrv	hrvMin	hrvMax	steps	stepsUsual	strain	strainUsual	skinTemp	rhr	rhrUsual	onsetUsual	nights	rule	line	detail
+5.33	78	78	85	429	432	56	54	63	403	8444	4	77	-0.2	54	54	685.5	14	am.steady	Train, but not to the limit.	Readiness 78 · HRV 56 ms, within your normal
+7.25	78	78	85	429	432	56	54	63	403	8444	4	77	-0.2	54	54	685.5	14	am.steady	Train, but not to the limit.	Readiness 78 · HRV 56 ms, within your normal
+10	78	78	85	429	432	56	54	63	1727	8444	16	77	-0.2	54	54	685.5	14	am.steady	Train, but not to the limit.	Readiness 78 · HRV 56 ms, within your normal
+13	78	78	85	429	432	56	54	63	3453	8444	32	77	-0.2	54	54	685.5	14	pm.on	On pace for your usual day.	3,453 steps by 13:00 · strain 32, your usual 77
+15.17	78	78	85	429	432	56	54	63	4702	8444	44	77	-0.2	54	54	685.5	14	pm.on	On pace for your usual day.	4,702 steps by 15:10 · strain 44, your usual 77
+17.5	78	78	85	429	432	56	54	63	6044	8444	56	77	-0.2	54	54	685.5	14	pm.on	On pace for your usual day.	6,044 steps by 17:30 · strain 56, your usual 77
+19.75	78	78	85	429	432	56	54	63	7339	8444	68	77	-0.2	54	54	685.5	14	dusk.full	A full day. Sleep on time.	Strain 68, near your usual 77 · readiness was 78
+20.5	78	78	85	429	432	56	54	63	7770	8444	72	77	-0.2	54	54	685.5	14	dusk.full	A full day. Sleep on time.	Strain 72, near your usual 77 · readiness was 78
+23.17	78	78	85	429	432	56	54	63	8058	8444	75	77	-0.2	54	54	685.5	14	night.usual	Bed by 23:25 tonight.	Keeps your sleep on track · you usually fall asleep at 23:25
+5.33	81	78	93	433	431	57	54	63	392	8431	4	77	0	54	54	671.5	14	am.ready	A good day to train hard.	Readiness 81 · HRV 57 ms, within your normal
+7.25	81	78	93	433	431	57	54	63	392	8431	4	77	0	54	54	671.5	14	am.ready	A good day to train hard.	Readiness 81 · HRV 57 ms, within your normal
+10	81	78	93	433	431	57	54	63	1679	8431	16	77	0	54	54	671.5	14	am.ready	A good day to train hard.	Readiness 81 · HRV 57 ms, within your normal
+13	81	78	93	433	431	57	54	63	3358	8431	32	77	0	54	54	671.5	14	pm.on	On pace for your usual day.	3,358 steps by 13:00 · strain 32, your usual 77
+15.17	81	78	93	433	431	57	54	63	4573	8431	43	77	0	54	54	671.5	14	pm.on	On pace for your usual day.	4,573 steps by 15:10 · strain 43, your usual 77
+17.5	81	78	93	433	431	57	54	63	5877	8431	56	77	0	54	54	671.5	14	pm.on	On pace for your usual day.	5,877 steps by 17:30 · strain 56, your usual 77
+19.75	81	78	93	433	431	57	54	63	7136	8431	67	77	0	54	54	671.5	14	dusk.full	A full day. Sleep on time.	Strain 67, near your usual 77 · readiness was 81
+20.5	81	78	93	433	431	57	54	63	7556	8431	71	77	0	54	54	671.5	14	dusk.full	A full day. Sleep on time.	Strain 71, near your usual 77 · readiness was 81
+23.17	81	78	93	433	431	57	54	63	7836	8431	74	77	0	54	54	671.5	14	night.usual	Bed by 23:10 tonight.	Keeps your sleep on track · you usually fall asleep at 23:10
+5.33	84	78	96	449	430	59	54	63	351	8391	4	76	0.1	53	54	666	14	am.ready	A good day to train hard.	Readiness 84 · HRV 59 ms, within your normal
+7.25	84	78	96	449	430	59	54	63	351	8391	4	76	0.1	53	54	666	14	am.ready	A good day to train hard.	Readiness 84 · HRV 59 ms, within your normal
+10	84	78	96	449	430	59	54	63	1503	8391	15	76	0.1	53	54	666	14	am.ready	A good day to train hard.	Readiness 84 · HRV 59 ms, within your normal
+13	84	78	96	449	430	59	54	63	3005	8391	31	76	0.1	53	54	666	14	pm.behind	Behind your usual day. A walk would help.	3,005 steps by 13:00 · strain 31, your usual 76
+15.17	84	78	96	449	430	59	54	63	4092	8391	42	76	0.1	53	54	666	14	pm.behind	Behind your usual day. A walk would help.	4,092 steps by 15:10 · strain 42, your usual 76
+17.5	84	78	96	449	430	59	54	63	5259	8391	54	76	0.1	53	54	666	14	pm.behind	Behind your usual day. A walk would help.	5,259 steps by 17:30 · strain 54, your usual 76
+19.75	84	78	96	449	430	59	54	63	6386	8391	66	76	0.1	53	54	666	14	dusk.full	A full day. Sleep on time.	Strain 66, near your usual 76 · readiness was 84
+20.5	84	78	96	449	430	59	54	63	6762	8391	69	76	0.1	53	54	666	14	dusk.full	A full day. Sleep on time.	Strain 69, near your usual 76 · readiness was 84
+23.17	84	78	96	449	430	59	54	63	7012	8391	72	76	0.1	53	54	666	14	night.usual	Bed by 23:05 tonight.	Keeps your sleep on track · you usually fall asleep at 23:05
+5.33	83	78	89	433	430	59	54	63	340	8324	4	76	0.1	53	54	672.5	14	am.ready	A good day to train hard.	Readiness 83 · HRV 59 ms, within your normal
+7.25	83	78	89	433	430	59	54	63	340	8324	4	76	0.1	53	54	672.5	14	am.ready	A good day to train hard.	Readiness 83 · HRV 59 ms, within your normal
+10	83	78	89	433	430	59	54	63	1456	8324	15	76	0.1	53	54	672.5	14	am.ready	A good day to train hard.	Readiness 83 · HRV 59 ms, within your normal
+13	83	78	89	433	430	59	54	63	2911	8324	30	76	0.1	53	54	672.5	14	pm.behind	Behind your usual day. A walk would help.	2,911 steps by 13:00 · strain 30, your usual 76
+15.17	83	78	89	433	430	59	54	63	3964	8324	41	76	0.1	53	54	672.5	14	pm.behind	Behind your usual day. A walk would help.	3,964 steps by 15:10 · strain 41, your usual 76
+17.5	83	78	89	433	430	59	54	63	5095	8324	53	76	0.1	53	54	672.5	14	pm.behind	Behind your usual day. A walk would help.	5,095 steps by 17:30 · strain 53, your usual 76
+19.75	83	78	89	433	430	59	54	63	6186	8324	64	76	0.1	53	54	672.5	14	dusk.full	A full day. Sleep on time.	Strain 64, near your usual 76 · readiness was 83
+20.5	83	78	89	433	430	59	54	63	6550	8324	68	76	0.1	53	54	672.5	14	dusk.full	A full day. Sleep on time.	Strain 68, near your usual 76 · readiness was 83
+23.17	83	78	89	433	430	59	54	63	6793	8324	70	76	0.1	53	54	672.5	14	night.usual	Bed by 23:15 tonight.	Keeps your sleep on track · you usually fall asleep at 23:15
+5.33	85	78	90	436	429	62	54	62	308	8245	3	76	0	54	54	666	14	am.ready	A good day to train hard.	Readiness 85 · HRV 62 ms, at the top of your normal
+7.25	85	78	90	436	429	62	54	62	308	8245	3	76	0	54	54	666	14	am.ready	A good day to train hard.	Readiness 85 · HRV 62 ms, at the top of your normal
+10	85	78	90	436	429	62	54	62	1320	8245	14	76	0	54	54	666	14	am.ready	A good day to train hard.	Readiness 85 · HRV 62 ms, at the top of your normal
+13	85	78	90	436	429	62	54	62	2640	8245	28	76	0	54	54	666	14	pm.behind	Behind your usual day. A walk would help.	2,640 steps by 13:00 · strain 28, your usual 76
+15.17	85	78	90	436	429	62	54	62	3595	8245	38	76	0	54	54	666	14	pm.behind	Behind your usual day. A walk would help.	3,595 steps by 15:10 · strain 38, your usual 76
+17.5	85	78	90	436	429	62	54	62	4621	8245	49	76	0	54	54	666	14	pm.behind	Behind your usual day. A walk would help.	4,621 steps by 17:30 · strain 49, your usual 76
+19.75	85	78	90	436	429	62	54	62	5611	8245	59	76	0	54	54	666	14	dusk.full	A full day. Sleep on time.	Strain 59, near your usual 76 · readiness was 85
+20.5	85	78	90	436	429	62	54	62	5941	8245	63	76	0	54	54	666	14	dusk.full	A full day. Sleep on time.	Strain 63, near your usual 76 · readiness was 85
+23.17	85	78	90	436	429	62	54	62	6161	8245	65	76	0	54	54	666	14	night.usual	Bed by 23:05 tonight.	Keeps your sleep on track · you usually fall asleep at 23:05
+5.33	84	78	93	439	428	60	54	62	321	8138	3	75	0.1	54	54	671	14	am.ready	A good day to train hard.	Readiness 84 · HRV 60 ms, within your normal
+7.25	84	78	93	439	428	60	54	62	321	8138	3	75	0.1	54	54	671	14	am.ready	A good day to train hard.	Readiness 84 · HRV 60 ms, within your normal
+10	84	78	93	439	428	60	54	62	1374	8138	14	75	0.1	54	54	671	14	am.ready	A good day to train hard.	Readiness 84 · HRV 60 ms, within your normal
+13	84	78	93	439	428	60	54	62	2748	8138	28	75	0.1	54	54	671	14	pm.behind	Behind your usual day. A walk would help.	2,748 steps by 13:00 · strain 28, your usual 75
+15.17	84	78	93	439	428	60	54	62	3742	8138	38	75	0.1	54	54	671	14	pm.behind	Behind your usual day. A walk would help.	3,742 steps by 15:10 · strain 38, your usual 75
+17.5	84	78	93	439	428	60	54	62	4809	8138	49	75	0.1	54	54	671	14	pm.behind	Behind your usual day. A walk would help.	4,809 steps by 17:30 · strain 49, your usual 75
+19.75	84	78	93	439	428	60	54	62	5840	8138	59	75	0.1	54	54	671	14	dusk.full	A full day. Sleep on time.	Strain 59, near your usual 75 · readiness was 84
+20.5	84	78	93	439	428	60	54	62	6183	8138	63	75	0.1	54	54	671	14	dusk.full	A full day. Sleep on time.	Strain 63, near your usual 75 · readiness was 84
+23.17	84	78	93	439	428	60	54	62	6412	8138	65	75	0.1	54	54	671	14	night.usual	Bed by 23:10 tonight.	Keeps your sleep on track · you usually fall asleep at 23:10
+5.33	87	78	95	453	427	62	54	62	357	8021	3	75	0.1	53	54	684	14	am.ready	A good day to train hard.	Readiness 87 · HRV 62 ms, at the top of your normal
+7.25	87	78	95	453	427	62	54	62	357	8021	3	75	0.1	53	54	684	14	am.ready	A good day to train hard.	Readiness 87 · HRV 62 ms, at the top of your normal
+10	87	78	95	453	427	62	54	62	1531	8021	13	75	0.1	53	54	684	14	am.ready	A good day to train hard.	Readiness 87 · HRV 62 ms, at the top of your normal
+13	87	78	95	453	427	62	54	62	3062	8021	26	75	0.1	53	54	684	14	pm.on	On pace for your usual day.	3,062 steps by 13:00 · strain 26, your usual 75
+15.17	87	78	95	453	427	62	54	62	4170	8021	36	75	0.1	53	54	684	14	pm.on	On pace for your usual day.	4,170 steps by 15:10 · strain 36, your usual 75
+17.5	87	78	95	453	427	62	54	62	5359	8021	46	75	0.1	53	54	684	14	pm.on	On pace for your usual day.	5,359 steps by 17:30 · strain 46, your usual 75
+19.75	87	78	95	453	427	62	54	62	6507	8021	56	75	0.1	53	54	684	14	dusk.light	A light day. Sleep on time.	Strain 56, under your usual 75 · readiness was 87
+20.5	87	78	95	453	427	62	54	62	6890	8021	59	75	0.1	53	54	684	14	dusk.light	A light day. Sleep on time.	Strain 59, under your usual 75 · readiness was 87
+23.17	87	78	95	453	427	62	54	62	7145	8021	61	75	0.1	53	54	684	14	night.usual	Bed by 23:25 tonight.	Keeps your sleep on track · you usually fall asleep at 23:25
+5.33	87	78	97	444	426	62	54	62	347	7925	3	74	0	54	54	671	14	am.ready	A good day to train hard.	Readiness 87 · HRV 62 ms, at the top of your normal
+7.25	87	78	97	444	426	62	54	62	347	7925	3	74	0	54	54	671	14	am.ready	A good day to train hard.	Readiness 87 · HRV 62 ms, at the top of your normal
+10	87	78	97	444	426	62	54	62	1487	7925	14	74	0	54	54	671	14	am.ready	A good day to train hard.	Readiness 87 · HRV 62 ms, at the top of your normal
+13	87	78	97	444	426	62	54	62	2973	7925	28	74	0	54	54	671	14	pm.on	On pace for your usual day.	2,973 steps by 13:00 · strain 28, your usual 74
+15.17	87	78	97	444	426	62	54	62	4048	7925	38	74	0	54	54	671	14	pm.on	On pace for your usual day.	4,048 steps by 15:10 · strain 38, your usual 74
+17.5	87	78	97	444	426	62	54	62	5203	7925	49	74	0	54	54	671	14	pm.on	On pace for your usual day.	5,203 steps by 17:30 · strain 49, your usual 74
+19.75	87	78	97	444	426	62	54	62	6318	7925	59	74	0	54	54	671	14	dusk.full	A full day. Sleep on time.	Strain 59, near your usual 74 · readiness was 87
+20.5	87	78	97	444	426	62	54	62	6689	7925	63	74	0	54	54	671	14	dusk.full	A full day. Sleep on time.	Strain 63, near your usual 74 · readiness was 87
+23.17	87	78	97	444	426	62	54	62	6937	7925	65	74	0	54	54	671	14	night.usual	Bed by 23:10 tonight.	Keeps your sleep on track · you usually fall asleep at 23:10
+5.33	84	78	95	450	425	59	54	62	352	7840	3	73	0.1	54	54	671	14	am.ready	A good day to train hard.	Readiness 84 · HRV 59 ms, within your normal
+7.25	84	78	95	450	425	59	54	62	352	7840	3	73	0.1	54	54	671	14	am.ready	A good day to train hard.	Readiness 84 · HRV 59 ms, within your normal
+10	84	78	95	450	425	59	54	62	1509	7840	15	73	0.1	54	54	671	14	am.ready	A good day to train hard.	Readiness 84 · HRV 59 ms, within your normal
+13	84	78	95	450	425	59	54	62	3017	7840	29	73	0.1	54	54	671	14	pm.on	On pace for your usual day.	3,017 steps by 13:00 · strain 29, your usual 73
+15.17	84	78	95	450	425	59	54	62	4108	7840	40	73	0.1	54	54	671	14	pm.on	On pace for your usual day.	4,108 steps by 15:10 · strain 40, your usual 73
+17.5	84	78	95	450	425	59	54	62	5280	7840	51	73	0.1	54	54	671	14	pm.on	On pace for your usual day.	5,280 steps by 17:30 · strain 51, your usual 73
+19.75	84	78	95	450	425	59	54	62	6411	7840	62	73	0.1	54	54	671	14	dusk.full	A full day. Sleep on time.	Strain 62, near your usual 73 · readiness was 84
+20.5	84	78	95	450	425	59	54	62	6789	7840	66	73	0.1	54	54	671	14	dusk.full	A full day. Sleep on time.	Strain 66, near your usual 73 · readiness was 84
+23.17	84	78	95	450	425	59	54	62	7040	7840	68	73	0.1	54	54	671	14	night.usual	Bed by 23:10 tonight.	Keeps your sleep on track · you usually fall asleep at 23:10
+5.33	86	78	90	451	424	63	54	62	355	7787	4	73	-0.1	54	54	671	14	am.ready	A good day to train hard.	Readiness 86 · HRV 63 ms, above your normal
+7.25	86	78	90	451	424	63	54	62	355	7787	4	73	-0.1	54	54	671	14	am.ready	A good day to train hard.	Readiness 86 · HRV 63 ms, above your normal
+10	86	78	90	451	424	63	54	62	1522	7787	15	73	-0.1	54	54	671	14	am.ready	A good day to train hard.	Readiness 86 · HRV 63 ms, above your normal
+13	86	78	90	451	424	63	54	62	3043	7787	30	73	-0.1	54	54	671	14	pm.on	On pace for your usual day.	3,043 steps by 13:00 · strain 30, your usual 73
+15.17	86	78	90	451	424	63	54	62	4144	7787	41	73	-0.1	54	54	671	14	pm.on	On pace for your usual day.	4,144 steps by 15:10 · strain 41, your usual 73
+17.5	86	78	90	451	424	63	54	62	5326	7787	53	73	-0.1	54	54	671	14	pm.on	On pace for your usual day.	5,326 steps by 17:30 · strain 53, your usual 73
+19.75	86	78	90	451	424	63	54	62	6467	7787	64	73	-0.1	54	54	671	14	dusk.full	A full day. Sleep on time.	Strain 64, near your usual 73 · readiness was 86
+20.5	86	78	90	451	424	63	54	62	6847	7787	68	73	-0.1	54	54	671	14	dusk.full	A full day. Sleep on time.	Strain 68, near your usual 73 · readiness was 86
+23.17	86	78	90	451	424	63	54	62	7101	7787	70	73	-0.1	54	54	671	14	night.usual	Bed by 23:10 tonight.	Keeps your sleep on track · you usually fall asleep at 23:10
+5.33	85	78	94	448	425	59	54	62	426	7744	4	73	-0.1	53	55	678	14	am.ready	A good day to train hard.	Readiness 85 · HRV 59 ms, within your normal
+7.25	85	78	94	448	425	59	54	62	426	7744	4	73	-0.1	53	55	678	14	am.ready	A good day to train hard.	Readiness 85 · HRV 59 ms, within your normal
+10	85	78	94	448	425	59	54	62	1827	7744	17	73	-0.1	53	55	678	14	am.ready	A good day to train hard.	Readiness 85 · HRV 59 ms, within your normal
+13	85	78	94	448	425	59	54	62	3655	7744	33	73	-0.1	53	55	678	14	pm.on	On pace for your usual day.	3,655 steps by 13:00 · strain 33, your usual 73
+15.17	85	78	94	448	425	59	54	62	4977	7744	45	73	-0.1	53	55	678	14	pm.on	On pace for your usual day.	4,977 steps by 15:10 · strain 45, your usual 73
+17.5	85	78	94	448	425	59	54	62	6396	7744	58	73	-0.1	53	55	678	14	pm.on	On pace for your usual day.	6,396 steps by 17:30 · strain 58, your usual 73
+19.75	85	78	94	448	425	59	54	62	7767	7744	70	73	-0.1	53	55	678	14	dusk.full	A full day. Sleep on time.	Strain 70, near your usual 73 · readiness was 85
+20.5	85	78	94	448	425	59	54	62	8223	7744	74	73	-0.1	53	55	678	14	dusk.full	A full day. Sleep on time.	Strain 74, near your usual 73 · readiness was 85
+23.17	85	78	94	448	425	59	54	62	8528	7744	77	73	-0.1	53	55	678	14	night.usual	Bed by 23:20 tonight.	Keeps your sleep on track · you usually fall asleep at 23:20
+5.33	85	78	91	425	424	61	54	61	414	7776	4	73	-0.1	54	55	682	14	am.ready	A good day to train hard.	Readiness 85 · HRV 61 ms, at the top of your normal
+7.25	85	78	91	425	424	61	54	61	414	7776	4	73	-0.1	54	55	682	14	am.ready	A good day to train hard.	Readiness 85 · HRV 61 ms, at the top of your normal
+10	85	78	91	425	424	61	54	61	1775	7776	16	73	-0.1	54	55	682	14	am.ready	A good day to train hard.	Readiness 85 · HRV 61 ms, at the top of your normal
+13	85	78	91	425	424	61	54	61	3550	7776	32	73	-0.1	54	55	682	14	pm.on	On pace for your usual day.	3,550 steps by 13:00 · strain 32, your usual 73
+15.17	85	78	91	425	424	61	54	61	4834	7776	43	73	-0.1	54	55	682	14	pm.on	On pace for your usual day.	4,834 steps by 15:10 · strain 43, your usual 73
+17.5	85	78	91	425	424	61	54	61	6212	7776	56	73	-0.1	54	55	682	14	pm.on	On pace for your usual day.	6,212 steps by 17:30 · strain 56, your usual 73
+19.75	85	78	91	425	424	61	54	61	7543	7776	67	73	-0.1	54	55	682	14	dusk.full	A full day. Sleep on time.	Strain 67, near your usual 73 · readiness was 85
+20.5	85	78	91	425	424	61	54	61	7987	7776	71	73	-0.1	54	55	682	14	dusk.full	A full day. Sleep on time.	Strain 71, near your usual 73 · readiness was 85
+23.17	85	78	91	425	424	61	54	61	8283	7776	74	73	-0.1	54	55	682	14	night.usual	Bed by 23:20 tonight.	Keeps your sleep on track · you usually fall asleep at 23:20
+5.33	84	78	94	445	423	58	54	61	420	7797	4	73	0.2	53	55	685.5	14	am.ready	A good day to train hard.	Readiness 84 · HRV 58 ms, within your normal
+7.25	84	78	94	445	423	58	54	61	420	7797	4	73	0.2	53	55	685.5	14	am.ready	A good day to train hard.	Readiness 84 · HRV 58 ms, within your normal
+10	84	78	94	445	423	58	54	61	1800	7797	17	73	0.2	53	55	685.5	14	am.ready	A good day to train hard.	Readiness 84 · HRV 58 ms, within your normal
+13	84	78	94	445	423	58	54	61	3600	7797	33	73	0.2	53	55	685.5	14	pm.on	On pace for your usual day.	3,600 steps by 13:00 · strain 33, your usual 73
+15.17	84	78	94	445	423	58	54	61	4902	7797	45	73	0.2	53	55	685.5	14	pm.on	On pace for your usual day.	4,902 steps by 15:10 · strain 45, your usual 73
+17.5	84	78	94	445	423	58	54	61	6300	7797	58	73	0.2	53	55	685.5	14	pm.on	On pace for your usual day.	6,300 steps by 17:30 · strain 58, your usual 73
+19.75	84	78	94	445	423	58	54	61	7650	7797	70	73	0.2	53	55	685.5	14	dusk.full	A full day. Sleep on time.	Strain 70, near your usual 73 · readiness was 84
+20.5	84	78	94	445	423	58	54	61	8100	7797	74	73	0.2	53	55	685.5	14	dusk.full	A full day. Sleep on time.	Strain 74, near your usual 73 · readiness was 84
+23.17	84	78	94	445	423	58	54	61	8400	7797	77	73	0.2	53	55	685.5	14	night.usual	Bed by 23:25 tonight.	Keeps your sleep on track · you usually fall asleep at 23:25
+5.33	84	78	91	435	423	61	54	61	471	7852	4	73	-0.1	55	55	685.5	14	am.ready	A good day to train hard.	Readiness 84 · HRV 61 ms, at the top of your normal
+7.25	84	78	91	435	423	61	54	61	471	7852	4	73	-0.1	55	55	685.5	14	am.ready	A good day to train hard.	Readiness 84 · HRV 61 ms, at the top of your normal
+10	84	78	91	435	423	61	54	61	2016	7852	18	73	-0.1	55	55	685.5	14	am.ready	A good day to train hard.	Readiness 84 · HRV 61 ms, at the top of your normal
+13	84	78	91	435	423	61	54	61	4033	7852	36	73	-0.1	55	55	685.5	14	pm.ahead	Ahead of your usual day. Keep it going.	4,033 steps by 13:00 · strain 36, your usual 73
+15.17	84	78	91	435	423	61	54	61	5491	7852	48	73	-0.1	55	55	685.5	14	pm.ahead	Ahead of your usual day. Keep it going.	5,491 steps by 15:10 · strain 48, your usual 73
+17.5	84	78	91	435	423	61	54	61	7058	7852	62	73	-0.1	55	55	685.5	14	pm.ahead	Ahead of your usual day. Keep it going.	7,058 steps by 17:30 · strain 62, your usual 73
+19.75	84	78	91	435	423	61	54	61	8570	7852	76	73	-0.1	55	55	685.5	14	dusk.full	A full day. Sleep on time.	Strain 76, near your usual 73 · readiness was 84
+20.5	84	78	91	435	423	61	54	61	9074	7852	80	73	-0.1	55	55	685.5	14	dusk.full	A full day. Sleep on time.	Strain 80, near your usual 73 · readiness was 84
+23.17	84	78	91	435	423	61	54	61	9410	7852	83	73	-0.1	55	55	685.5	14	night.usual	Bed by 23:25 tonight.	Keeps your sleep on track · you usually fall asleep at 23:25
+5.33	82	78	90	415	423	57	54	61	483	7955	4	73	0.1	54	55	682	14	am.ready	A good day to train hard.	Readiness 82 · HRV 57 ms, within your normal
+7.25	82	78	90	415	423	57	54	61	483	7955	4	73	0.1	54	55	682	14	am.ready	A good day to train hard.	Readiness 82 · HRV 57 ms, within your normal
+10	82	78	90	415	423	57	54	61	2070	7955	17	73	0.1	54	55	682	14	am.ready	A good day to train hard.	Readiness 82 · HRV 57 ms, within your normal
+13	82	78	90	415	423	57	54	61	4140	7955	34	73	0.1	54	55	682	14	pm.ahead	Ahead of your usual day. Keep it going.	4,140 steps by 13:00 · strain 34, your usual 73
+15.17	82	78	90	415	423	57	54	61	5638	7955	47	73	0.1	54	55	682	14	pm.ahead	Ahead of your usual day. Keep it going.	5,638 steps by 15:10 · strain 47, your usual 73
+17.5	82	78	90	415	423	57	54	61	7246	7955	60	73	0.1	54	55	682	14	pm.ahead	Ahead of your usual day. Keep it going.	7,246 steps by 17:30 · strain 60, your usual 73
+19.75	82	78	90	415	423	57	54	61	8798	7955	73	73	0.1	54	55	682	14	dusk.full	A full day. Sleep on time.	Strain 73, near your usual 73 · readiness was 82
+20.5	82	78	90	415	423	57	54	61	9316	7955	77	73	0.1	54	55	682	14	dusk.full	A full day. Sleep on time.	Strain 77, near your usual 73 · readiness was 82
+23.17	82	78	90	415	423	57	54	61	9661	7955	80	73	0.1	54	55	682	14	night.usual	Bed by 23:20 tonight.	Keeps your sleep on track · you usually fall asleep at 23:20
+5.33	84	79	94	434	423	58	54	61	479	8053	4	74	0.1	54	55	685.5	14	am.ready	A good day to train hard.	Readiness 84 · HRV 58 ms, within your normal
+7.25	84	79	94	434	423	58	54	61	479	8053	4	74	0.1	54	55	685.5	14	am.ready	A good day to train hard.	Readiness 84 · HRV 58 ms, within your normal
+10	84	79	94	434	423	58	54	61	2052	8053	17	74	0.1	54	55	685.5	14	am.ready	A good day to train hard.	Readiness 84 · HRV 58 ms, within your normal
+13	84	79	94	434	423	58	54	61	4104	8053	35	74	0.1	54	55	685.5	14	pm.ahead	Ahead of your usual day. Keep it going.	4,104 steps by 13:00 · strain 35, your usual 74
+15.17	84	79	94	434	423	58	54	61	5588	8053	47	74	0.1	54	55	685.5	14	pm.ahead	Ahead of your usual day. Keep it going.	5,588 steps by 15:10 · strain 47, your usual 74
+17.5	84	79	94	434	423	58	54	61	7181	8053	61	74	0.1	54	55	685.5	14	pm.ahead	Ahead of your usual day. Keep it going.	7,181 steps by 17:30 · strain 61, your usual 74
+19.75	84	79	94	434	423	58	54	61	8720	8053	74	74	0.1	54	55	685.5	14	dusk.full	A full day. Sleep on time.	Strain 74, near your usual 74 · readiness was 84
+20.5	84	79	94	434	423	58	54	61	9233	8053	78	74	0.1	54	55	685.5	14	dusk.full	A full day. Sleep on time.	Strain 78, near your usual 74 · readiness was 84
+23.17	84	79	94	434	423	58	54	61	9575	8053	81	74	0.1	54	55	685.5	14	night.usual	Bed by 23:25 tonight.	Keeps your sleep on track · you usually fall asleep at 23:25
+5.33	81	79	82	411	423	60	54	61	463	8146	4	75	0	55	55	685.5	14	am.ready	A good day to train hard.	Readiness 81 · HRV 60 ms, within your normal
+7.25	81	79	82	411	423	60	54	61	463	8146	4	75	0	55	55	685.5	14	am.ready	A good day to train hard.	Readiness 81 · HRV 60 ms, within your normal
+10	81	79	82	411	423	60	54	61	1984	8146	18	75	0	55	55	685.5	14	am.ready	A good day to train hard.	Readiness 81 · HRV 60 ms, within your normal
+13	81	79	82	411	423	60	54	61	3969	8146	36	75	0	55	55	685.5	14	pm.on	On pace for your usual day.	3,969 steps by 13:00 · strain 36, your usual 75
+15.17	81	79	82	411	423	60	54	61	5404	8146	48	75	0	55	55	685.5	14	pm.on	On pace for your usual day.	5,404 steps by 15:10 · strain 48, your usual 75
+17.5	81	79	82	411	423	60	54	61	6945	8146	62	75	0	55	55	685.5	14	pm.on	On pace for your usual day.	6,945 steps by 17:30 · strain 62, your usual 75
+19.75	81	79	82	411	423	60	54	61	8433	8146	76	75	0	55	55	685.5	14	dusk.full	A full day. Sleep on time.	Strain 76, near your usual 75 · readiness was 81
+20.5	81	79	82	411	423	60	54	61	8929	8146	80	75	0	55	55	685.5	14	dusk.full	A full day. Sleep on time.	Strain 80, near your usual 75 · readiness was 81
+23.17	81	79	82	411	423	60	54	61	9260	8146	83	75	0	55	55	685.5	14	night.usual	Bed by 23:25 tonight.	Keeps your sleep on track · you usually fall asleep at 23:25
+5.33	80	79	87	413	423	56	54	61	447	8232	4	75	0	54	55	685.5	14	am.ready	A good day to train hard.	Readiness 80 · HRV 56 ms, within your normal
+7.25	80	79	87	413	423	56	54	61	447	8232	4	75	0	54	55	685.5	14	am.ready	A good day to train hard.	Readiness 80 · HRV 56 ms, within your normal
+10	80	79	87	413	423	56	54	61	1917	8232	17	75	0	54	55	685.5	14	am.ready	A good day to train hard.	Readiness 80 · HRV 56 ms, within your normal
+13	80	79	87	413	423	56	54	61	3835	8232	35	75	0	54	55	685.5	14	pm.on	On pace for your usual day.	3,835 steps by 13:00 · strain 35, your usual 75
+15.17	80	79	87	413	423	56	54	61	5222	8232	47	75	0	54	55	685.5	14	pm.on	On pace for your usual day.	5,222 steps by 15:10 · strain 47, your usual 75
+17.5	80	79	87	413	423	56	54	61	6711	8232	61	75	0	54	55	685.5	14	pm.on	On pace for your usual day.	6,711 steps by 17:30 · strain 61, your usual 75
+19.75	80	79	87	413	423	56	54	61	8149	8232	74	75	0	54	55	685.5	14	dusk.full	A full day. Sleep on time.	Strain 74, near your usual 75 · readiness was 80
+20.5	80	79	87	413	423	56	54	61	8628	8232	78	75	0	54	55	685.5	14	dusk.full	A full day. Sleep on time.	Strain 78, near your usual 75 · readiness was 80
+23.17	80	79	87	413	423	56	54	61	8948	8232	81	75	0	54	55	685.5	14	night.usual	Bed by 23:25 tonight.	Keeps your sleep on track · you usually fall asleep at 23:25
+5.33	77	79	86	414	423	55	54	61	429	8290	4	76	-0.1	56	55	685.5	14	am.steady	Train, but not to the limit.	Readiness 77 · HRV 55 ms, within your normal
+7.25	77	79	86	414	423	55	54	61	429	8290	4	76	-0.1	56	55	685.5	14	am.steady	Train, but not to the limit.	Readiness 77 · HRV 55 ms, within your normal
+10	77	79	86	414	423	55	54	61	1837	8290	17	76	-0.1	56	55	685.5	14	am.steady	Train, but not to the limit.	Readiness 77 · HRV 55 ms, within your normal
+13	77	79	86	414	423	55	54	61	3675	8290	33	76	-0.1	56	55	685.5	14	pm.on	On pace for your usual day.	3,675 steps by 13:00 · strain 33, your usual 76
+15.17	77	79	86	414	423	55	54	61	5004	8290	45	76	-0.1	56	55	685.5	14	pm.on	On pace for your usual day.	5,004 steps by 15:10 · strain 45, your usual 76
+17.5	77	79	86	414	423	55	54	61	6431	8290	58	76	-0.1	56	55	685.5	14	pm.on	On pace for your usual day.	6,431 steps by 17:30 · strain 58, your usual 76
+19.75	77	79	86	414	423	55	54	61	7808	8290	70	76	-0.1	56	55	685.5	14	dusk.full	A full day. Sleep on time.	Strain 70, near your usual 76 · readiness was 77
+20.5	77	79	86	414	423	55	54	61	8268	8290	74	76	-0.1	56	55	685.5	14	dusk.full	A full day. Sleep on time.	Strain 74, near your usual 76 · readiness was 77
+23.17	77	79	86	414	423	55	54	61	8574	8290	77	76	-0.1	56	55	685.5	14	night.usual	Bed by 23:25 tonight.	Keeps your sleep on track · you usually fall asleep at 23:25
+5.33	78	80	85	412	423	56	54	61	420	8356	4	76	0	55	55	685.5	14	am.steady	Train, but not to the limit.	Readiness 78 · HRV 56 ms, within your normal
+7.25	78	80	85	412	423	56	54	61	420	8356	4	76	0	55	55	685.5	14	am.steady	Train, but not to the limit.	Readiness 78 · HRV 56 ms, within your normal
+10	78	80	85	412	423	56	54	61	1799	8356	16	76	0	55	55	685.5	14	am.steady	Train, but not to the limit.	Readiness 78 · HRV 56 ms, within your normal
+13	78	80	85	412	423	56	54	61	3598	8356	32	76	0	55	55	685.5	14	pm.on	On pace for your usual day.	3,598 steps by 13:00 · strain 32, your usual 76
+15.17	78	80	85	412	423	56	54	61	4899	8356	43	76	0	55	55	685.5	14	pm.on	On pace for your usual day.	4,899 steps by 15:10 · strain 43, your usual 76
+17.5	78	80	85	412	423	56	54	61	6296	8356	56	76	0	55	55	685.5	14	pm.on	On pace for your usual day.	6,296 steps by 17:30 · strain 56, your usual 76
+19.75	78	80	85	412	423	56	54	61	7645	8356	67	76	0	55	55	685.5	14	dusk.full	A full day. Sleep on time.	Strain 67, near your usual 76 · readiness was 78
+20.5	78	80	85	412	423	56	54	61	8095	8356	71	76	0	55	55	685.5	14	dusk.full	A full day. Sleep on time.	Strain 71, near your usual 76 · readiness was 78
+23.17	78	80	85	412	423	56	54	61	8395	8356	74	76	0	55	55	685.5	14	night.usual	Bed by 23:25 tonight.	Keeps your sleep on track · you usually fall asleep at 23:25
+5.33	80	80	89	421	423	57	54	61	414	8379	4	76	-0.2	55	55	685.5	14	am.ready	A good day to train hard.	Readiness 80 · HRV 57 ms, within your normal
+7.25	80	80	89	421	423	57	54	61	414	8379	4	76	-0.2	55	55	685.5	14	am.ready	A good day to train hard.	Readiness 80 · HRV 57 ms, within your normal
+10	80	80	89	421	423	57	54	61	1774	8379	16	76	-0.2	55	55	685.5	14	am.ready	A good day to train hard.	Readiness 80 · HRV 57 ms, within your normal
+13	80	80	89	421	423	57	54	61	3548	8379	33	76	-0.2	55	55	685.5	14	pm.on	On pace for your usual day.	3,548 steps by 13:00 · strain 33, your usual 76
+15.17	80	80	89	421	423	57	54	61	4831	8379	44	76	-0.2	55	55	685.5	14	pm.on	On pace for your usual day.	4,831 steps by 15:10 · strain 44, your usual 76
+17.5	80	80	89	421	423	57	54	61	6209	8379	57	76	-0.2	55	55	685.5	14	pm.on	On pace for your usual day.	6,209 steps by 17:30 · strain 57, your usual 76
+19.75	80	80	89	421	423	57	54	61	7540	8379	69	76	-0.2	55	55	685.5	14	dusk.full	A full day. Sleep on time.	Strain 69, near your usual 76 · readiness was 80
+20.5	80	80	89	421	423	57	54	61	7983	8379	73	76	-0.2	55	55	685.5	14	dusk.full	A full day. Sleep on time.	Strain 73, near your usual 76 · readiness was 80
+23.17	80	80	89	421	423	57	54	61	8279	8379	76	76	-0.2	55	55	685.5	14	night.usual	Bed by 23:25 tonight.	Keeps your sleep on track · you usually fall asleep at 23:25
+5.33	81	80	89	420	423	58	54	61	383	8400	4	76	-0.1	55	55	689.5	14	am.ready	A good day to train hard.	Readiness 81 · HRV 58 ms, within your normal
+7.25	81	80	89	420	423	58	54	61	383	8400	4	76	-0.1	55	55	689.5	14	am.ready	A good day to train hard.	Readiness 81 · HRV 58 ms, within your normal
+10	81	80	89	420	423	58	54	61	1642	8400	16	76	-0.1	55	55	689.5	14	am.ready	A good day to train hard.	Readiness 81 · HRV 58 ms, within your normal
+13	81	80	89	420	423	58	54	61	3284	8400	32	76	-0.1	55	55	689.5	14	pm.on	On pace for your usual day.	3,284 steps by 13:00 · strain 32, your usual 76
+15.17	81	80	89	420	423	58	54	61	4472	8400	44	76	-0.1	55	55	689.5	14	pm.on	On pace for your usual day.	4,472 steps by 15:10 · strain 44, your usual 76
+17.5	81	80	89	420	423	58	54	61	5747	8400	56	76	-0.1	55	55	689.5	14	pm.on	On pace for your usual day.	5,747 steps by 17:30 · strain 56, your usual 76
+19.75	81	80	89	420	423	58	54	61	6979	8400	68	76	-0.1	55	55	689.5	14	dusk.full	A full day. Sleep on time.	Strain 68, near your usual 76 · readiness was 81
+20.5	81	80	89	420	423	58	54	61	7389	8400	72	76	-0.1	55	55	689.5	14	dusk.full	A full day. Sleep on time.	Strain 72, near your usual 76 · readiness was 81
+23.17	81	80	89	420	423	58	54	61	7663	8400	75	76	-0.1	55	55	689.5	14	night.usual	Bed by 23:30 tonight.	Keeps your sleep on track · you usually fall asleep at 23:30
+5.33	54	80	69	365	424	44	54	61	385	8378	3	76	0.8	60	55	687	14	am.ill	Rest, and see how you feel.	Skin +0.8 °C · resting HR 60, 5 above usual
+7.25	54	80	69	365	424	44	54	61	385	8378	3	76	0.8	60	55	687	14	am.ill	Rest, and see how you feel.	Skin +0.8 °C · resting HR 60, 5 above usual
+10	54	80	69	365	424	44	54	61	1650	8378	15	76	0.8	60	55	687	14	am.ill	Rest, and see how you feel.	Skin +0.8 °C · resting HR 60, 5 above usual
+13	54	80	69	365	424	44	54	61	3301	8378	30	76	0.8	60	55	687	14	pm.ill	Keep it a rest day.	3,301 steps by 13:00 · strain 30, your usual 76
+15.17	54	80	69	365	424	44	54	61	4495	8378	40	76	0.8	60	55	687	14	pm.ill	Keep it a rest day.	4,495 steps by 15:10 · strain 40, your usual 76
+17.5	54	80	69	365	424	44	54	61	5777	8378	52	76	0.8	60	55	687	14	pm.ill	Keep it a rest day.	5,777 steps by 17:30 · strain 52, your usual 76
+19.75	54	80	69	365	424	44	54	61	7014	8378	63	76	0.8	60	55	687	14	dusk.ill	An early night helps most.	Strain 63, near your usual 76 · readiness was 54
+20.5	54	80	69	365	424	44	54	61	7427	8378	67	76	0.8	60	55	687	14	dusk.ill	An early night helps most.	Strain 67, near your usual 76 · readiness was 54
+23.17	54	80	69	365	424	44	54	61	7702	8378	69	76	0.8	60	55	687	14	night.ill	Bed early. Rest helps.	Last night 6h 05m · you usually fall asleep at 23:25
+5.33	84	80	87	425	423	60	53	62	353	8345	4	76	-0.1	54	55	693	14	am.ready	A good day to train hard.	Readiness 84 · HRV 60 ms, within your normal
+7.25	84	80	87	425	423	60	53	62	353	8345	4	76	-0.1	54	55	693	14	am.ready	A good day to train hard.	Readiness 84 · HRV 60 ms, within your normal
+10	84	80	87	425	423	60	53	62	1512	8345	15	76	-0.1	54	55	693	14	am.ready	A good day to train hard.	Readiness 84 · HRV 60 ms, within your normal
+13	84	80	87	425	423	60	53	62	3024	8345	30	76	-0.1	54	55	693	14	pm.behind	Behind your usual day. A walk would help.	3,024 steps by 13:00 · strain 30, your usual 76
+15.17	84	80	87	425	423	60	53	62	4118	8345	41	76	-0.1	54	55	693	14	pm.behind	Behind your usual day. A walk would help.	4,118 steps by 15:10 · strain 41, your usual 76
+17.5	84	80	87	425	423	60	53	62	5293	8345	53	76	-0.1	54	55	693	14	pm.behind	Behind your usual day. A walk would help.	5,293 steps by 17:30 · strain 53, your usual 76
+19.75	84	80	87	425	423	60	53	62	6427	8345	64	76	-0.1	54	55	693	14	dusk.full	A full day. Sleep on time.	Strain 64, near your usual 76 · readiness was 84
+20.5	84	80	87	425	423	60	53	62	6805	8345	68	76	-0.1	54	55	693	14	dusk.full	A full day. Sleep on time.	Strain 68, near your usual 76 · readiness was 84
+23.17	84	80	87	425	423	60	53	62	7057	8345	70	76	-0.1	54	55	693	14	night.usual	Bed by 23:35 tonight.	Keeps your sleep on track · you usually fall asleep at 23:35
+5.33	84	80	91	429	424	59	53	62	353	8250	3	75	0.1	54	55	693	14	am.ready	A good day to train hard.	Readiness 84 · HRV 59 ms, within your normal
+7.25	84	80	91	429	424	59	53	62	353	8250	3	75	0.1	54	55	693	14	am.ready	A good day to train hard.	Readiness 84 · HRV 59 ms, within your normal
+10	84	80	91	429	424	59	53	62	1511	8250	14	75	0.1	54	55	693	14	am.ready	A good day to train hard.	Readiness 84 · HRV 59 ms, within your normal
+13	84	80	91	429	424	59	53	62	3021	8250	27	75	0.1	54	55	693	14	pm.on	On pace for your usual day.	3,021 steps by 13:00 · strain 27, your usual 75
+15.17	84	80	91	429	424	59	53	62	4114	8250	37	75	0.1	54	55	693	14	pm.on	On pace for your usual day.	4,114 steps by 15:10 · strain 37, your usual 75
+17.5	84	80	91	429	424	59	53	62	5288	8250	47	75	0.1	54	55	693	14	pm.on	On pace for your usual day.	5,288 steps by 17:30 · strain 47, your usual 75
+19.75	84	80	91	429	424	59	53	62	6421	8250	57	75	0.1	54	55	693	14	dusk.light	A light day. Sleep on time.	Strain 57, under your usual 75 · readiness was 84
+20.5	84	80	91	429	424	59	53	62	6798	8250	61	75	0.1	54	55	693	14	dusk.light	A light day. Sleep on time.	Strain 61, under your usual 75 · readiness was 84
+23.17	84	80	91	429	424	59	53	62	7050	8250	63	75	0.1	54	55	693	14	night.usual	Bed by 23:35 tonight.	Keeps your sleep on track · you usually fall asleep at 23:35
+5.33	85	81	89	426	427	62	55	62	347	8164	3	74	-0.1	54	55	693	14	am.ready	A good day to train hard.	Readiness 85 · HRV 62 ms, at the top of your normal
+7.25	85	81	89	426	427	62	55	62	347	8164	3	74	-0.1	54	55	693	14	am.ready	A good day to train hard.	Readiness 85 · HRV 62 ms, at the top of your normal
+10	85	81	89	426	427	62	55	62	1486	8164	13	74	-0.1	54	55	693	14	am.ready	A good day to train hard.	Readiness 85 · HRV 62 ms, at the top of your normal
+13	85	81	89	426	427	62	55	62	2972	8164	26	74	-0.1	54	55	693	14	pm.behind	Behind your usual day. A walk would help.	2,972 steps by 13:00 · strain 26, your usual 74
+15.17	85	81	89	426	427	62	55	62	4047	8164	36	74	-0.1	54	55	693	14	pm.behind	Behind your usual day. A walk would help.	4,047 steps by 15:10 · strain 36, your usual 74
+17.5	85	81	89	426	427	62	55	62	5201	8164	46	74	-0.1	54	55	693	14	pm.behind	Behind your usual day. A walk would help.	5,201 steps by 17:30 · strain 46, your usual 74
+19.75	85	81	89	426	427	62	55	62	6316	8164	56	74	-0.1	54	55	693	14	dusk.light	A light day. Sleep on time.	Strain 56, under your usual 74 · readiness was 85
+20.5	85	81	89	426	427	62	55	62	6687	8164	59	74	-0.1	54	55	693	14	dusk.light	A light day. Sleep on time.	Strain 59, under your usual 74 · readiness was 85
+23.17	85	81	89	426	427	62	55	62	6935	8164	61	74	-0.1	54	55	693	14	night.usual	Bed by 23:35 tonight.	Keeps your sleep on track · you usually fall asleep at 23:35
+5.33	84	81	95	442	427	59	55	62	300	8066	3	74	0.2	54	54	683	14	am.ready	A good day to train hard.	Readiness 84 · HRV 59 ms, within your normal
+7.25	84	81	95	442	427	59	55	62	300	8066	3	74	0.2	54	54	683	14	am.ready	A good day to train hard.	Readiness 84 · HRV 59 ms, within your normal
+10	84	81	95	442	427	59	55	62	1284	8066	14	74	0.2	54	54	683	14	am.ready	A good day to train hard.	Readiness 84 · HRV 59 ms, within your normal
+13	84	81	95	442	427	59	55	62	2569	8066	27	74	0.2	54	54	683	14	pm.behind	Behind your usual day. A walk would help.	2,569 steps by 13:00 · strain 27, your usual 74
+15.17	84	81	95	442	427	59	55	62	3498	8066	37	74	0.2	54	54	683	14	pm.behind	Behind your usual day. A walk would help.	3,498 steps by 15:10 · strain 37, your usual 74
+17.5	84	81	95	442	427	59	55	62	4496	8066	48	74	0.2	54	54	683	14	pm.behind	Behind your usual day. A walk would help.	4,496 steps by 17:30 · strain 48, your usual 74
+19.75	84	81	95	442	427	59	55	62	5459	8066	58	74	0.2	54	54	683	14	dusk.full	A full day. Sleep on time.	Strain 58, near your usual 74 · readiness was 84
+20.5	84	81	95	442	427	59	55	62	5780	8066	62	74	0.2	54	54	683	14	dusk.full	A full day. Sleep on time.	Strain 62, near your usual 74 · readiness was 84
+23.17	84	81	95	442	427	59	55	62	5994	8066	64	74	0.2	54	54	683	14	night.usual	Bed by 23:25 tonight.	Keeps your sleep on track · you usually fall asleep at 23:25
+5.33	83	82	86	438	428	61	55	62	324	7933	3	73	-0.2	54	54	674	14	am.ready	A good day to train hard.	Readiness 83 · HRV 61 ms, within your normal
+7.25	83	82	86	438	428	61	55	62	324	7933	3	73	-0.2	54	54	674	14	am.ready	A good day to train hard.	Readiness 83 · HRV 61 ms, within your normal
+10	83	82	86	438	428	61	55	62	1389	7933	14	73	-0.2	54	54	674	14	am.ready	A good day to train hard.	Readiness 83 · HRV 61 ms, within your normal
+13	83	82	86	438	428	61	55	62	2778	7933	27	73	-0.2	54	54	674	14	pm.behind	Behind your usual day. A walk would help.	2,778 steps by 13:00 · strain 27, your usual 73
+15.17	83	82	86	438	428	61	55	62	3783	7933	37	73	-0.2	54	54	674	14	pm.behind	Behind your usual day. A walk would help.	3,783 steps by 15:10 · strain 37, your usual 73
+17.5	83	82	86	438	428	61	55	62	4862	7933	47	73	-0.2	54	54	674	14	pm.behind	Behind your usual day. A walk would help.	4,862 steps by 17:30 · strain 47, your usual 73
+19.75	83	82	86	438	428	61	55	62	5904	7933	57	73	-0.2	54	54	674	14	dusk.full	A full day. Sleep on time.	Strain 57, near your usual 73 · readiness was 83
+20.5	83	82	86	438	428	61	55	62	6251	7933	61	73	-0.2	54	54	674	14	dusk.full	A full day. Sleep on time.	Strain 61, near your usual 73 · readiness was 83
+23.17	83	82	86	438	428	61	55	62	6483	7933	63	73	-0.2	54	54	674	14	night.usual	Bed by 23:15 tonight.	Keeps your sleep on track · you usually fall asleep at 23:15
+5.33	89	82	95	443	429	63	55	62	331	7817	4	72	0.1	52	54	683	14	am.ready	A good day to train hard.	Readiness 89 · HRV 63 ms, above your normal
+7.25	89	82	95	443	429	63	55	62	331	7817	4	72	0.1	52	54	683	14	am.ready	A good day to train hard.	Readiness 89 · HRV 63 ms, above your normal
+10	89	82	95	443	429	63	55	62	1417	7817	15	72	0.1	52	54	683	14	am.ready	A good day to train hard.	Readiness 89 · HRV 63 ms, above your normal
+13	89	82	95	443	429	63	55	62	2834	7817	30	72	0.1	52	54	683	14	pm.behind	Behind your usual day. A walk would help.	2,834 steps by 13:00 · strain 30, your usual 72
+15.17	89	82	95	443	429	63	55	62	3859	7817	41	72	0.1	52	54	683	14	pm.behind	Behind your usual day. A walk would help.	3,859 steps by 15:10 · strain 41, your usual 72
+17.5	89	82	95	443	429	63	55	62	4959	7817	53	72	0.1	52	54	683	14	pm.behind	Behind your usual day. A walk would help.	4,959 steps by 17:30 · strain 53, your usual 72
+19.75	89	82	95	443	429	63	55	62	6022	7817	64	72	0.1	52	54	683	14	dusk.full	A full day. Sleep on time.	Strain 64, near your usual 72 · readiness was 89
+20.5	89	82	95	443	429	63	55	62	6376	7817	68	72	0.1	52	54	683	14	dusk.full	A full day. Sleep on time.	Strain 68, near your usual 72 · readiness was 89
+23.17	89	82	95	443	429	63	55	62	6612	7817	70	72	0.1	52	54	683	14	night.usual	Bed by 23:25 tonight.	Keeps your sleep on track · you usually fall asleep at 23:25
+5.33	90	82	98	460	430	63	55	62	355	7743	3	72	0.2	52	54	681	14	am.ready	A good day to train hard.	Readiness 90 · HRV 63 ms, above your normal
+7.25	90	82	98	460	430	63	55	62	355	7743	3	72	0.2	52	54	681	14	am.ready	A good day to train hard.	Readiness 90 · HRV 63 ms, above your normal
+10	90	82	98	460	430	63	55	62	1522	7743	14	72	0.2	52	54	681	14	am.ready	A good day to train hard.	Readiness 90 · HRV 63 ms, above your normal
+13	90	82	98	460	430	63	55	62	3043	7743	29	72	0.2	52	54	681	14	pm.on	On pace for your usual day.	3,043 steps by 13:00 · strain 29, your usual 72
+15.17	90	82	98	460	430	63	55	62	4144	7743	39	72	0.2	52	54	681	14	pm.on	On pace for your usual day.	4,144 steps by 15:10 · strain 39, your usual 72
+17.5	90	82	98	460	430	63	55	62	5326	7743	50	72	0.2	52	54	681	14	pm.on	On pace for your usual day.	5,326 steps by 17:30 · strain 50, your usual 72
+19.75	90	82	98	460	430	63	55	62	6467	7743	61	72	0.2	52	54	681	14	dusk.full	A full day. Sleep on time.	Strain 61, near your usual 72 · readiness was 90
+20.5	90	82	98	460	430	63	55	62	6847	7743	65	72	0.2	52	54	681	14	dusk.full	A full day. Sleep on time.	Strain 65, near your usual 72 · readiness was 90
+23.17	90	82	98	460	430	63	55	62	7101	7743	67	72	0.2	52	54	681	14	night.usual	Bed by 23:20 tonight.	Keeps your sleep on track · you usually fall asleep at 23:20
+5.33	90	82	98	446	431	64	55	62	382	7680	4	72	0	52	54	681	14	am.ready	A good day to train hard.	Readiness 90 · HRV 64 ms, above your normal
+7.25	90	82	98	446	431	64	55	62	382	7680	4	72	0	52	54	681	14	am.ready	A good day to train hard.	Readiness 90 · HRV 64 ms, above your normal
+10	90	82	98	446	431	64	55	62	1639	7680	15	72	0	52	54	681	14	am.ready	A good day to train hard.	Readiness 90 · HRV 64 ms, above your normal
+13	90	82	98	446	431	64	55	62	3278	7680	30	72	0	52	54	681	14	pm.on	On pace for your usual day.	3,278 steps by 13:00 · strain 30, your usual 72
+15.17	90	82	98	446	431	64	55	62	4464	7680	41	72	0	52	54	681	14	pm.on	On pace for your usual day.	4,464 steps by 15:10 · strain 41, your usual 72
+17.5	90	82	98	446	431	64	55	62	5737	7680	53	72	0	52	54	681	14	pm.on	On pace for your usual day.	5,737 steps by 17:30 · strain 53, your usual 72
+19.75	90	82	98	446	431	64	55	62	6966	7680	65	72	0	52	54	681	14	dusk.full	A full day. Sleep on time.	Strain 65, near your usual 72 · readiness was 90
+20.5	90	82	98	446	431	64	55	62	7376	7680	68	72	0	52	54	681	14	dusk.full	A full day. Sleep on time.	Strain 68, near your usual 72 · readiness was 90
+23.17	90	82	98	446	431	64	55	62	7649	7680	71	72	0	52	54	681	14	night.usual	Bed by 23:20 tonight.	Keeps your sleep on track · you usually fall asleep at 23:20
+5.33	86	83	91	455	432	63	55	63	449	7667	4	72	0	53	54	677.5	14	am.ready	A good day to train hard.	Readiness 86 · HRV 63 ms, at the top of your normal
+7.25	86	83	91	455	432	63	55	63	449	7667	4	72	0	53	54	677.5	14	am.ready	A good day to train hard.	Readiness 86 · HRV 63 ms, at the top of your normal
+10	86	83	91	455	432	63	55	63	1923	7667	17	72	0	53	54	677.5	14	am.ready	A good day to train hard.	Readiness 86 · HRV 63 ms, at the top of your normal
+13	86	83	91	455	432	63	55	63	3847	7667	33	72	0	53	54	677.5	14	pm.ahead	Ahead of your usual day. Keep it going.	3,847 steps by 13:00 · strain 33, your usual 72
+15.17	86	83	91	455	432	63	55	63	5238	7667	46	72	0	53	54	677.5	14	pm.ahead	Ahead of your usual day. Keep it going.	5,238 steps by 15:10 · strain 46, your usual 72
+17.5	86	83	91	455	432	63	55	63	6732	7667	59	72	0	53	54	677.5	14	pm.ahead	Ahead of your usual day. Keep it going.	6,732 steps by 17:30 · strain 59, your usual 72
+19.75	86	83	91	455	432	63	55	63	8175	7667	71	72	0	53	54	677.5	14	dusk.full	A full day. Sleep on time.	Strain 71, near your usual 72 · readiness was 86
+20.5	86	83	91	455	432	63	55	63	8655	7667	75	72	0	53	54	677.5	14	dusk.full	A full day. Sleep on time.	Strain 75, near your usual 72 · readiness was 86
+23.17	86	83	91	455	432	63	55	63	8976	7667	78	72	0	53	54	677.5	14	night.usual	Bed by 23:20 tonight.	Keeps your sleep on track · you usually fall asleep at 23:20
+5.33	92	83	99	465	433	65	56	63	428	7705	4	72	0.2	51	54	683.5	14	am.ready	A good day to train hard.	Readiness 92 · HRV 65 ms, above your normal
+7.25	92	83	99	465	433	65	56	63	428	7705	4	72	0.2	51	54	683.5	14	am.ready	A good day to train hard.	Readiness 92 · HRV 65 ms, above your normal
+10	92	83	99	465	433	65	56	63	1834	7705	17	72	0.2	51	54	683.5	14	am.ready	A good day to train hard.	Readiness 92 · HRV 65 ms, above your normal
+13	92	83	99	465	433	65	56	63	3668	7705	34	72	0.2	51	54	683.5	14	pm.on	On pace for your usual day.	3,668 steps by 13:00 · strain 34, your usual 72
+15.17	92	83	99	465	433	65	56	63	4995	7705	46	72	0.2	51	54	683.5	14	pm.on	On pace for your usual day.	4,995 steps by 15:10 · strain 46, your usual 72
+17.5	92	83	99	465	433	65	56	63	6419	7705	59	72	0.2	51	54	683.5	14	pm.on	On pace for your usual day.	6,419 steps by 17:30 · strain 59, your usual 72
+19.75	92	83	99	465	433	65	56	63	7795	7705	72	72	0.2	51	54	683.5	14	dusk.full	A full day. Sleep on time.	Strain 72, near your usual 72 · readiness was 92
+20.5	92	83	99	465	433	65	56	63	8253	7705	76	72	0.2	51	54	683.5	14	dusk.full	A full day. Sleep on time.	Strain 76, near your usual 72 · readiness was 92
+23.17	92	83	99	465	433	65	56	63	8559	7705	79	72	0.2	51	54	683.5	14	night.usual	Bed by 23:25 tonight.	Keeps your sleep on track · you usually fall asleep at 23:25
+5.33	87	83	91	459	433	62	56	63	492	7756	4	72	0	51	54	683.5	14	am.ready	A good day to train hard.	Readiness 87 · HRV 62 ms, within your normal
+7.25	87	83	91	459	433	62	56	63	492	7756	4	72	0	51	54	683.5	14	am.ready	A good day to train hard.	Readiness 87 · HRV 62 ms, within your normal
+10	87	83	91	459	433	62	56	63	2106	7756	18	72	0	51	54	683.5	14	am.ready	A good day to train hard.	Readiness 87 · HRV 62 ms, within your normal
+13	87	83	91	459	433	62	56	63	4213	7756	36	72	0	51	54	683.5	14	pm.ahead	Ahead of your usual day. Keep it going.	4,213 steps by 13:00 · strain 36, your usual 72
+15.17	87	83	91	459	433	62	56	63	5737	7756	50	72	0	51	54	683.5	14	pm.ahead	Ahead of your usual day. Keep it going.	5,737 steps by 15:10 · strain 50, your usual 72
+17.5	87	83	91	459	433	62	56	63	7373	7756	64	72	0	51	54	683.5	14	pm.ahead	Ahead of your usual day. Keep it going.	7,373 steps by 17:30 · strain 64, your usual 72
+19.75	87	83	91	459	433	62	56	63	8952	7756	77	72	0	51	54	683.5	14	dusk.hard	A hard day. Ease off now.	Strain 77, above your usual 72 · readiness was 87
+20.5	87	83	91	459	433	62	56	63	9479	7756	82	72	0	51	54	683.5	14	dusk.hard	A hard day. Ease off now.	Strain 82, above your usual 72 · readiness was 87
+23.17	87	83	91	459	433	62	56	63	9830	7756	85	72	0	51	54	683.5	14	night.usual	Bed by 23:25 tonight.	Keeps your sleep on track · you usually fall asleep at 23:25
+5.33	90	83	91	455	434	65	56	63	483	7857	4	72	0	51	54	683.5	14	am.ready	A good day to train hard.	Readiness 90 · HRV 65 ms, above your normal
+7.25	90	83	91	455	434	65	56	63	483	7857	4	72	0	51	54	683.5	14	am.ready	A good day to train hard.	Readiness 90 · HRV 65 ms, above your normal
+10	90	83	91	455	434	65	56	63	2068	7857	17	72	0	51	54	683.5	14	am.ready	A good day to train hard.	Readiness 90 · HRV 65 ms, above your normal
+13	90	83	91	455	434	65	56	63	4137	7857	34	72	0	51	54	683.5	14	pm.ahead	Ahead of your usual day. Keep it going.	4,137 steps by 13:00 · strain 34, your usual 72
+15.17	90	83	91	455	434	65	56	63	5633	7857	47	72	0	51	54	683.5	14	pm.ahead	Ahead of your usual day. Keep it going.	5,633 steps by 15:10 · strain 47, your usual 72
+17.5	90	83	91	455	434	65	56	63	7239	7857	60	72	0	51	54	683.5	14	pm.ahead	Ahead of your usual day. Keep it going.	7,239 steps by 17:30 · strain 60, your usual 72
+19.75	90	83	91	455	434	65	56	63	8790	7857	73	72	0	51	54	683.5	14	dusk.full	A full day. Sleep on time.	Strain 73, near your usual 72 · readiness was 90
+20.5	90	83	91	455	434	65	56	63	9307	7857	77	72	0	51	54	683.5	14	dusk.full	A full day. Sleep on time.	Strain 77, near your usual 72 · readiness was 90
+23.17	90	83	91	455	434	65	56	63	9652	7857	80	72	0	51	54	683.5	14	night.usual	Bed by 23:25 tonight.	Keeps your sleep on track · you usually fall asleep at 23:25
+5.33	87	84	98	468	435	62	56	64	498	7974	4	73	-0.1	52	54	683.5	14	am.ready	A good day to train hard.	Readiness 87 · HRV 62 ms, within your normal
+7.25	87	84	98	468	435	62	56	64	498	7974	4	73	-0.1	52	54	683.5	14	am.ready	A good day to train hard.	Readiness 87 · HRV 62 ms, within your normal
+10	87	84	98	468	435	62	56	64	2134	7974	17	73	-0.1	52	54	683.5	14	am.ready	A good day to train hard.	Readiness 87 · HRV 62 ms, within your normal
+13	87	84	98	468	435	62	56	64	4268	7974	35	73	-0.1	52	54	683.5	14	pm.ahead	Ahead of your usual day. Keep it going.	4,268 steps by 13:00 · strain 35, your usual 73
+15.17	87	84	98	468	435	62	56	64	5812	7974	47	73	-0.1	52	54	683.5	14	pm.ahead	Ahead of your usual day. Keep it going.	5,812 steps by 15:10 · strain 47, your usual 73
+17.5	87	84	98	468	435	62	56	64	7469	7974	61	73	-0.1	52	54	683.5	14	pm.ahead	Ahead of your usual day. Keep it going.	7,469 steps by 17:30 · strain 61, your usual 73
+19.75	87	84	98	468	435	62	56	64	9070	7974	74	73	-0.1	52	54	683.5	14	dusk.full	A full day. Sleep on time.	Strain 74, near your usual 73 · readiness was 87
+20.5	87	84	98	468	435	62	56	64	9603	7974	78	73	-0.1	52	54	683.5	14	dusk.full	A full day. Sleep on time.	Strain 78, near your usual 73 · readiness was 87
+23.17	87	84	98	468	435	62	56	64	9959	7974	81	73	-0.1	52	54	683.5	14	night.usual	Bed by 23:25 tonight.	Keeps your sleep on track · you usually fall asleep at 23:25
+5.33	86	84	96	452	436	62	56	64	495	8092	4	73	0.1	53	54	690.5	14	am.ready	A good day to train hard.	Readiness 86 · HRV 62 ms, within your normal
+7.25	86	84	96	452	436	62	56	64	495	8092	4	73	0.1	53	54	690.5	14	am.ready	A good day to train hard.	Readiness 86 · HRV 62 ms, within your normal
+10	86	84	96	452	436	62	56	64	2123	8092	18	73	0.1	53	54	690.5	14	am.ready	A good day to train hard.	Readiness 86 · HRV 62 ms, within your normal
+13	86	84	96	452	436	62	56	64	4246	8092	36	73	0.1	53	54	690.5	14	pm.ahead	Ahead of your usual day. Keep it going.	4,246 steps by 13:00 · strain 36, your usual 73
+15.17	86	84	96	452	436	62	56	64	5782	8092	50	73	0.1	53	54	690.5	14	pm.ahead	Ahead of your usual day. Keep it going.	5,782 steps by 15:10 · strain 50, your usual 73
+17.5	86	84	96	452	436	62	56	64	7431	8092	64	73	0.1	53	54	690.5	14	pm.ahead	Ahead of your usual day. Keep it going.	7,431 steps by 17:30 · strain 64, your usual 73
+19.75	86	84	96	452	436	62	56	64	9023	8092	77	73	0.1	53	54	690.5	14	dusk.hard	A hard day. Ease off now.	Strain 77, above your usual 73 · readiness was 86
+20.5	86	84	96	452	436	62	56	64	9554	8092	82	73	0.1	53	54	690.5	14	dusk.hard	A hard day. Ease off now.	Strain 82, above your usual 73 · readiness was 86
+23.17	86	84	96	452	436	62	56	64	9908	8092	85	73	0.1	53	54	690.5	14	night.usual	Bed by 23:30 tonight.	Keeps your sleep on track · you usually fall asleep at 23:30
+5.33	87	84	96	455	436	64	56	64	491	8184	4	74	0.2	53	54	690.5	14	am.ready	A good day to train hard.	Readiness 87 · HRV 64 ms, at the top of your normal
+7.25	87	84	96	455	436	64	56	64	491	8184	4	74	0.2	53	54	690.5	14	am.ready	A good day to train hard.	Readiness 87 · HRV 64 ms, at the top of your normal
+10	87	84	96	455	436	64	56	64	2105	8184	17	74	0.2	53	54	690.5	14	am.ready	A good day to train hard.	Readiness 87 · HRV 64 ms, at the top of your normal
+13	87	84	96	455	436	64	56	64	4209	8184	34	74	0.2	53	54	690.5	14	pm.ahead	Ahead of your usual day. Keep it going.	4,209 steps by 13:00 · strain 34, your usual 74
+15.17	87	84	96	455	436	64	56	64	5731	8184	47	74	0.2	53	54	690.5	14	pm.ahead	Ahead of your usual day. Keep it going.	5,731 steps by 15:10 · strain 47, your usual 74
+17.5	87	84	96	455	436	64	56	64	7366	8184	60	74	0.2	53	54	690.5	14	pm.ahead	Ahead of your usual day. Keep it going.	7,366 steps by 17:30 · strain 60, your usual 74
+19.75	87	84	96	455	436	64	56	64	8944	8184	73	74	0.2	53	54	690.5	14	dusk.full	A full day. Sleep on time.	Strain 73, near your usual 74 · readiness was 87
+20.5	87	84	96	455	436	64	56	64	9470	8184	77	74	0.2	53	54	690.5	14	dusk.full	A full day. Sleep on time.	Strain 77, near your usual 74 · readiness was 87
+23.17	87	84	96	455	436	64	56	64	9821	8184	80	74	0.2	53	54	690.5	14	night.usual	Bed by 23:30 tonight.	Keeps your sleep on track · you usually fall asleep at 23:30
+5.33	85	84	98	446	436	61	56	64	431	8280	4	75	0	53	54	683.5	14	am.ready	A good day to train hard.	Readiness 85 · HRV 61 ms, within your normal
+7.25	85	84	98	446	436	61	56	64	431	8280	4	75	0	53	54	683.5	14	am.ready	A good day to train hard.	Readiness 85 · HRV 61 ms, within your normal
+10	85	84	98	446	436	61	56	64	1849	8280	17	75	0	53	54	683.5	14	am.ready	A good day to train hard.	Readiness 85 · HRV 61 ms, within your normal
+13	85	84	98	446	436	61	56	64	3697	8280	35	75	0	53	54	683.5	14	pm.on	On pace for your usual day.	3,697 steps by 13:00 · strain 35, your usual 75
+15.17	85	84	98	446	436	61	56	64	5034	8280	47	75	0	53	54	683.5	14	pm.on	On pace for your usual day.	5,034 steps by 15:10 · strain 47, your usual 75
+17.5	85	84	98	446	436	61	56	64	6470	8280	61	75	0	53	54	683.5	14	pm.on	On pace for your usual day.	6,470 steps by 17:30 · strain 61, your usual 75
+19.75	85	84	98	446	436	61	56	64	7857	8280	74	75	0	53	54	683.5	14	dusk.full	A full day. Sleep on time.	Strain 74, near your usual 75 · readiness was 85
+20.5	85	84	98	446	436	61	56	64	8319	8280	78	75	0	53	54	683.5	14	dusk.full	A full day. Sleep on time.	Strain 78, near your usual 75 · readiness was 85
+23.17	85	84	98	446	436	61	56	64	8627	8280	81	75	0	53	54	683.5	14	night.usual	Bed by 23:25 tonight.	Keeps your sleep on track · you usually fall asleep at 23:25
+5.33	80	84	87	430	436	60	56	64	465	8333	4	75	0	54	54	683.5	14	am.ready	A good day to train hard.	Readiness 80 · HRV 60 ms, within your normal
+7.25	80	84	87	430	436	60	56	64	465	8333	4	75	0	54	54	683.5	14	am.ready	A good day to train hard.	Readiness 80 · HRV 60 ms, within your normal
+10	80	84	87	430	436	60	56	64	1994	8333	16	75	0	54	54	683.5	14	am.ready	A good day to train hard.	Readiness 80 · HRV 60 ms, within your normal
+13	80	84	87	430	436	60	56	64	3988	8333	33	75	0	54	54	683.5	14	pm.on	On pace for your usual day.	3,988 steps by 13:00 · strain 33, your usual 75
+15.17	80	84	87	430	436	60	56	64	5431	8333	44	75	0	54	54	683.5	14	pm.on	On pace for your usual day.	5,431 steps by 15:10 · strain 44, your usual 75
+17.5	80	84	87	430	436	60	56	64	6980	8333	57	75	0	54	54	683.5	14	pm.on	On pace for your usual day.	6,980 steps by 17:30 · strain 57, your usual 75
+19.75	80	84	87	430	436	60	56	64	8475	8333	69	75	0	54	54	683.5	14	dusk.full	A full day. Sleep on time.	Strain 69, near your usual 75 · readiness was 80
+20.5	80	84	87	430	436	60	56	64	8974	8333	73	75	0	54	54	683.5	14	dusk.full	A full day. Sleep on time.	Strain 73, near your usual 75 · readiness was 80
+23.17	80	84	87	430	436	60	56	64	9306	8333	76	75	0	54	54	683.5	14	night.usual	Bed by 23:25 tonight.	Keeps your sleep on track · you usually fall asleep at 23:25
+5.33	83	83	95	448	435	60	56	64	440	8407	4	75	-0.1	54	54	690.5	14	am.ready	A good day to train hard.	Readiness 83 · HRV 60 ms, within your normal
+7.25	83	83	95	448	435	60	56	64	440	8407	4	75	-0.1	54	54	690.5	14	am.ready	A good day to train hard.	Readiness 83 · HRV 60 ms, within your normal
+10	83	83	95	448	435	60	56	64	1887	8407	17	75	-0.1	54	54	690.5	14	am.ready	A good day to train hard.	Readiness 83 · HRV 60 ms, within your normal
+13	83	83	95	448	435	60	56	64	3774	8407	33	75	-0.1	54	54	690.5	14	pm.on	On pace for your usual day.	3,774 steps by 13:00 · strain 33, your usual 75
+15.17	83	83	95	448	435	60	56	64	5138	8407	46	75	-0.1	54	54	690.5	14	pm.on	On pace for your usual day.	5,138 steps by 15:10 · strain 46, your usual 75
+17.5	83	83	95	448	435	60	56	64	6604	8407	59	75	-0.1	54	54	690.5	14	pm.on	On pace for your usual day.	6,604 steps by 17:30 · strain 59, your usual 75
+19.75	83	83	95	448	435	60	56	64	8019	8407	71	75	-0.1	54	54	690.5	14	dusk.full	A full day. Sleep on time.	Strain 71, near your usual 75 · readiness was 83
+20.5	83	83	95	448	435	60	56	64	8491	8407	75	75	-0.1	54	54	690.5	14	dusk.full	A full day. Sleep on time.	Strain 75, near your usual 75 · readiness was 83
+23.17	83	83	95	448	435	60	56	64	8805	8407	78	75	-0.1	54	54	690.5	14	night.usual	Bed by 23:30 tonight.	Keeps your sleep on track · you usually fall asleep at 23:30
+5.33	79	83	84	427	435	60	56	64	367	8416	4	75	0.1	55	54	697	14	am.steady	Train, but not to the limit.	Readiness 79 · HRV 60 ms, within your normal
+7.25	79	83	84	427	435	60	56	64	367	8416	4	75	0.1	55	54	697	14	am.steady	Train, but not to the limit.	Readiness 79 · HRV 60 ms, within your normal
+10	79	83	84	427	435	60	56	64	1572	8416	15	75	0.1	55	54	697	14	am.steady	Train, but not to the limit.	Readiness 79 · HRV 60 ms, within your normal
+13	79	83	84	427	435	60	56	64	3144	8416	30	75	0.1	55	54	697	14	pm.on	On pace for your usual day.	3,144 steps by 13:00 · strain 30, your usual 75
+15.17	79	83	84	427	435	60	56	64	4282	8416	41	75	0.1	55	54	697	14	pm.on	On pace for your usual day.	4,282 steps by 15:10 · strain 41, your usual 75
+17.5	79	83	84	427	435	60	56	64	5503	8416	53	75	0.1	55	54	697	14	pm.on	On pace for your usual day.	5,503 steps by 17:30 · strain 53, your usual 75
+19.75	79	83	84	427	435	60	56	64	6682	8416	65	75	0.1	55	54	697	14	dusk.full	A full day. Sleep on time.	Strain 65, near your usual 75 · readiness was 79
+20.5	79	83	84	427	435	60	56	64	7075	8416	68	75	0.1	55	54	697	14	dusk.full	A full day. Sleep on time.	Strain 68, near your usual 75 · readiness was 79
+23.17	79	83	84	427	435	60	56	64	7337	8416	71	75	0.1	55	54	697	14	night.usual	Bed by 23:35 tonight.	Keeps your sleep on track · you usually fall asleep at 23:35
+5.33	79	83	92	437	435	58	56	64	355	8384	4	75	-0.1	55	54	690.5	14	am.steady	Train, but not to the limit.	Readiness 79 · HRV 58 ms, within your normal
+7.25	79	83	92	437	435	58	56	64	355	8384	4	75	-0.1	55	54	690.5	14	am.steady	Train, but not to the limit.	Readiness 79 · HRV 58 ms, within your normal
+10	79	83	92	437	435	58	56	64	1523	8384	15	75	-0.1	55	54	690.5	14	am.steady	Train, but not to the limit.	Readiness 79 · HRV 58 ms, within your normal
+13	79	83	92	437	435	58	56	64	3046	8384	30	75	-0.1	55	54	690.5	14	pm.behind	Behind your usual day. A walk would help.	3,046 steps by 13:00 · strain 30, your usual 75
+15.17	79	83	92	437	435	58	56	64	4147	8384	41	75	-0.1	55	54	690.5	14	pm.behind	Behind your usual day. A walk would help.	4,147 steps by 15:10 · strain 41, your usual 75
+17.5	79	83	92	437	435	58	56	64	5330	8384	53	75	-0.1	55	54	690.5	14	pm.behind	Behind your usual day. A walk would help.	5,330 steps by 17:30 · strain 53, your usual 75
+19.75	79	83	92	437	435	58	56	64	6472	8384	65	75	-0.1	55	54	690.5	14	dusk.full	A full day. Sleep on time.	Strain 65, near your usual 75 · readiness was 79
+20.5	79	83	92	437	435	58	56	64	6853	8384	68	75	-0.1	55	54	690.5	14	dusk.full	A full day. Sleep on time.	Strain 68, near your usual 75 · readiness was 79
+23.17	79	83	92	437	435	58	56	64	7107	8384	71	75	-0.1	55	54	690.5	14	night.usual	Bed by 23:30 tonight.	Keeps your sleep on track · you usually fall asleep at 23:30
+5.33	80	83	91	424	435	59	56	64	360	8341	3	75	-0.2	55	54	697	14	am.ready	A good day to train hard.	Readiness 80 · HRV 59 ms, within your normal
+7.25	80	83	91	424	435	59	56	64	360	8341	3	75	-0.2	55	54	697	14	am.ready	A good day to train hard.	Readiness 80 · HRV 59 ms, within your normal
+10	80	83	91	424	435	59	56	64	1541	8341	14	75	-0.2	55	54	697	14	am.ready	A good day to train hard.	Readiness 80 · HRV 59 ms, within your normal
+13	80	83	91	424	435	59	56	64	3082	8341	27	75	-0.2	55	54	697	14	pm.on	On pace for your usual day.	3,082 steps by 13:00 · strain 27, your usual 75
+15.17	80	83	91	424	435	59	56	64	4197	8341	37	75	-0.2	55	54	697	14	pm.on	On pace for your usual day.	4,197 steps by 15:10 · strain 37, your usual 75
+17.5	80	83	91	424	435	59	56	64	5394	8341	48	75	-0.2	55	54	697	14	pm.on	On pace for your usual day.	5,394 steps by 17:30 · strain 48, your usual 75
+19.75	80	83	91	424	435	59	56	64	6550	8341	58	75	-0.2	55	54	697	14	dusk.light	A light day. Sleep on time.	Strain 58, under your usual 75 · readiness was 80
+20.5	80	83	91	424	435	59	56	64	6935	8341	62	75	-0.2	55	54	697	14	dusk.full	A full day. Sleep on time.	Strain 62, near your usual 75 · readiness was 80
+23.17	80	83	91	424	435	59	56	64	7192	8341	64	75	-0.2	55	54	697	14	night.usual	Bed by 23:35 tonight.	Keeps your sleep on track · you usually fall asleep at 23:35
+5.33	97	83	99	475	435	69	56	64	356	8267	3	74	0	49	54	700.5	14	am.ready	A good day to train hard.	Readiness 97 · HRV 69 ms, above your normal
+7.25	97	83	99	475	435	69	56	64	356	8267	3	74	0	49	54	700.5	14	am.ready	A good day to train hard.	Readiness 97 · HRV 69 ms, above your normal
+10	97	83	99	475	435	69	56	64	1524	8267	15	74	0	49	54	700.5	14	am.ready	A good day to train hard.	Readiness 97 · HRV 69 ms, above your normal
+13	97	83	99	475	435	69	56	64	3047	8267	29	74	0	49	54	700.5	14	pm.on	On pace for your usual day.	3,047 steps by 13:00 · strain 29, your usual 74
+15.17	97	83	99	475	435	69	56	64	4149	8267	40	74	0	49	54	700.5	14	pm.on	On pace for your usual day.	4,149 steps by 15:10 · strain 40, your usual 74
+17.5	97	83	99	475	435	69	56	64	5333	8267	51	74	0	49	54	700.5	14	pm.on	On pace for your usual day.	5,333 steps by 17:30 · strain 51, your usual 74
+19.75	97	83	99	475	435	69	56	64	6475	8267	62	74	0	49	54	700.5	14	dusk.full	A full day. Sleep on time.	Strain 62, near your usual 74 · readiness was 97
+20.5	97	83	99	475	435	69	56	64	6856	8267	66	74	0	49	54	700.5	14	dusk.full	A full day. Sleep on time.	Strain 66, near your usual 74 · readiness was 97
+23.17	97	83	99	475	435	69	56	64	7110	8267	68	74	0	49	54	700.5	14	night.usual	Bed by 23:40 tonight.	Keeps your sleep on track · you usually fall asleep at 23:40
+5.33	73	83	88	418	437	54	56	64	352	8182	3	74	-0.1	56	54	700.5	14	am.steady	Train, but not to the limit.	Readiness 73 · HRV 54 ms, below your normal
+7.25	73	83	88	418	437	54	56	64	352	8182	3	74	-0.1	56	54	700.5	14	am.steady	Train, but not to the limit.	Readiness 73 · HRV 54 ms, below your normal
+10	73	83	88	418	437	54	56	64	1509	8182	14	74	-0.1	56	54	700.5	14	am.steady	Train, but not to the limit.	Readiness 73 · HRV 54 ms, below your normal
+13	73	83	88	418	437	54	56	64	3018	8182	27	74	-0.1	56	54	700.5	14	pm.on	On pace for your usual day.	3,018 steps by 13:00 · strain 27, your usual 74
+15.17	73	83	88	418	437	54	56	64	4109	8182	37	74	-0.1	56	54	700.5	14	pm.on	On pace for your usual day.	4,109 steps by 15:10 · strain 37, your usual 74
+17.5	73	83	88	418	437	54	56	64	5281	8182	48	74	-0.1	56	54	700.5	14	pm.on	On pace for your usual day.	5,281 steps by 17:30 · strain 48, your usual 74
+19.75	73	83	88	418	437	54	56	64	6412	8182	58	74	-0.1	56	54	700.5	14	dusk.full	A full day. Sleep on time.	Strain 58, near your usual 74 · readiness was 73
+20.5	73	83	88	418	437	54	56	64	6790	8182	62	74	-0.1	56	54	700.5	14	dusk.full	A full day. Sleep on time.	Strain 62, near your usual 74 · readiness was 73
+23.17	73	83	88	418	437	54	56	64	7041	8182	64	74	-0.1	56	54	700.5	14	night.usual	Bed by 23:40 tonight.	Keeps your sleep on track · you usually fall asleep at 23:40
+5.33	72	83	88	419	436	52	56	64	323	8098	3	74	-0.1	56	54	700.5	14	am.steady	Train, but not to the limit.	Readiness 72 · HRV 52 ms, below your normal
+7.25	72	83	88	419	436	52	56	64	323	8098	3	74	-0.1	56	54	700.5	14	am.steady	Train, but not to the limit.	Readiness 72 · HRV 52 ms, below your normal
+10	72	83	88	419	436	52	56	64	1384	8098	14	74	-0.1	56	54	700.5	14	am.steady	Train, but not to the limit.	Readiness 72 · HRV 52 ms, below your normal
+13	72	83	88	419	436	52	56	64	2769	8098	29	74	-0.1	56	54	700.5	14	pm.behind	Behind your usual day. A walk would help.	2,769 steps by 13:00 · strain 29, your usual 74
+15.17	72	83	88	419	436	52	56	64	3770	8098	39	74	-0.1	56	54	700.5	14	pm.behind	Behind your usual day. A walk would help.	3,770 steps by 15:10 · strain 39, your usual 74
+17.5	72	83	88	419	436	52	56	64	4845	8098	50	74	-0.1	56	54	700.5	14	pm.behind	Behind your usual day. A walk would help.	4,845 steps by 17:30 · strain 50, your usual 74
+19.75	72	83	88	419	436	52	56	64	5883	8098	61	74	-0.1	56	54	700.5	14	dusk.full	A full day. Sleep on time.	Strain 61, near your usual 74 · readiness was 72
+20.5	72	83	88	419	436	52	56	64	6229	8098	65	74	-0.1	56	54	700.5	14	dusk.full	A full day. Sleep on time.	Strain 65, near your usual 74 · readiness was 72
+23.17	72	83	88	419	436	52	56	64	6460	8098	67	74	-0.1	56	54	700.5	14	night.usual	Bed by 23:40 tonight.	Keeps your sleep on track · you usually fall asleep at 23:40
+5.33	73	83	87	414	436	54	55	64	363	8004	3	73	0	56	54	700.5	14	am.steady	Train, but not to the limit.	Readiness 73 · HRV 54 ms, below your normal
+7.25	73	83	87	414	436	54	55	64	363	8004	3	73	0	56	54	700.5	14	am.steady	Train, but not to the limit.	Readiness 73 · HRV 54 ms, below your normal
+10	73	83	87	414	436	54	55	64	1555	8004	14	73	0	56	54	700.5	14	am.steady	Train, but not to the limit.	Readiness 73 · HRV 54 ms, below your normal
+13	73	83	87	414	436	54	55	64	3111	8004	27	73	0	56	54	700.5	14	pm.on	On pace for your usual day.	3,111 steps by 13:00 · strain 27, your usual 73
+15.17	73	83	87	414	436	54	55	64	4236	8004	37	73	0	56	54	700.5	14	pm.on	On pace for your usual day.	4,236 steps by 15:10 · strain 37, your usual 73
+17.5	73	83	87	414	436	54	55	64	5444	8004	48	73	0	56	54	700.5	14	pm.on	On pace for your usual day.	5,444 steps by 17:30 · strain 48, your usual 73
+19.75	73	83	87	414	436	54	55	64	6610	8004	58	73	0	56	54	700.5	14	dusk.full	A full day. Sleep on time.	Strain 58, near your usual 73 · readiness was 73
+20.5	73	83	87	414	436	54	55	64	6999	8004	62	73	0	56	54	700.5	14	dusk.full	A full day. Sleep on time.	Strain 62, near your usual 73 · readiness was 73
+23.17	73	83	87	414	436	54	55	64	7258	8004	64	73	0	56	54	700.5	14	night.usual	Bed by 23:40 tonight.	Keeps your sleep on track · you usually fall asleep at 23:40
+5.33	74	83	82	406	436	56	55	64	350	7948	3	72	0	56	54	697	14	am.steady	Train, but not to the limit.	Readiness 74 · HRV 56 ms, within your normal
+7.25	74	83	82	406	436	56	55	64	350	7948	3	72	0	56	54	697	14	am.steady	Train, but not to the limit.	Readiness 74 · HRV 56 ms, within your normal
+10	74	83	82	406	436	56	55	64	1498	7948	15	72	0	56	54	697	14	am.steady	Train, but not to the limit.	Readiness 74 · HRV 56 ms, within your normal
+13	74	83	82	406	436	56	55	64	2997	7948	30	72	0	56	54	697	14	pm.on	On pace for your usual day.	2,997 steps by 13:00 · strain 30, your usual 72
+15.17	74	83	82	406	436	56	55	64	4080	7948	40	72	0	56	54	697	14	pm.on	On pace for your usual day.	4,080 steps by 15:10 · strain 40, your usual 72
+17.5	74	83	82	406	436	56	55	64	5244	7948	52	72	0	56	54	697	14	pm.on	On pace for your usual day.	5,244 steps by 17:30 · strain 52, your usual 72
+19.75	74	83	82	406	436	56	55	64	6368	7948	63	72	0	56	54	697	14	dusk.full	A full day. Sleep on time.	Strain 63, near your usual 72 · readiness was 74
+20.5	74	83	82	406	436	56	55	64	6742	7948	67	72	0	56	54	697	14	dusk.full	A full day. Sleep on time.	Strain 67, near your usual 72 · readiness was 74
+23.17	74	83	82	406	436	56	55	64	6992	7948	69	72	0	56	54	697	14	night.short	Bed by 23:05 tonight.	Half an hour early: last night was short, 6h 46m
+5.33	72	82	83	403	436	55	55	64	343	7895	3	72	-0.2	57	54	689.5	14	am.steady	Train, but not to the limit.	Readiness 72 · HRV 55 ms, within your normal
+7.25	72	82	83	403	436	55	55	64	343	7895	3	72	-0.2	57	54	689.5	14	am.steady	Train, but not to the limit.	Readiness 72 · HRV 55 ms, within your normal
+10	72	82	83	403	436	55	55	64	1470	7895	15	72	-0.2	57	54	689.5	14	am.steady	Train, but not to the limit.	Readiness 72 · HRV 55 ms, within your normal
+13	72	82	83	403	436	55	55	64	2941	7895	30	72	-0.2	57	54	689.5	14	pm.on	On pace for your usual day.	2,941 steps by 13:00 · strain 30, your usual 72
+15.17	72	82	83	403	436	55	55	64	4004	7895	40	72	-0.2	57	54	689.5	14	pm.on	On pace for your usual day.	4,004 steps by 15:10 · strain 40, your usual 72
+17.5	72	82	83	403	436	55	55	64	5147	7895	52	72	-0.2	57	54	689.5	14	pm.on	On pace for your usual day.	5,147 steps by 17:30 · strain 52, your usual 72
+19.75	72	82	83	403	436	55	55	64	6249	7895	63	72	-0.2	57	54	689.5	14	dusk.full	A full day. Sleep on time.	Strain 63, near your usual 72 · readiness was 72
+20.5	72	82	83	403	436	55	55	64	6617	7895	67	72	-0.2	57	54	689.5	14	dusk.full	A full day. Sleep on time.	Strain 67, near your usual 72 · readiness was 72
+23.17	72	82	83	403	436	55	55	64	6862	7895	69	72	-0.2	57	54	689.5	14	night.short	Bed by 23:00 tonight.	Half an hour early: last night was short, 6h 43m
+5.33	76	82	84	411	436	56	55	64	377	7844	4	72	0.1	55	54	693	14	am.steady	Train, but not to the limit.	Readiness 76 · HRV 56 ms, within your normal
+7.25	76	82	84	411	436	56	55	64	377	7844	4	72	0.1	55	54	693	14	am.steady	Train, but not to the limit.	Readiness 76 · HRV 56 ms, within your normal
+10	76	82	84	411	436	56	55	64	1614	7844	15	72	0.1	55	54	693	14	am.steady	Train, but not to the limit.	Readiness 76 · HRV 56 ms, within your normal
+13	76	82	84	411	436	56	55	64	3227	7844	31	72	0.1	55	54	693	14	pm.on	On pace for your usual day.	3,227 steps by 13:00 · strain 31, your usual 72
+15.17	76	82	84	411	436	56	55	64	4394	7844	42	72	0.1	55	54	693	14	pm.on	On pace for your usual day.	4,394 steps by 15:10 · strain 42, your usual 72
+17.5	76	82	84	411	436	56	55	64	5648	7844	54	72	0.1	55	54	693	14	pm.on	On pace for your usual day.	5,648 steps by 17:30 · strain 54, your usual 72
+19.75	76	82	84	411	436	56	55	64	6858	7844	66	72	0.1	55	54	693	14	dusk.full	A full day. Sleep on time.	Strain 66, near your usual 72 · readiness was 76
+20.5	76	82	84	411	436	56	55	64	7261	7844	69	72	0.1	55	54	693	14	dusk.full	A full day. Sleep on time.	Strain 69, near your usual 72 · readiness was 76
+23.17	76	82	84	411	436	56	55	64	7530	7844	72	72	0.1	55	54	693	14	night.usual	Bed by 23:35 tonight.	Keeps your sleep on track · you usually fall asleep at 23:35
+5.33	58	82	61	365	435	46	55	64	241	7819	2	72	0.4	58	54	694	14	am.easy	Take it easy today.	Readiness 58 · HRV 46 ms, well under your normal
+7.25	58	82	61	365	435	46	55	64	241	7819	2	72	0.4	58	54	694	14	am.easy	Take it easy today.	Readiness 58 · HRV 46 ms, well under your normal
+10	58	82	61	365	435	46	55	64	1033	7819	11	72	0.4	58	54	694	14	am.easy	Take it easy today.	Readiness 58 · HRV 46 ms, well under your normal
+13	58	82	61	365	435	46	55	64	2066	7819	21	72	0.4	58	54	694	14	pm.easy	Easy so far. Keep it that way.	2,066 steps by 13:00 · strain 21, your usual 72
+15.17	58	82	61	365	435	46	55	64	2813	7819	29	72	0.4	58	54	694	14	pm.easy	Easy so far. Keep it that way.	2,813 steps by 15:10 · strain 29, your usual 72
+17.5	58	82	61	365	435	46	55	64	3615	7819	37	72	0.4	58	54	694	14	pm.easy	Easy so far. Keep it that way.	3,615 steps by 17:30 · strain 37, your usual 72
+19.75	58	82	61	365	435	46	55	64	4390	7819	45	72	0.4	58	54	694	14	dusk.easy	An easy day. Sleep early.	Strain 45, under your usual 72 · readiness was 58
+20.5	58	82	61	365	435	46	55	64	4648	7819	47	72	0.4	58	54	694	14	dusk.easy	An easy day. Sleep early.	Strain 47, under your usual 72 · readiness was 58
+23.17	58	82	61	365	435	46	55	64	4820	7819	49	72	0.4	58	54	694	14	night.short	Bed by 23:05 tonight.	Half an hour early: last night was short, 6h 05m
+5.33	75	81	85	419	434	56	54	65	462	7725	4	71	0.1	56	54	704	14	am.steady	Train, but not to the limit.	Readiness 75 · HRV 56 ms, within your normal
+7.25	75	81	85	419	434	56	54	65	462	7725	4	71	0.1	56	54	704	14	am.steady	Train, but not to the limit.	Readiness 75 · HRV 56 ms, within your normal
+10	75	81	85	419	434	56	54	65	1980	7725	17	71	0.1	56	54	704	14	am.steady	Train, but not to the limit.	Readiness 75 · HRV 56 ms, within your normal
+13	75	81	85	419	434	56	54	65	3960	7725	35	71	0.1	56	54	704	14	pm.ahead	Ahead of your usual day. Keep it going.	3,960 steps by 13:00 · strain 35, your usual 71
+15.17	75	81	85	419	434	56	54	65	5392	7725	47	71	0.1	56	54	704	14	pm.ahead	Ahead of your usual day. Keep it going.	5,392 steps by 15:10 · strain 47, your usual 71
+17.5	75	81	85	419	434	56	54	65	6930	7725	61	71	0.1	56	54	704	14	pm.ahead	Ahead of your usual day. Keep it going.	6,930 steps by 17:30 · strain 61, your usual 71
+19.75	75	81	85	419	434	56	54	65	8415	7725	74	71	0.1	56	54	704	14	dusk.full	A full day. Sleep on time.	Strain 74, near your usual 71 · readiness was 75
+20.5	75	81	85	419	434	56	54	65	8910	7725	78	71	0.1	56	54	704	14	dusk.full	A full day. Sleep on time.	Strain 78, near your usual 71 · readiness was 75
+23.17	75	81	85	419	434	56	54	65	9240	7725	81	71	0.1	56	54	704	14	night.usual	Bed by 23:45 tonight.	Keeps your sleep on track · you usually fall asleep at 23:45
+5.33	75	82	93	423	435	54	55	64	472	7776	4	71	-0.1	56	54	704	14	am.steady	Train, but not to the limit.	Readiness 75 · HRV 54 ms, below your normal
+7.25	75	82	93	423	435	54	55	64	472	7776	4	71	-0.1	56	54	704	14	am.steady	Train, but not to the limit.	Readiness 75 · HRV 54 ms, below your normal
+10	75	82	93	423	435	54	55	64	2023	7776	18	71	-0.1	56	54	704	14	am.steady	Train, but not to the limit.	Readiness 75 · HRV 54 ms, below your normal
+13	75	82	93	423	435	54	55	64	4047	7776	36	71	-0.1	56	54	704	14	pm.ahead	Ahead of your usual day. Keep it going.	4,047 steps by 13:00 · strain 36, your usual 71
+15.17	75	82	93	423	435	54	55	64	5510	7776	48	71	-0.1	56	54	704	14	pm.ahead	Ahead of your usual day. Keep it going.	5,510 steps by 15:10 · strain 48, your usual 71
+17.5	75	82	93	423	435	54	55	64	7082	7776	62	71	-0.1	56	54	704	14	pm.ahead	Ahead of your usual day. Keep it going.	7,082 steps by 17:30 · strain 62, your usual 71
+19.75	75	82	93	423	435	54	55	64	8599	7776	76	71	-0.1	56	54	704	14	dusk.hard	A hard day. Ease off now.	Strain 76, above your usual 71 · readiness was 75
+20.5	75	82	93	423	435	54	55	64	9105	7776	80	71	-0.1	56	54	704	14	dusk.hard	A hard day. Ease off now.	Strain 80, above your usual 71 · readiness was 75
+23.17	75	82	93	423	435	54	55	64	9442	7776	83	71	-0.1	56	54	704	14	night.usual	Bed by 23:45 tonight.	Keeps your sleep on track · you usually fall asleep at 23:45
+5.33	78	82	88	426	435	57	55	64	467	7855	4	72	-0.1	55	54	704	14	am.steady	Train, but not to the limit.	Readiness 78 · HRV 57 ms, within your normal
+7.25	78	82	88	426	435	57	55	64	467	7855	4	72	-0.1	55	54	704	14	am.steady	Train, but not to the limit.	Readiness 78 · HRV 57 ms, within your normal
+10	78	82	88	426	435	57	55	64	2000	7855	18	72	-0.1	55	54	704	14	am.steady	Train, but not to the limit.	Readiness 78 · HRV 57 ms, within your normal
+13	78	82	88	426	435	57	55	64	4000	7855	37	72	-0.1	55	54	704	14	pm.ahead	Ahead of your usual day. Keep it going.	4,000 steps by 13:00 · strain 37, your usual 72
+15.17	78	82	88	426	435	57	55	64	5446	7855	50	72	-0.1	55	54	704	14	pm.ahead	Ahead of your usual day. Keep it going.	5,446 steps by 15:10 · strain 50, your usual 72
+17.5	78	82	88	426	435	57	55	64	7000	7855	65	72	-0.1	55	54	704	14	pm.ahead	Ahead of your usual day. Keep it going.	7,000 steps by 17:30 · strain 65, your usual 72
+19.75	78	82	88	426	435	57	55	64	8500	7855	78	72	-0.1	55	54	704	14	dusk.hard	A hard day. Ease off now.	Strain 78, above your usual 72 · readiness was 78
+20.5	78	82	88	426	435	57	55	64	9000	7855	83	72	-0.1	55	54	704	14	dusk.hard	A hard day. Ease off now.	Strain 83, above your usual 72 · readiness was 78
+23.17	78	82	88	426	435	57	55	64	9333	7855	86	72	-0.1	55	54	704	14	night.usual	Bed by 23:45 tonight.	Keeps your sleep on track · you usually fall asleep at 23:45
+5.33	77	82	84	418	435	57	55	64	458	7931	4	73	-0.1	55	54	695	14	am.steady	Train, but not to the limit.	Readiness 77 · HRV 57 ms, within your normal
+7.25	77	82	84	418	435	57	55	64	458	7931	4	73	-0.1	55	54	695	14	am.steady	Train, but not to the limit.	Readiness 77 · HRV 57 ms, within your normal
+10	77	82	84	418	435	57	55	64	1964	7931	18	73	-0.1	55	54	695	14	am.steady	Train, but not to the limit.	Readiness 77 · HRV 57 ms, within your normal
+13	77	82	84	418	435	57	55	64	3929	7931	36	73	-0.1	55	54	695	14	pm.ahead	Ahead of your usual day. Keep it going.	3,929 steps by 13:00 · strain 36, your usual 73
+15.17	77	82	84	418	435	57	55	64	5350	7931	50	73	-0.1	55	54	695	14	pm.ahead	Ahead of your usual day. Keep it going.	5,350 steps by 15:10 · strain 50, your usual 73
+17.5	77	82	84	418	435	57	55	64	6875	7931	64	73	-0.1	55	54	695	14	pm.ahead	Ahead of your usual day. Keep it going.	6,875 steps by 17:30 · strain 64, your usual 73
+19.75	77	82	84	418	435	57	55	64	8349	7931	77	73	-0.1	55	54	695	14	dusk.hard	A hard day. Ease off now.	Strain 77, above your usual 73 · readiness was 77
+20.5	77	82	84	418	435	57	55	64	8840	7931	82	73	-0.1	55	54	695	14	dusk.hard	A hard day. Ease off now.	Strain 82, above your usual 73 · readiness was 77
+23.17	77	82	84	418	435	57	55	64	9167	7931	85	73	-0.1	55	54	695	14	night.usual	Bed by 23:35 tonight.	Keeps your sleep on track · you usually fall asleep at 23:35
+5.33	73	81	87	432	435	53	55	64	673	8006	5	73	-0.2	56	54	695	14	am.steady	Train, but not to the limit.	Readiness 73 · HRV 53 ms, below your normal
+7.25	73	81	87	432	435	53	55	64	673	8006	5	73	-0.2	56	54	695	14	am.steady	Train, but not to the limit.	Readiness 73 · HRV 53 ms, below your normal
+10	73	81	87	432	435	53	55	64	2882	8006	20	73	-0.2	56	54	695	14	am.steady	Train, but not to the limit.	Readiness 73 · HRV 53 ms, below your normal
+13	73	81	87	432	435	53	55	64	5764	8006	39	73	-0.2	56	54	695	14	pm.ahead	Ahead of your usual day. Keep it going.	5,764 steps by 13:00 · strain 39, your usual 73
+15.17	73	81	87	432	435	53	55	64	7849	8006	54	73	-0.2	56	54	695	14	pm.ahead	Ahead of your usual day. Keep it going.	7,849 steps by 15:10 · strain 54, your usual 73
+17.5	73	81	87	432	435	53	55	64	10088	8006	69	73	-0.2	56	54	695	14	pm.ahead	Ahead of your usual day. Keep it going.	10,088 steps by 17:30 · strain 69, your usual 73
+19.75	73	81	87	432	435	53	55	64	12249	8006	84	73	-0.2	56	54	695	14	dusk.hard	A hard day. Ease off now.	Strain 84, above your usual 73 · readiness was 73
+20.5	73	81	87	432	435	53	55	64	12970	8006	89	73	-0.2	56	54	695	14	dusk.hard	A hard day. Ease off now.	Strain 89, above your usual 73 · readiness was 73
+23.17	73	81	87	432	435	53	55	64	13450	8006	92	73	-0.2	56	54	695	14	night.usual	Bed by 23:35 tonight.	Keeps your sleep on track · you usually fall asleep at 23:35
+5.33	80	81	91	419	435	57	54	64	455	8254	4	74	0	54	54	682	14	am.ready	A good day to train hard.	Readiness 80 · HRV 57 ms, within your normal
+7.25	80	81	91	419	435	57	54	64	455	8254	4	74	0	54	54	682	14	am.ready	A good day to train hard.	Readiness 80 · HRV 57 ms, within your normal
+10	80	81	91	419	435	57	54	64	1948	8254	18	74	0	54	54	682	14	am.ready	A good day to train hard.	Readiness 80 · HRV 57 ms, within your normal
+13	80	81	91	419	435	57	54	64	3897	8254	36	74	0	54	54	682	14	pm.on	On pace for your usual day.	3,897 steps by 13:00 · strain 36, your usual 74
+15.17	80	81	91	419	435	57	54	64	5306	8254	49	74	0	54	54	682	14	pm.on	On pace for your usual day.	5,306 steps by 15:10 · strain 49, your usual 74
+17.5	80	81	91	419	435	57	54	64	6819	8254	63	74	0	54	54	682	14	pm.on	On pace for your usual day.	6,819 steps by 17:30 · strain 63, your usual 74
+19.75	80	81	91	419	435	57	54	64	8280	8254	77	74	0	54	54	682	14	dusk.full	A full day. Sleep on time.	Strain 77, near your usual 74 · readiness was 80
+20.5	80	81	91	419	435	57	54	64	8767	8254	81	74	0	54	54	682	14	dusk.full	A full day. Sleep on time.	Strain 81, near your usual 74 · readiness was 80
+23.17	80	81	91	419	435	57	54	64	9092	8254	84	74	0	54	54	682	14	night.usual	Bed by 23:20 tonight.	Keeps your sleep on track · you usually fall asleep at 23:20
+5.33	86	81	93	435	434	62	54	64	410	8341	4	75	0	53	54	678.5	14	am.ready	A good day to train hard.	Readiness 86 · HRV 62 ms, within your normal
+7.25	86	81	93	435	434	62	54	64	410	8341	4	75	0	53	54	678.5	14	am.ready	A good day to train hard.	Readiness 86 · HRV 62 ms, within your normal
+10	86	81	93	435	434	62	54	64	1755	8341	16	75	0	53	54	678.5	14	am.ready	A good day to train hard.	Readiness 86 · HRV 62 ms, within your normal
+13	86	81	93	435	434	62	54	64	3510	8341	33	75	0	53	54	678.5	14	pm.on	On pace for your usual day.	3,510 steps by 13:00 · strain 33, your usual 75
+15.17	86	81	93	435	434	62	54	64	4779	8341	44	75	0	53	54	678.5	14	pm.on	On pace for your usual day.	4,779 steps by 15:10 · strain 44, your usual 75
+17.5	86	81	93	435	434	62	54	64	6143	8341	57	75	0	53	54	678.5	14	pm.on	On pace for your usual day.	6,143 steps by 17:30 · strain 57, your usual 75
+19.75	86	81	93	435	434	62	54	64	7459	8341	69	75	0	53	54	678.5	14	dusk.full	A full day. Sleep on time.	Strain 69, near your usual 75 · readiness was 86
+20.5	86	81	93	435	434	62	54	64	7898	8341	73	75	0	53	54	678.5	14	dusk.full	A full day. Sleep on time.	Strain 73, near your usual 75 · readiness was 86
+23.17	86	81	93	435	434	62	54	64	8190	8341	76	75	0	53	54	678.5	14	night.usual	Bed by 23:20 tonight.	Keeps your sleep on track · you usually fall asleep at 23:20
+5.33	90	81	98	440	434	64	54	64	421	8394	4	75	0.1	52	54	682	14	am.ready	A good day to train hard.	Readiness 90 · HRV 64 ms, at the top of your normal
+7.25	90	81	98	440	434	64	54	64	421	8394	4	75	0.1	52	54	682	14	am.ready	A good day to train hard.	Readiness 90 · HRV 64 ms, at the top of your normal
+10	90	81	98	440	434	64	54	64	1804	8394	17	75	0.1	52	54	682	14	am.ready	A good day to train hard.	Readiness 90 · HRV 64 ms, at the top of your normal
+13	90	81	98	440	434	64	54	64	3609	8394	33	75	0.1	52	54	682	14	pm.on	On pace for your usual day.	3,609 steps by 13:00 · strain 33, your usual 75
+15.17	90	81	98	440	434	64	54	64	4914	8394	46	75	0.1	52	54	682	14	pm.on	On pace for your usual day.	4,914 steps by 15:10 · strain 46, your usual 75
+17.5	90	81	98	440	434	64	54	64	6315	8394	59	75	0.1	52	54	682	14	pm.on	On pace for your usual day.	6,315 steps by 17:30 · strain 59, your usual 75
+19.75	90	81	98	440	434	64	54	64	7668	8394	71	75	0.1	52	54	682	14	dusk.full	A full day. Sleep on time.	Strain 71, near your usual 75 · readiness was 90
+20.5	90	81	98	440	434	64	54	64	8119	8394	75	75	0.1	52	54	682	14	dusk.full	A full day. Sleep on time.	Strain 75, near your usual 75 · readiness was 90
+23.17	90	81	98	440	434	64	54	64	8420	8394	78	75	0.1	52	54	682	14	night.usual	Bed by 23:20 tonight.	Keeps your sleep on track · you usually fall asleep at 23:20
+5.33	90			440	434	64	54	64	240	8390	4	75	0.1	52	54	682		am.ready	A good day to train hard.	Readiness 90 · HRV 64 ms, at the top of your normal
+7.25	90			440	434	64	54	64	240	8390	4	75	0.1	52	54	682		am.ready	A good day to train hard.	Readiness 90 · HRV 64 ms, at the top of your normal
+15.17	90			440	434	64	54	64	8420	8390	78	75	0.1	52	54	682		pm.ahead	Ahead of your usual day. Keep it going.	8,420 steps by 15:10 · strain 78, your usual 75
+19.75	90			440	434	64	54	64	8420	8390	78	75	0.1	52	54	682		dusk.full	A full day. Sleep on time.	Strain 78, near your usual 75 · readiness was 90
+20.5	90			440	434	64	54	64	8420	8390	78	75	0.1	52	54	682		dusk.full	A full day. Sleep on time.	Strain 78, near your usual 75 · readiness was 90
+23.17	90			440	434	64	54	64	8420	8390	78	75	0.1	52	54	682		night.usual	Bed by 23:20 tonight.	Keeps your sleep on track · you usually fall asleep at 23:20
+5.33	58			365	434	46	54	64	300	8390	5	75	0.4	58	54	682		am.easy	Take it easy today.	Readiness 58 · HRV 46 ms, well under your normal
+7.25	58			365	434	46	54	64	300	8390	5	75	0.4	58	54	682		am.easy	Take it easy today.	Readiness 58 · HRV 46 ms, well under your normal
+15.17	58			365	434	46	54	64	3240	8390	31	75	0.4	58	54	682		pm.easy	Easy so far. Keep it that way.	3,240 steps by 15:10 · strain 31, your usual 75
+19.75	58			365	434	46	54	64	4500	8390	49	75	0.4	58	54	682		dusk.easy	An easy day. Sleep early.	Strain 49, under your usual 75 · readiness was 58
+20.5	58			365	434	46	54	64	4500	8390	49	75	0.4	58	54	682		dusk.easy	An easy day. Sleep early.	Strain 49, under your usual 75 · readiness was 58
+23.17	58			365	434	46	54	64	4820	8390	49	75	0.4	58	54	682		night.short	Bed by 22:50 tonight.	Half an hour early: last night was short, 6h 05m
+5.33	67			410	434	52	54	64	300	8390	5	75	0.4	57	54	682		am.haze	Keep it moderate today.	Skin +0.4 °C · resting HR 57, 3 above usual
+7.25	67			410	434	52	54	64	300	8390	5	75	0.4	57	54	682		am.haze	Keep it moderate today.	Skin +0.4 °C · resting HR 57, 3 above usual
+15.17	67			410	434	52	54	64	4700	8390	36	75	0.4	57	54	682		pm.haze.on	On pace. Keep it moderate.	4,700 steps by 15:10 · strain 36, your usual 75
+19.75	67			410	434	52	54	64	7100	8390	52	75	0.4	57	54	682		dusk.haze	A fair day. Sleep on time.	Strain 52, under your usual 75 · readiness was 67
+20.5	67			410	434	52	54	64	7100	8390	52	75	0.4	57	54	682		dusk.haze	A fair day. Sleep on time.	Strain 52, under your usual 75 · readiness was 67
+23.17	67			410	434	52	54	64	7900	8390	58	75	0.4	57	54	682		night.usual	Bed by 23:20 tonight.	Keeps your sleep on track · you usually fall asleep at 23:20
+5.33	46			280	434	38	54	64	180	8390	3	75	0.1	59	54	682		am.rest	Rest today.	Readiness 46 · HRV 38 ms, well under your normal
+7.25	46			280	434	38	54	64	180	8390	3	75	0.1	59	54	682		am.rest	Rest today.	Readiness 46 · HRV 38 ms, well under your normal
+15.17	46			280	434	38	54	64	2900	8390	24	75	0.1	59	54	682		pm.rest	Resting so far. Good.	2,900 steps by 15:10 · strain 24, your usual 75
+19.75	46			280	434	38	54	64	4100	8390	31	75	0.1	59	54	682		dusk.rest	A quiet day. Sleep early.	Strain 31, under your usual 75 · readiness was 46
+20.5	46			280	434	38	54	64	4100	8390	31	75	0.1	59	54	682		dusk.rest	A quiet day. Sleep early.	Strain 31, under your usual 75 · readiness was 46
+23.17	46			280	434	38	54	64	4600	8390	31	75	0.1	59	54	682		night.rest	Bed now, if you can.	Last night 4h 40m · you usually fall asleep at 23:20
+5.33	49			365	434	44	54	64	120	8390	2	75	0.8	60	54	682		am.ill	Rest, and see how you feel.	Skin +0.8 °C · resting HR 60, 6 above usual
+7.25	49			365	434	44	54	64	120	8390	2	75	0.8	60	54	682		am.ill	Rest, and see how you feel.	Skin +0.8 °C · resting HR 60, 6 above usual
+15.17	49			365	434	44	54	64	2400	8390	20	75	0.8	60	54	682		pm.ill	Keep it a rest day.	2,400 steps by 15:10 · strain 20, your usual 75
+19.75	49			365	434	44	54	64	3050	8390	26	75	0.8	60	54	682		dusk.ill	An early night helps most.	Strain 26, under your usual 75 · readiness was 49
+20.5	49			365	434	44	54	64	3050	8390	26	75	0.8	60	54	682		dusk.ill	An early night helps most.	Strain 26, under your usual 75 · readiness was 49
+23.17	49			365	434	44	54	64	3300	8390	26	75	0.8	60	54	682		night.ill	Bed early. Rest helps.	Last night 6h 05m · you usually fall asleep at 23:20
+5.33	34			290	434	36	54	64	60	8390	1	75	1.1	64	54	682		am.storm	Rest. Your body needs it.	Skin +1.1 °C · resting HR 64, 10 above usual
+7.25	34			290	434	36	54	64	60	8390	1	75	1.1	64	54	682		am.storm	Rest. Your body needs it.	Skin +1.1 °C · resting HR 64, 10 above usual
+15.17	34			290	434	36	54	64	1100	8390	9	75	1.1	64	54	682		pm.storm	Rest is the plan today.	1,100 steps by 15:10 · strain 9, your usual 75
+19.75	34			290	434	36	54	64	1400	8390	12	75	1.1	64	54	682		dusk.storm	Wind down early tonight.	Strain 12, under your usual 75 · readiness was 34
+20.5	34			290	434	36	54	64	1400	8390	12	75	1.1	64	54	682		dusk.storm	Wind down early tonight.	Strain 12, under your usual 75 · readiness was 34
+23.17	34			290	434	36	54	64	1500	8390	14	75	1.1	64	54	682		night.storm	Sleep now if you can.	Last night 4h 50m · you usually fall asleep at 23:20
+5.33			88	419		56			462		4			56			1	am.first	Getting to know you.	Sleep score 88 · readiness from day 4
+7.25			88	419		56			462		4			56			1	am.first	Getting to know you.	Sleep score 88 · readiness from day 4
+15.17			88	419		56			5392		47			56			1	pm.first	Learning your usual day.	5,392 steps by 15:10 · strain 47
+19.75			88	419		56			8415		74			56			1	dusk.first	A day done. Sleep on time.	Strain 74
+23.17			88	419		56			9240		81			56			1	night.first	Aim for seven and a half hours.	Your usual bedtime after 5 nights · 1 so far
+5.33			89	423		54			472		4			56			2	am.first	Getting to know you.	Sleep score 89 · readiness from day 4
+7.25			89	423		54			472		4			56			2	am.first	Getting to know you.	Sleep score 89 · readiness from day 4
+15.17			89	423		54			5510		48			56			2	pm.first	Learning your usual day.	5,510 steps by 15:10 · strain 48
+19.75			89	423		54			8599		76			56			2	dusk.first	A day done. Sleep on time.	Strain 76
+23.17			89	423		54			9442		83			56			2	night.first	Aim for seven and a half hours.	Your usual bedtime after 5 nights · 2 so far
+5.33			89	426		57			467		4			55			3	am.first	Getting to know you.	Sleep score 89 · readiness from day 4
+7.25			89	426		57			467		4			55			3	am.first	Getting to know you.	Sleep score 89 · readiness from day 4
+15.17			89	426		57			5446		50			55			3	pm.first	Learning your usual day.	5,446 steps by 15:10 · strain 50
+19.75			89	426		57			8500		78			55			3	dusk.first	A day done. Sleep on time.	Strain 78
+23.17			89	426		57			9333		86			55			3	night.first	Aim for seven and a half hours.	Your usual bedtime after 5 nights · 3 so far
+5.33	82		85	418		57			458		4		-0.1	55			4	am.ready	A good day to train hard.	Readiness 82 · HRV 57 ms, your normal from day 8
+7.25	82		85	418		57			458		4		-0.1	55			4	am.ready	A good day to train hard.	Readiness 82 · HRV 57 ms, your normal from day 8
+15.17	82		85	418		57			5350		50		-0.1	55			4	pm.first	Learning your usual day.	5,350 steps by 15:10 · strain 50
+19.75	82		85	418		57			8349		77		-0.1	55			4	dusk.first	A day done. Sleep on time.	Strain 77 · readiness was 82
+23.17	82		85	418		57			9167		85		-0.1	55			4	night.first	Aim for seven and a half hours.	Your usual bedtime after 5 nights · 4 so far
+5.33	78		88	432		53			673		5		-0.2	56		648	5	am.steady	Train, but not to the limit.	Readiness 78 · HRV 53 ms, your normal from day 8
+7.25	78		88	432		53			673		5		-0.2	56		648	5	am.steady	Train, but not to the limit.	Readiness 78 · HRV 53 ms, your normal from day 8
+15.17	78		88	432		53			7849		54		-0.2	56		648	5	pm.first	Learning your usual day.	7,849 steps by 15:10 · strain 54
+19.75	78		88	432		53			12249		84		-0.2	56		648	5	dusk.first	A day done. Sleep on time.	Strain 84 · readiness was 78
+23.17	78		88	432		53			13450		92		-0.2	56		648	5	night.usual	Bed by 22:50 tonight.	Keeps your sleep on track · you usually fall asleep at 22:50
+5.33	85		91	419		57			455		4		0.1	54		653.5	6	am.ready	A good day to train hard.	Readiness 85 · HRV 57 ms, your normal from day 8
+7.25	85		91	419		57			455		4		0.1	54		653.5	6	am.ready	A good day to train hard.	Readiness 85 · HRV 57 ms, your normal from day 8
+15.17	85		91	419		57			5306		49		0.1	54		653.5	6	pm.first	Learning your usual day.	5,306 steps by 15:10 · strain 49
+19.75	85		91	419		57			8280		77		0.1	54		653.5	6	dusk.first	A day done. Sleep on time.	Strain 77 · readiness was 85
+23.17	85		91	419		57			9092		84		0.1	54		653.5	6	night.usual	Bed by 22:55 tonight.	Keeps your sleep on track · you usually fall asleep at 22:55
+5.33	90		91	435		62			410		4		0.1	53		659	7	am.ready	A good day to train hard.	Readiness 90 · HRV 62 ms, your normal from day 8
+7.25	90		91	435		62			410		4		0.1	53		659	7	am.ready	A good day to train hard.	Readiness 90 · HRV 62 ms, your normal from day 8
+15.17	90		91	435		62			4779		44		0.1	53		659	7	pm.first	Learning your usual day.	4,779 steps by 15:10 · strain 44
+19.75	90		91	435		62			7459		69		0.1	53		659	7	dusk.first	A day done. Sleep on time.	Strain 69 · readiness was 90
+23.17	90		91	435		62			8190		76		0.1	53		659	7	night.usual	Bed by 23:00 tonight.	Keeps your sleep on track · you usually fall asleep at 23:00
+5.33	93		98	440	425	64	54	60	421	9702	4	84	0.2	52	55	666	8	am.ready	A good day to train hard.	Readiness 93 · HRV 64 ms, above your normal
+7.25	93		98	440	425	64	54	60	421	9702	4	84	0.2	52	55	666	8	am.ready	A good day to train hard.	Readiness 93 · HRV 64 ms, above your normal
+15.17	93		98	440	425	64	54	60	4914	9702	46	84	0.2	52	55	666	8	pm.on	On pace for your usual day.	4,914 steps by 15:10 · strain 46, your usual 84
+19.75	93		98	440	425	64	54	60	7668	9702	71	84	0.2	52	55	666	8	dusk.full	A full day. Sleep on time.	Strain 71, near your usual 84 · readiness was 93
+23.17	93		98	440	425	64	54	60	8420	9702	78	84	0.2	52	55	666	8	night.usual	Bed by 23:05 tonight.	Keeps your sleep on track · you usually fall asleep at 23:05
+7.25																		am.first	Getting to know you.	 · readiness from day 4
+15.17																		pm.first	Learning your usual day.	0 steps by 15:10 · strain 0
+23.17																		night.first	Aim for seven and a half hours.	Your usual bedtime after 5 nights · 0 so far
+15.17	58			365	434	46	54	64	9000	8390	60	75	0.4	58	54	682		pm.over	More than planned. Ease off now.	9,000 steps by 15:10 · strain 60, your usual 75
+15.17	67			410	434	52	54	64	9500	8390	70	75	0.4	57	54	682		pm.haze.ahead	Ahead of pace. Keep it moderate.	9,500 steps by 15:10 · strain 70, your usual 75
+15.17	67			410	434	52	54	64	900	8390	8	75	0.4	57	54	682		pm.haze.behind	A quiet day. Keep it moderate.	900 steps by 15:10 · strain 8, your usual 75

@@ -48,7 +48,7 @@ Servers (`.claude/launch.json`): `design-board` → http://127.0.0.1:8765 (serve
 
 ## Decisions already made (do not re-litigate)
 
-- **Exploration rule:** no edits to `android-app/` or `DESIGN.md` until the user says "lock". Exploration files live in `design-prototype/` and `docs/design-exploration/`.
+- **Locked (2026-11-24):** the user said "lock". The app work follows `docs/plans/2026-11-24-lock.md` (logic ports with parity tests first, then the renderer, design system and screens behind a "Sky (preview)" switch). The prototype stays the reference: a change to an approved look goes through a round there first.
 - **Rounds end with a STOP:** show the board, wait for the user's pick. Log each round in LOG.md with what was measured.
 - **Feel:** clean, precise, open, like looking at a clear sky. The illustration is the centerpiece and is judged first (3.1).
 - **Direction:** A+D Glass (Open Sky scene + Forecast's unequal tiles), **full glass** 22% white day (saturate 1.6, ink `#2E4A62`), blur 22 px, light edge, soft offset shadow. **Night glass (G2, 2026-11-22):** the land's own hue under the cards at Y .02, 22%, saturate 1, faint light edge, light ink; only as strong as the text needs (`GlassRule.G2` in `glass-rule.js`). **G3 (2026-11-22), the sky behind the text after sunset:** cloud sky light goes from white to the dark sky with night (`AMBN`), the key fades once the sun is down (`TWI`), stars are low intensity, night snow is lit like the moonlit cloud; no veil behind the sky text at night.

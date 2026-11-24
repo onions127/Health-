@@ -1,0 +1,14 @@
+png	mode	a	needLight	needDark	navA	cardP	cardS	navS	skyMode	scrimA	sky	btnFill	btnC
+ps1/today-am0520.png	dark	0.22	0.46	0	0.3	7.05	4.83	7.09	dark	0	3.68	#FFFFFF	4.2
+ps1/sd-am0520.png	dark	0.22	0.47	0	0.3	7.24	4.96	7.12	dark	0	3.77	#FFFFFF	4.25
+ps1/pd-am0520.png	dark	0.22	0.49	0	0.3	8.13	5.57	7.09	dark	0	4.11	#FFFFFF	5.04
+ps1/hz-am0520.png	dark	0.22	0.46	0	0.3	7.27	4.98	7.12	dark	0	3.92	#FFFFFF	4.37
+ps1/vp-am0520.png	dark	0.22	0.5	0	0.3	8.51	5.83	7.01	dark	0	6.9	#FFFFFF	8.93
+ps1/ill-am0520.png	dark	0.22	0.43	0	0.3	5.95	4.08	5.01	dark	0	3.73	#FFFFFF	4.3
+ps1/st-am0520.png	dark	0.22	0.43	0.17	0.3	4.79	3.28	5.04	dark	0	3.8	#FFFFFF	3.14
+tw1/today-pm2030.png	dark	0.22	0.45	0	0.3	7.17	4.91	7.97	dark	0	3.7	#FFFFFF	3.95
+tw1/pd-pm2030.png	dark	0.22	0.5	0	0.3	9.12	6.25	8.2	dark	0	4.91	#FFFFFF	5.79
+tw1/hz-pm2030.png	dark	0.22	0.45	0	0.3	7.44	5.1	8.02	dark	0	3.93	#FFFFFF	4.09
+tw1/vp-pm2030.png	dark	0.22	0.51	0	0.3	9.78	6.7	8.21	dark	0	8.39	#FFFFFF	10.95
+tw1/ill-pm2030.png	dark	0.22	0.43	0	0.3	6.01	4.12	5.16	dark	0	4	#FFFFFF	4.29
+tw1/st-pm2030.png	dark	0.22	0.44	0.15	0.3	4.92	3.37	5.18	dark	0	4.1	#FFFFFF	3.23
