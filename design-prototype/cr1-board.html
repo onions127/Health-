@@ -38,9 +38,9 @@ const RULES = [
     ['am.storm', `Likely illness and readiness under ${BT.stormReadiness} (the storm)`, 'Rest. Your body needs it.', 'skin and resting HR against usual'],
     ['am.ill', `Likely illness: skin ≥ +${BT.illSkin} °C and resting HR ≥ +${BT.illRhr}`, 'Rest, and see how you feel.', 'skin and resting HR'],
     ['am.rest', `Readiness under ${T.rest}`, 'Rest today.', 'readiness and HRV against your normal'],
-    ['am.easy', `Readiness under ${T.easy}`, 'An easy day will pay off tomorrow.', 'readiness and HRV'],
-    ['am.haze', `Haze: skin ≥ +${BT.hazeSkin} °C and resting HR ≥ +${BT.hazeRhr}`, 'A steady day. Keep it moderate.', 'skin and resting HR'],
-    ['am.steady', `Readiness under ${T.ready}`, 'A steady day: train, but not to the limit.', 'readiness and HRV'],
+    ['am.easy', `Readiness under ${T.easy}`, 'Take it easy today.', 'readiness and HRV'],
+    ['am.haze', `Haze: skin ≥ +${BT.hazeSkin} °C and resting HR ≥ +${BT.hazeRhr}`, 'Keep it moderate today.', 'skin and resting HR'],
+    ['am.steady', `Readiness under ${T.ready}`, 'Train, but not to the limit.', 'readiness and HRV'],
     ['am.ready', `Readiness ${T.ready} or more`, 'A good day to train hard.', 'readiness and HRV']]],
   ['Afternoon, to 18:00 · progress against your usual day', [
     ['pm.storm', 'The storm', 'Rest is the plan today.', 'steps by now, strain against usual'],
@@ -53,10 +53,10 @@ const RULES = [
   ['Dusk, to 21:30 · how hard the day was', [
     ['dusk.storm', 'The storm', 'Wind down early tonight.', 'strain against usual, readiness'],
     ['dusk.ill', 'Likely illness', 'An early night helps most.', ''],
-    ['dusk.rest', `Readiness under ${T.rest}`, 'A quiet day done. Sleep early.', ''],
-    ['dusk.easy', `Readiness under ${T.easy}`, 'An easy day done. An early night next.', ''],
-    ['dusk.haze', 'Haze', 'A fair day done. Sleep on time.', ''],
-    ['dusk.*', `By strain: hard ≥ ${T.hard} ×, light < ${T.light} × your usual`, 'A hard day done. Ease off from here. · A full day done. Sleep on time. · A light day done. Sleep on time.', '']]],
+    ['dusk.rest', `Readiness under ${T.rest}`, 'A quiet day. Sleep early.', ''],
+    ['dusk.easy', `Readiness under ${T.easy}`, 'An easy day. Sleep early.', ''],
+    ['dusk.haze', 'Haze', 'A fair day. Sleep on time.', ''],
+    ['dusk.*', `By strain: hard ≥ ${T.hard} ×, light < ${T.light} × your usual`, 'A hard day. Ease off now. · A full day. Sleep on time. · A light day. Sleep on time.', '']]],
   ['Night · bedtime against your usual', [
     ['night.storm', 'The storm', 'Sleep now if you can.', 'last night, your usual sleep time'],
     ['night.ill', 'Likely illness', 'Bed early. Rest helps.', ''],
@@ -76,10 +76,10 @@ for (let i = 30; i < 90; i++) {
 const lines = Object.keys(count).filter(k => k.startsWith('L:')).map(k => count[k].line);
 
 // 3 · The drawn days, before (as approved) and now
-const WAS = { today: ['A good day to train hard.', 'Ahead of your usual day. Keep it going.', 'A hard day done. Ease off from here.', 'Bed by 23:30 tonight.'],
-  pd: ['An easy day will pay off tomorrow.', 'Easy so far. Keep it that way.', 'An easy day done. An early night next.', 'Bed by 23:00 tonight.'],
-  hz: ['A steady day. Keep it moderate.', 'On pace. Keep it moderate.', 'A fair day done. Sleep on time.', 'Bed by 23:10 tonight.'],
-  vp: ['Rest today.', 'Resting so far. Good.', 'A quiet day done. Sleep early.', 'Bed now, if you can.'],
+const WAS = { today: ['A good day to train hard.', 'Ahead of your usual day. Keep it going.', 'A hard day. Ease off now.', 'Bed by 23:30 tonight.'],
+  pd: ['Take it easy today.', 'Easy so far. Keep it that way.', 'An easy day. Sleep early.', 'Bed by 23:00 tonight.'],
+  hz: ['Keep it moderate today.', 'On pace. Keep it moderate.', 'A fair day. Sleep on time.', 'Bed by 23:10 tonight.'],
+  vp: ['Rest today.', 'Resting so far. Good.', 'A quiet day. Sleep early.', 'Bed now, if you can.'],
   ill: ['Rest, and see how you feel.', 'Keep it a rest day.', 'An early night helps most.', 'Bed early. Rest helps.'],
   st: ['Rest. Your body needs it.', 'Rest is the plan today.', 'Wind down early tonight.', 'Sleep now if you can.'] };
 const NAME = { today: 'Today (fair)', pd: 'Poor day (PD1, 4 Nov)', hz: 'Haze day (BD2)', vp: 'Very poor (VP1)', ill: 'Likely illness (VP1)', st: 'Storm (ST1)' };

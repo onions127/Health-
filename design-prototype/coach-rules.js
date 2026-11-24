@@ -42,9 +42,9 @@
       if (s.storm) return R('am.storm', 'Rest. Your body needs it.', signs);
       if (s.ill) return R('am.ill', 'Rest, and see how you feel.', signs);
       if (r < T.rest) return R('am.rest', 'Rest today.', rh);
-      if (r < T.easy) return R('am.easy', 'An easy day will pay off tomorrow.', rh);
-      if (s.haze) return R('am.haze', 'A steady day. Keep it moderate.', signs);
-      if (r < T.ready) return R('am.steady', 'A steady day: train, but not to the limit.', rh);
+      if (r < T.easy) return R('am.easy', 'Take it easy today.', rh);
+      if (s.haze) return R('am.haze', 'Keep it moderate today.', signs);
+      if (r < T.ready) return R('am.steady', 'Train, but not to the limit.', rh);
       return R('am.ready', 'A good day to train hard.', rh);
     }
     if (hour < 18) {
@@ -66,18 +66,18 @@
     if (hour < 21.5) {
       if (none || b.strainUsual == null) {   // FW1
         const d0 = `Strain ${b.strain}${none ? '' : ` · readiness was ${r}`}`;
-        if (!none && r < T.rest) return R('dusk.rest', 'A quiet day done. Sleep early.', d0);
-        if (!none && r < T.easy) return R('dusk.easy', 'An easy day done. An early night next.', d0);
+        if (!none && r < T.rest) return R('dusk.rest', 'A quiet day. Sleep early.', d0);
+        if (!none && r < T.easy) return R('dusk.easy', 'An easy day. Sleep early.', d0);
         return R('dusk.first', 'A day done. Sleep on time.', d0);
       }
       const q = b.strain / Math.max(1, b.strainUsual * dayFrac(hour)), load = q >= T.hard ? 'hard' : q < T.light ? 'light' : 'full';
       const d = `Strain ${b.strain}, ${load === 'hard' ? 'above' : load === 'light' ? 'under' : 'near'} your usual ${b.strainUsual} · readiness was ${r}`;
       if (s.storm) return R('dusk.storm', 'Wind down early tonight.', d);
       if (s.ill) return R('dusk.ill', 'An early night helps most.', d);
-      if (r < T.rest) return R('dusk.rest', 'A quiet day done. Sleep early.', d);
-      if (r < T.easy) return R('dusk.easy', 'An easy day done. An early night next.', d);
-      if (s.haze) return R('dusk.haze', 'A fair day done. Sleep on time.', d);
-      return R('dusk.' + load, { hard: 'A hard day done. Ease off from here.', full: 'A full day done. Sleep on time.', light: 'A light day done. Sleep on time.' }[load], d);
+      if (r < T.rest) return R('dusk.rest', 'A quiet day. Sleep early.', d);
+      if (r < T.easy) return R('dusk.easy', 'An easy day. Sleep early.', d);
+      if (s.haze) return R('dusk.haze', 'A fair day. Sleep on time.', d);
+      return R('dusk.' + load, { hard: 'A hard day. Ease off now.', full: 'A full day. Sleep on time.', light: 'A light day. Sleep on time.' }[load], d);
     }
     if (b.onsetUsual == null) {   // FW1: fewer than 5 nights: no usual bedtime yet
       if (!none && r < T.rest) return R('night.rest', 'Bed now, if you can.', `Last night ${hm(b.sleepMin)}`);

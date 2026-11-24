@@ -1487,3 +1487,51 @@ Load to converged 20.1 s (`loadT.js`; SH1 26.1 s): compile cost holds.
 **Board:** `wt1-board.html?first=1`, `co2-board.html?first=1`. Pick A or B for day 1. STOP.
 
 **Approved (2026-11-24):** FW1 with **A** for day 1: the hero says the day ("Day 1", *Getting to know you*, readiness from day 4 · after 3 nights). B (leading with the sleep score) removed from the board.
+
+## PS1 · Coach before sunrise (2026-11-24)
+
+**Asked:** continue with the open item from CR1: before sunrise the moon narrows Coach's morning read to 240 px (sky text left of x 262, NT1), where three reads took three lines.
+
+**Skies** (`g2.js` with each drawn day's body through BodySky at 05:20, `SHOOT=1 OUT=ps1`; bodies from `tools/visual-loop/ps1-states.js` → `out/ps1-states.json`, plus a steady day from the data, 22 Nov: readiness 73, HRV 53, resting HR 56, 7h 12m, sleep 87). Renders `ps1/<day>-am0520.png`: fair with the moon (today, 90), partly with the moon (steady 73, haze 67), stratocumulus over the moon (4 Nov, 58), stratus with valley fog (very poor, 46), rain (illness, 49), the storm with its bolt (34).
+
+**Measured** (`ps1/measure.json`, floor 3.0, no veil; glass y 236–851 + nav, sky text x ≤ 262 to y 300 so a third line is covered): every day takes the land glass at 22% (`#1C2738`–`#1F2832`), light ink, white button. Glass text 3.28 (storm) – 5.83, sky text 3.68 – 6.90, button 3.14 (storm) – 8.93.
+
+**Fit** (36 px light at 240 px, `text-wrap: balance`): of the eight morning rules, `am.easy` (*An easy day will pay off tomorrow.*), `am.haze` (*A steady day. Keep it moderate.*) and `am.steady` (*A steady day: train, but not to the limit.*) take three lines; the other five take one or two.
+
+**Built** (`co2-board.html?dawn=1`, seven days at 05:20 with each day's morning exchange; the PD1 and VP1/ST1 morning answers are now shared consts, `PD_AM`, `BADL`):
+- **A · Shorter words:** those three rules get one shorter wording each, used at **every** hour (one sentence per rule): *Train, but not to the limit.* · *Take it easy today.* · *Keep it moderate today.* All eight morning reads then fit two lines at 240 px. Today's hero word already names the day (Steady, Take it easy), so Coach's read can start with the plan.
+- **B · A third line before sunrise:** the words stay; the read takes three lines left of the moon and the detail moves down one line (box bottom y 283 against 241; the chat starts at 384).
+
+**Found:** at 240 px four dusk reads would also take three lines (*A quiet day done. Sleep early.*, *An easy day done. An early night next.*, *A hard day done. Ease off from here.*, *A light day done. Sleep on time.*). Today the 262 rule applies only at night (23:10) and on the storm day (whose dusk read fits), so nothing breaks now; it matters only if the moon rule starts before 21:30 (winter twilight).
+
+**Shots:** `TAG=ps1 BOARDS=co2 Q=dawn=1 node vp1.js` → `out/ps1-co2-0…6.png`, sheet `out/ps1-sheet.png`, skies `out/ps1-skies.png`, board `out/ps1-board.png`. No page errors.
+
+**Board:** `co2-board.html?dawn=1`. Pick A or B. STOP.
+
+**Approved (2026-11-24):** **A**, shorter words. `coach-rules.js`: `am.easy` *Take it easy today.*, `am.haze` *Keep it moderate today.*, `am.steady` *Train, but not to the limit.*, at every hour; the board shows A only (B removed). `cr1-board.html`: the rules table and the approved reads take the new words (still 20 of 24 against the approved reads; every read fits two lines at its width, and the before-sunrise note is gone because every morning read now fits at 240 px).
+
+## TW1 · Coach in twilight, under the moon (2026-11-24)
+
+**Asked:** continue. Found in PS1: four evening reads take three lines at 240 px, which matters if the moon rule starts before 21:30.
+
+**When the moon is up:** the scene's palette goes dusk (19:00) → night (21:00), and the moon disc shows once night passes .5 (fully by .7): **20:00 → 05:45**. Coach's evening read runs to 21:30, and by day its box reaches x 380, so from 20:00 it sat on the moon. Measured (`g2.js`, fair, floor 3.0, chat glass + nav, read box y 108–250):
+
+| | 19:45 | 20:00 | 20:15 | 20:30 | 21:00 | 21:30 |
+|---|---|---|---|---|---|---|
+| read to x 380 | dark ink 3.33, no veil | light veil 17%, 3.27 | 18%, 3.27 | 26%, 3.34 | 37%, 3.36 | 37%, 3.34 |
+| read to x 262 | 3.38, no veil | light veil 17%, 3.29 | **none**, light ink 3.10 | none, 3.70 | none, 4.01 | none, 4.12 |
+
+20:00 needs its 17% either way (the ink-swap minute G3 found). **Rule:** sky text keeps left of x 262 **while the moon is up (20:00 → 05:45)**, not only after 21:30; and on the storm day (ST1).
+
+**The evening reads at 240 px:** *A quiet day done. Sleep early.*, *An easy day done. An early night next.*, *A hard day done. Ease off from here.* and *A light day done. Sleep on time.* took three lines. Every evening read now takes one pattern, *A … day. What next.* (the hour says the day is done), in `coach-rules.js` at every hour:
+- `dusk.rest` *A quiet day. Sleep early.* · `dusk.easy` *An easy day. Sleep early.* · `dusk.hard` *A hard day. Ease off now.* · `dusk.full` *A full day. Sleep on time.* · `dusk.light` *A light day. Sleep on time.* · `dusk.haze` *A fair day. Sleep on time.*
+- Kept: *A day done. Sleep on time.* (first week), *Wind down early tonight.*, *An early night helps most.* (they fit).
+All nine evening rules fit two lines at 240 px; the read box ends at y 241 on every drawn day (chat from 384).
+
+**Skies at 20:30** (`ps1-states.js` now takes `H`, `I`, `TAG`; the six drawn days' bodies at 19:45's steps and strain; `tw1/<day>-pm2030.png`, `tw1/measure.json`; floor 3.0, no veil, sky text x ≤ 262): land glass 22% (`#1D2542`–`#202733`), light ink. Glass text 3.37 (storm) – 6.70, sky text 3.70 – 8.39, button 3.23 (storm) – 10.95.
+
+**Board:** `co2-board.html?tw=1` (the PS1 section is now the same code with `?dawn=1`; PD1's dusk exchange is a shared const, `PD_PM`). `cr1-board.html`'s rules table has the new words; its approved reads still hold the old evening words until this is picked (it counts 17 of 24 meanwhile).
+
+**Shots:** `TAG=tw1 BOARDS=co2 Q=tw=1 node vp1.js` → `out/tw1-co2-0…5.png`, sheet `out/tw1-sheet.png`, board `out/tw1-board.png`. No page errors on co2 (plain, `?bad=1`, `?poor=1`, `?first=1`, `?dawn=1`, `?tw=1`) or cr1. STOP.
+
+**Approved (2026-11-24):** TW1 as built: sky text keeps left of x 262 while the moon is up (20:00 → 05:45) and on the storm day; every evening read in the *A … day. What next.* pattern. `cr1-board.html`'s approved reads take the new evening words (back to 20 of 24; the four differences are the CR1 hand inconsistencies).

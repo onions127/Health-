@@ -1,0 +1,296 @@
+{
+ "floors": [
+  3
+ ],
+ "states": [
+  {
+   "id": "today-am0520",
+   "label": "today 05:20"
+  },
+  {
+   "id": "sd-am0520",
+   "label": "steady (22 Nov) 05:20"
+  },
+  {
+   "id": "pd-am0520",
+   "label": "pd 05:20"
+  },
+  {
+   "id": "hz-am0520",
+   "label": "hz 05:20"
+  },
+  {
+   "id": "vp-am0520",
+   "label": "vp 05:20"
+  },
+  {
+   "id": "ill-am0520",
+   "label": "ill 05:20"
+  },
+  {
+   "id": "st-am0520",
+   "label": "st 05:20"
+  }
+ ],
+ "m": {
+  "today-am0520": {
+   "3": {
+    "mode": "dark",
+    "tint": "#1C2738",
+    "a": 0.22,
+    "needLight": 0.46,
+    "needDark": 0,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "skyInk": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "cardP": 7.05,
+    "cardS": 4.83,
+    "navS": 7.09,
+    "skyMode": "dark",
+    "scrimT": "#1C2738",
+    "scrimA": 0,
+    "sky": 3.68,
+    "hero": null,
+    "btn": {
+     "fill": "#FFFFFF",
+     "ink": "#0B3A66"
+    },
+    "btnC": 4.2
+   },
+   "pageL": 34.87696382851185,
+   "lightT": "#FFFFFF",
+   "darkT": "#1C2738",
+   "satD": 1
+  },
+  "sd-am0520": {
+   "3": {
+    "mode": "dark",
+    "tint": "#1C2739",
+    "a": 0.22,
+    "needLight": 0.47,
+    "needDark": 0,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "skyInk": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "cardP": 7.24,
+    "cardS": 4.96,
+    "navS": 7.12,
+    "skyMode": "dark",
+    "scrimT": "#1C2739",
+    "scrimA": 0,
+    "sky": 3.77,
+    "hero": null,
+    "btn": {
+     "fill": "#FFFFFF",
+     "ink": "#0B3A66"
+    },
+    "btnC": 4.25
+   },
+   "pageL": 34.52896906129992,
+   "lightT": "#FFFFFF",
+   "darkT": "#1C2739",
+   "satD": 1
+  },
+  "pd-am0520": {
+   "3": {
+    "mode": "dark",
+    "tint": "#1C2739",
+    "a": 0.22,
+    "needLight": 0.49,
+    "needDark": 0,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "skyInk": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "cardP": 8.13,
+    "cardS": 5.57,
+    "navS": 7.09,
+    "skyMode": "dark",
+    "scrimT": "#1C2739",
+    "scrimA": 0,
+    "sky": 4.11,
+    "hero": null,
+    "btn": {
+     "fill": "#FFFFFF",
+     "ink": "#0B3A66"
+    },
+    "btnC": 5.04
+   },
+   "pageL": 34.348341767632135,
+   "lightT": "#FFFFFF",
+   "darkT": "#1C2739",
+   "satD": 1
+  },
+  "hz-am0520": {
+   "3": {
+    "mode": "dark",
+    "tint": "#1C2739",
+    "a": 0.22,
+    "needLight": 0.46,
+    "needDark": 0,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "skyInk": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "cardP": 7.27,
+    "cardS": 4.98,
+    "navS": 7.12,
+    "skyMode": "dark",
+    "scrimT": "#1C2739",
+    "scrimA": 0,
+    "sky": 3.92,
+    "hero": null,
+    "btn": {
+     "fill": "#FFFFFF",
+     "ink": "#0B3A66"
+    },
+    "btnC": 4.37
+   },
+   "pageL": 34.52800572146645,
+   "lightT": "#FFFFFF",
+   "darkT": "#1C2739",
+   "satD": 1
+  },
+  "vp-am0520": {
+   "3": {
+    "mode": "dark",
+    "tint": "#1C2738",
+    "a": 0.22,
+    "needLight": 0.5,
+    "needDark": 0,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "skyInk": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "cardP": 8.51,
+    "cardS": 5.83,
+    "navS": 7.01,
+    "skyMode": "dark",
+    "scrimT": "#1C2738",
+    "scrimA": 0,
+    "sky": 6.9,
+    "hero": null,
+    "btn": {
+     "fill": "#FFFFFF",
+     "ink": "#0B3A66"
+    },
+    "btnC": 8.93
+   },
+   "pageL": 34.81624129403098,
+   "lightT": "#FFFFFF",
+   "darkT": "#1C2738",
+   "satD": 1
+  },
+  "ill-am0520": {
+   "3": {
+    "mode": "dark",
+    "tint": "#1F2832",
+    "a": 0.22,
+    "needLight": 0.43,
+    "needDark": 0,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "skyInk": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "cardP": 5.95,
+    "cardS": 4.08,
+    "navS": 5.01,
+    "skyMode": "dark",
+    "scrimT": "#1F2832",
+    "scrimA": 0,
+    "sky": 3.73,
+    "hero": null,
+    "btn": {
+     "fill": "#FFFFFF",
+     "ink": "#0B3A66"
+    },
+    "btnC": 4.3
+   },
+   "pageL": 47.118251216112604,
+   "lightT": "#FFFFFF",
+   "darkT": "#1F2832",
+   "satD": 1
+  },
+  "st-am0520": {
+   "3": {
+    "mode": "dark",
+    "tint": "#1F2732",
+    "a": 0.22,
+    "needLight": 0.43,
+    "needDark": 0.17,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "skyInk": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "cardP": 4.79,
+    "cardS": 3.28,
+    "navS": 5.04,
+    "skyMode": "dark",
+    "scrimT": "#1F2732",
+    "scrimA": 0,
+    "sky": 3.8,
+    "hero": null,
+    "btn": {
+     "fill": "#FFFFFF",
+     "ink": "#0B3A66"
+    },
+    "btnC": 3.14
+   },
+   "pageL": 46.878828815572156,
+   "lightT": "#FFFFFF",
+   "darkT": "#1F2732",
+   "satD": 1
+  }
+ }
+}

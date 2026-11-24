@@ -29,7 +29,7 @@
   <h1>Round CO2 · Coach through the day</h1>
   <p>CO1 A (chat on the sky) was picked, but its read of the day was one line for every hour: "A good day to train hard" at 23:10 too. Here the read, its detail, the suggested questions and the opening exchange follow the hour: a plan in the morning, progress in the afternoon, recovery at dusk, bedtime at night. The sky is the hour's (07:15, 15:10, 19:45, 23:10, fair); the glass follows the G2 rule, and at night the sentence stays left of the moon (x 262, NT1). Prototype data; the answers are written to show tone and sources, not generated.</p>
 </header>
-<main id="board"></main>
+<main id="board"></main><div id="fit" style="position:absolute;left:-9999px;top:0;font-family:Roboto, 'Segoe UI', system-ui, sans-serif"></div>
 <script src="scores.js"></script><script src="data.js"></script>
 <script src="night.js"></script>
 <script src="body-sky.js"></script><script src="coach-rules.js"></script>
@@ -39,7 +39,7 @@ const HW = t.hrv > Mt.hrv.normalMax ? 'above' : t.hrv < Mt.hrv.normalMin ? 'belo
 const rgba = (h, a) => `rgba(${[1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(',')},${a})`;
 const Q = Object.keys(R);   // the suggested questions, with their prototype answers
 let HOUR = 15.17;
-const read0 = { line: t.readiness >= 80 ? 'A good day to train hard.' : t.readiness >= 65 ? 'A steady day: train, but not to the limit.' : 'An easy day will pay off tomorrow.',
+const read0 = { line: t.readiness >= 80 ? 'A good day to train hard.' : t.readiness >= 65 ? 'Train, but not to the limit.' : 'Take it easy today.',
   detail: `Readiness ${t.readiness} · HRV ${t.hrv} ms, ${HW} your normal` };
 const HOURS = {
   7.25: { clock: '07:15', img: 'co2/am0715.png', m: 'am0715', 
@@ -51,12 +51,12 @@ const HOURS = {
   23.17: { clock: '23:10', img: 'nt1/night.png', m: 'night', 
     q: 'How did today go?', a: `A strong day: readiness ${t.readiness}, ${t.steps.toLocaleString('en-US')} steps and strain ${t.strain}. Your heart rate is settling toward your resting ${t.rhr} bpm.`, foot: 'From readiness, steps, strain and heart rate today', chips: ['Why does bedtime matter?', 'What about tomorrow?'] } };
 // PD1: a poor day (readiness 58; HRV 46 below your normal, resting HR 58 above it, 6h 05m asleep, skin +0.4): the read eases off all day
-if (POOR) Object.assign(HOURS[7.25], { img: 'pd1/am0715.png', 
-    q: 'Should I still train?', a: 'Keep it light. Your HRV is 46 ms, below your normal ' + Mt.hrv.normalMin + '–' + Mt.hrv.normalMax + ', and resting HR is 58, above it. A walk or an easy spin is fine; save hard sessions for a day that reads steady or better.', foot: 'From HRV, resting HR and sleep, this morning', chips: ['Why is my HRV low?', 'What helps most today?'] }),
+const PD_PM = { q: 'Will I recover by tomorrow?', a: 'An easy day and a full night usually lift HRV. If skin temperature and resting HR are still up tomorrow, take another easy day.', foot: 'From strain, HRV, resting HR and skin temperature', chips: ['How should I wind down?', 'When should I sleep?'] };   // TW1 reuses it at 20:30
+const PD_AM = { q: 'Should I still train?', a: 'Keep it light. Your HRV is 46 ms, below your normal ' + Mt.hrv.normalMin + '–' + Mt.hrv.normalMax + ', and resting HR is 58, above it. A walk or an easy spin is fine; save hard sessions for a day that reads steady or better.', foot: 'From HRV, resting HR and sleep, this morning', chips: ['Why is my HRV low?', 'What helps most today?'] };   // PS1 reuses it before sunrise
+if (POOR) Object.assign(HOURS[7.25], { img: 'pd1/am0715.png', ...PD_AM }),
   Object.assign(HOURS[15.17], { img: 'pd1/day1510.png', 
     q: 'Can I go for a run later?', a: 'A short, easy one, if you feel like it: keep it conversational. Your body read 58 this morning, so today is for recovery, not fitness.', foot: 'From readiness and strain so far', chips: ['How easy is easy?', 'Why is my HRV low?'] }),
-  Object.assign(HOURS[19.75], { img: 'pd1/dusk1945.png', 
-    q: 'Will I recover by tomorrow?', a: 'An easy day and a full night usually lift HRV. If skin temperature and resting HR are still up tomorrow, take another easy day.', foot: 'From strain, HRV, resting HR and skin temperature', chips: ['How should I wind down?', 'When should I sleep?'] }),
+  Object.assign(HOURS[19.75], { img: 'pd1/dusk1945.png', ...PD_PM }),
   Object.assign(HOURS[23.17], { img: 'pd1/night.png', 
     q: 'How did today go?', a: 'Easy, as planned: 4,820 steps and strain 49. Tonight matters most: aim for seven hours or more.', foot: 'From steps, strain and last night’s sleep', chips: ['Why does bedtime matter?', 'What about tomorrow?'] });
 // CR1: the read (line + detail) comes from the rules (coach-rules.js) for the day's body (data.js COACH_DAYS)
@@ -113,8 +113,9 @@ window.CO2_NEW = 1;
   document.getElementById('board').appendChild(el);
   if (POOR) uhSection('PD1 · Coach on a poor day', 'The read eases off all day: an easy day in the morning, keeping it easy in the afternoon, an early night at dusk, an earlier bedtime at night. Every answer still names its sources; none of it is medical advice.',
     Object.keys(HOURS).map(h => { HOUR = +h; window.NIGHT = h === '23.17'; return [phone(HOURS[h].img, G4[h], 'chat'), `${HOURS[h].clock} · ${HOURS[h].line}`]; }));
-  if (BAD) {   // VP1: Coach through a very poor day and through likely illness (rest all day; illness names the signs and when to see a doctor)
-    const L = {
+  // VP1: Coach through a very poor day and through likely illness (rest all day; illness names the signs and when to see a doctor)
+  {
+    const L = window.BADL = {
       vp: { 7.25: { 
           q: 'Should I still train?', a: 'Not today. Your HRV is 38 ms, well under your normal ' + Mt.hrv.normalMin + '–' + Mt.hrv.normalMax + ', resting HR is 59, above it, and you slept 4h 40m. A short walk is fine; leave training for a day that reads steady.', foot: 'From HRV, resting HR and sleep, this morning', chips: ['Why is my HRV so low?', 'Can I nap today?'] },
         15.17: { 
@@ -147,12 +148,13 @@ window.CO2_NEW = 1;
         q: 'Will I be better tomorrow?', a: 'Tomorrow morning will show it. If skin temperature and resting HR come down, the storm clears with them. If they stay up or you feel worse, rest again and talk to a doctor.', foot: 'From skin temperature and resting HR', chips: ['How should I wind down?', 'When should I sleep?'] },
       23.17: { 
         q: 'How did today go?', a: 'You rested: 1,500 steps and strain 14. Sleep is the best thing you can do for tomorrow.', foot: 'From steps, strain and last night’s sleep', chips: ['Why does bedtime matter?', 'What about tomorrow?'] } };
+    if (BAD) {
     const TT = { hz: ['BD3 · Coach on the haze day', 'Steady, a step gentler: the morning names the two small rises and keeps the effort moderate; the evening says what tomorrow decides. No talk of illness: the numbers do not say it.'], vp: ['VP1 · Coach on a very poor day', 'Rest is the whole plan: rest in the morning, resting in the afternoon, sleep early at dusk, bed now at night. Every answer names its sources.'],
       ill: ['VP1 · Coach with likely illness', 'The morning names the two signs and what they can mean, in the D6 words (can be an early sign of illness, never a diagnosis); the answers say when to talk to a doctor. Rest all day; tomorrow’s numbers decide.'],
       st: ['ST1 · Coach on the storm day', 'The same voice as the rain day, a step firmer: the morning names all three signs, every answer says rest, and when to talk to a doctor. Tomorrow’s numbers decide; the storm clears with them.'] };
     ['hz', 'vp', 'ill', 'st'].forEach((day, n) => { VP1_HOURS.forEach(([k, , h]) => Object.assign(HOURS[h], { img: badImg(day, k) }, L[day][h])); RULE(day);
       addSection(TT[day][0], TT[day][1], VP1_HOURS.map(([k, clock, h]) => { HOUR = h; window.NIGHT = k === 'night'; window.BOLT = day === 'st'; return [phone(HOURS[h].img, vp1G(day, k), 'chat'), `${clock} · ${HOURS[h].line}`]; }), !n); }); window.BOLT = false;
-    window.NIGHT = TIME === 'night'; }
+    window.NIGHT = TIME === 'night'; } }
   if (/[?&]first=1/.test(location.search)) {   // FW1: Coach in a new band's first week (data.js FIRST_WEEK, coach-rules.js without the usuals)
     const FWD = FIRST_WEEK, QA = {
       0: ['When will my readiness show?', 'On day 4. Readiness compares each morning with your own average, so it needs three nights of HRV and resting HR first. Sleep is scored from the first night.', 'From the band’s first night', ['What does the band measure?', 'Wear it at night?']],
@@ -166,6 +168,38 @@ window.CO2_NEW = 1;
     uhSection('FW1 · Coach in the first week', 'The same rules, before the usuals exist. Morning: no readiness yet says so; with readiness but no normal, the read stands on readiness alone. Afternoon and dusk: no pace or strain judgement until a usual day exists (day 8). Night: no bedtime until five nights give a usual one (day 5). Illness and haze wait for a usual resting HR.',
       [at(0, 7.25, 'co2/am0715.png', G4[7.25], 240, 4), at(3, 7.25, 'co2/am0715.png', G4[7.25], 240, 4), at(7, 7.25, 'co2/am0715.png', G4[7.25], 240, 4),
        at(0, 23.17, 'nt1/night.png', G4[23.17], FWD[0].steps, FWD[0].strain), at(4, 23.17, 'nt1/night.png', G4[23.17], FWD[4].steps, FWD[4].strain)]);
+    window.NIGHT = TIME === 'night';
+  }
+  const MOONQ = (location.search.match(/[?&](dawn|tw)=1/) || [])[1];
+  if (MOONQ) {   // PS1 (?dawn=1, 05:20) and TW1 (?tw=1, 20:30): the moon is up, so the read keeps left of x 262 (240 px wide), as at night
+    const DAWN = MOONQ === 'dawn', HR = DAWN ? 5.33 : 20.5, IDX = DAWN ? 0 : 2, TAG = DAWN ? 'am0520' : 'pm2030', DIR = DAWN ? 'ps1' : 'tw1', CLK = DAWN ? '05:20' : '20:30';
+    const PS = await j(DIR + '/measure.json'), C = COACH_DAYS, T0 = C.today, at = b => ({ ...C.at(b, IDX), ...(DAWN ? { steps: 0, strain: 0 } : {}) });
+    const DAYS = { today: ['Today (90)', C.today], ...(DAWN ? { sd: ['Steady, 22 Nov (73)', { ...T0, readiness: 73, hrv: 53, rhr: 56, skinTemp: -0.2, sleepMin: 432, steps: [0], strain: [0] }] } : {}), pd: ['Poor, 4 Nov (58)', C.pd], hz: ['Haze (67)', C.hz], vp: ['Very poor (46)', C.vp], ill: ['Likely illness (49)', C.ill], st: ['Storm (34)', C.st] };
+    const ASK = DAWN ? { today: { q: 'Can I push hard today?', a: null, foot: 'From HRV and readiness, this morning', chips: ['What should I train?', 'How was my deep sleep?'] },
+      sd: { q: 'What should I train?', a: `Something steady: a tempo run or a normal gym session, stopping short of a max effort. HRV is 53 ms, just under your normal ${Mt.hrv.normalMin}–${Mt.hrv.normalMax}, and you slept 7h 12m.`, foot: 'From HRV, readiness and sleep, this morning', chips: ['Why not train hard?', 'How was my deep sleep?'] },
+      pd: PD_AM, hz: BADL.hz[7.25], vp: BADL.vp[7.25], ill: BADL.ill[7.25], st: BADL.st[7.25] }
+      : { today: (({ q, a, foot, chips }) => ({ q, a, foot, chips }))(HOURS[19.75]), pd: PD_PM, hz: BADL.hz[19.75], vp: BADL.vp[19.75], ill: BADL.ill[19.75], st: BADL.st[19.75] };
+    const WAS = DAWN ? { 'am.steady': 'A steady day: train, but not to the limit.', 'am.easy': 'An easy day will pay off tomorrow.', 'am.haze': 'A steady day. Keep it moderate.' }   // PS1 A (picked): one shorter wording per rule, at every hour (coach-rules.js)
+      : { 'dusk.rest': 'A quiet day done. Sleep early.', 'dusk.easy': 'An easy day done. An early night next.', 'dusk.haze': 'A fair day done. Sleep on time.', 'dusk.hard': 'A hard day done. Ease off from here.', 'dusk.full': 'A full day done. Sleep on time.', 'dusk.light': 'A light day done. Sleep on time.' };   // TW1: the evening reads, one pattern
+    const fitEl = document.getElementById('fit'), lines = (l, w) => { fitEl.innerHTML = `<div style="width:${w}px;font-size:36px;font-weight:300;line-height:1.15;letter-spacing:-0.02em;text-wrap:balance">${l}</div>`; return Math.round(fitEl.firstChild.getBoundingClientRect().height / (36 * 1.15)); };
+    const detailH = (d, w) => { fitEl.innerHTML = `<div style="width:${w}px;font-size:15px;line-height:1.35">${d}</div>`; return fitEl.firstChild.getBoundingClientRect().height; };
+    HOURS[HR] = { clock: CLK }; HOUR = HR; window.NIGHT = true;
+    const reads = Object.keys(DAYS).map(k => ({ k, ...CoachRules.read(at(DAYS[k][1]), HR) }));
+    const ph = (x, line) => { Object.assign(HOURS[HR], ASK[x.k], { line, detail: x.detail, rule: x.rule }); window.BOLT = x.k === 'st'; const h = phone(`${DIR}/${x.k}-${TAG}.png`, PS[x.k + '-' + TAG]['3'], 'chat'); window.BOLT = false; return h; };
+    // fit: every read of this part of the day at 240 px (the moon); probes add the rules no drawn day reaches (the first week; a hard and a light day by strain)
+    const RULES = DAWN ? ['am.first', 'am.storm', 'am.ill', 'am.rest', 'am.easy', 'am.haze', 'am.steady', 'am.ready'] : ['dusk.first', 'dusk.storm', 'dusk.ill', 'dusk.rest', 'dusk.easy', 'dusk.haze', 'dusk.hard', 'dusk.full', 'dusk.light'], LINE = {};
+    const probes = [...reads, ...[0, 3].map(i => CoachRules.read({ ...FIRST_WEEK[i], steps: DAWN ? 0 : 7000, strain: DAWN ? 0 : 60 }, HR)), ...(DAWN ? [] : [95, 30].map(st => CoachRules.read({ ...C.at(T0, IDX), strain: st }, HR)))];
+    probes.forEach(r => { LINE[r.rule] = r.line; }); LINE['am.ill'] = LINE['am.ill'] || 'Rest, and see how you feel.';
+    const fitRows = RULES.filter(r => LINE[r]).map(r => `<tr><td>${r}</td><td style="text-align:left">${LINE[r]}${WAS[r] ? `<br><s style="color:#8A939D">${WAS[r]}</s> ${lines(WAS[r], 240)}` : ''}</td><td>${lines(LINE[r], 240)}</td></tr>`).join('');
+    const bottom = reads.map(x => [x.k, Math.round(108 + lines(x.line, 240) * 41.4 + 10 + detailH(x.detail, 240))]);
+    const mrows = reads.map(x => { const g = PS[x.k + '-' + TAG]['3']; return `<tr><td>${x.k}</td><td>land ${g.tint} ${Math.round(g.a * 100)}%</td><td>${g.cardS.toFixed(2)}</td><td>${g.sky.toFixed(2)}</td><td>${g.btnC.toFixed(2)}</td></tr>`; }).join('');
+    const THESIS = DAWN ? `Before sunrise the moon is up and the read keeps left of x 262: 240 px, two lines of 36 px light. Three morning reads ran to three lines there; they now have one shorter wording each, used at every hour (A, picked): <i>Train, but not to the limit.</i> · <i>Take it easy today.</i> · <i>Keep it moderate today.</i> Today's hero word already says the day (Steady, Take it easy).`
+      : `The moon rises at 20:00 (the scene's night passes .5), while the evening read runs to 21:30. Out to x 380 the read sits on the moon and needs a 17–37% veil; left of x 262 it needs none from 20:15. So the read keeps left of x 262 while the moon is up (20:00 → 05:45), not only after 21:30. At 240 px four evening reads ran to three lines; every evening read now takes one pattern, <i>A … day. What next.</i>, the hour saying the day is done: <i>A quiet day. Sleep early.</i> · <i>An easy day. Sleep early.</i> · <i>A hard day. Ease off now.</i> · <i>A full day. Sleep on time.</i> · <i>A light day. Sleep on time.</i> · <i>A fair day. Sleep on time.</i>`;
+    addSection(DAWN ? 'PS1 · Coach before sunrise' : 'TW1 · Coach in twilight, under the moon', `${THESIS}
+      <h3>Every ${DAWN ? 'morning' : 'evening'} read at 240 px (lines)</h3><table class="m"><tr><th>rule</th><th style="text-align:left">read (was)</th><th>lines</th></tr>${fitRows}</table>
+      <h3>Bottom of the read box (y, chat from 384)</h3><table class="m"><tr><th>day</th><th>y</th></tr>${bottom.map(b => `<tr><td>${b[0]}</td><td>${b[1]}</td></tr>`).join('')}</table>
+      <h3>Measured ${CLK} (g2.js, floor 3.0, no veil; glass y 236–851 + nav, sky text x ≤ 262)</h3><table class="m"><tr><th>day</th><th>glass</th><th>glass text</th><th>sky text</th><th>button</th></tr>${mrows}</table>`,
+      reads.map(x => [ph(x, x.line), `${DAYS[x.k][0]} · ${x.rule}${WAS[x.rule] ? ' · shorter' : ''}`]), true);
     window.NIGHT = TIME === 'night';
   }
   if (UH) { window.NIGHT = TIME === 'night'; HOUR = NIGHT ? 23.17 : 15.17; uhSection('UH1 · Coach offline', 'The read on the sky comes from rules on the phone, so it still works. A question with no connection gets the shipped fallback: the numbers it would rest on, from the phone, and Try again. The Claude app hand-off goes, since it needs the connection too.', [[phone(NIGHT ? 'nt1/night.png' : 'tr1/day1510.png', NIGHT ? N : D, 'offline'), 'No connection: your numbers, Try again']]); }
