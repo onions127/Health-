@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Health++ · Round SC1 · Scrolling over the sky (live)</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { background:#000; height:100%; overflow:hidden; }
+  .phone { position:relative; width:412px; height:915px; overflow:hidden; font-family:Roboto, "Segoe UI", system-ui, sans-serif; transform-origin:0 0; }
+  canvas { position:absolute; inset:0; width:412px; height:915px; display:block; }
+  .scroll { position:absolute; left:0; right:0; top:96px; bottom:0; overflow-y:auto; scrollbar-width:none; overscroll-behavior:contain; } .scroll::-webkit-scrollbar { display:none; }
+  .content { position:relative; }
+  .abs { position:absolute; z-index:1; } .glass { position:absolute; z-index:1; border-radius:26px; }
+  .btn { display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 18px; border-radius:24px; font-size:15px; font-weight:500; }
+  .step { width:48px; height:48px; border-radius:24px; display:inline-flex; align-items:center; justify-content:center; border:0; font:inherit; }
+  .step[aria-disabled="true"] { opacity:.38; }
+  .nav { position:absolute; left:0; right:0; bottom:0; height:64px; z-index:2; display:grid; grid-template-columns:repeat(4,1fr); align-items:center; text-align:center; font-size:12px; border-top:1px solid; }
+  .nav span { position:relative; padding-top:10px; } .nav span.on { font-weight:500; }
+  .nav span.on::before { content:""; position:absolute; top:-2px; left:50%; width:24px; height:3px; margin-left:-12px; border-radius:2px; background:currentColor; }
+  .u { font-size:.5em; letter-spacing:0; margin:0 .12em 0 .04em; }
+  #hud { position:fixed; right:6px; bottom:70px; z-index:9; font:11px/1.35 ui-monospace, monospace; color:#fff; background:rgba(0,0,0,.55); padding:4px 6px; border-radius:6px; white-space:pre; pointer-events:none; }
+  #hud[hidden] { display:none; }
+</style>
+</head>
+<body>
+<div class="phone" id="ph"><canvas id="c" aria-label="Sky scene"></canvas><div id="ui"></div></div>
+<div id="hud" hidden></div>
+<script>document.write('<script src="' + (new URLSearchParams(location.search).get('src') || 'scene-gl.js') + '?' + Date.now() + '"><\/script>')</script>
+<script src="scores.js"></script><script src="data.js"></script><script src="glass-check.js"></script>
+<script>
+/* Round SC1 (2026-11-24): scrolling a page over the sky, after the reference (Samsung Weather, measured on the S21 from video).
+   The sky, the sun and the page under the cards stay put; over the first 200 px of scroll the near land lifts at ~.15 of the scroll and
+   blurs away with the far land (scene-gl.js, COMPOSE); the header stays pinned and the page clips under it; the hero's word and detail
+   line fade over the first ~90 px, the number stays and scrolls away with the page. The page here is Sleep (S4), the one long page.
+   ?h= hour (default 7.7), ?y= start scroll (CSS px), ?anim=0 still, ?hud=1 readout, ?device=1 fill the phone's screen. */
+const q = new URLSearchParams(location.search), HOUR = q.has('h') ? +q.get('h') : 7.7, NIGHT = HOUR >= 20 || HOUR < 5.75;
+const HD = window.HEALTH_DATA, days = HD.days, LAST = 89, FIRST = LAST - 29, TOP = 96;   // TOP: the pinned header's bottom; the page clips there
+const hm = m => `${Math.floor(m / 60)}<span class="u">h</span>${String(Math.round(m % 60)).padStart(2, '0')}<span class="u">m</span>`, hmT = m => m >= 60 ? `${Math.floor(m / 60)}h ${String(Math.round(m % 60)).padStart(2, '0')}m` : `${Math.round(m)}m`;
+const clk = m => { const x = ((m % 1440) + 1440) % 1440; return `${String(Math.floor(x / 60)).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}`; };
+const word = s => s >= 85 ? 'Restful night' : s >= 70 ? 'Good night' : s >= 55 ? 'Light night' : 'Short night';
+const rgba = (h, a) => `rgba(${[1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(',')},${a})`;
+const rnd = s => { const x = Math.sin(s * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+const STAGES = ['Deep', 'REM', 'Light', 'Awake'], ROW = { Awake: 0, REM: 1, Light: 2, Deep: 3 };
+// ---- S4's Sleep page, as approved (night(), hypChart(), trends() copied from s4-board.html)
+function night(i) {
+  const d = days[i]; let bed = 23 * 60 + 10, hyp = HD.HYPNOGRAM.map(s => ({ start: s.start, dur: s.dur, stage: s.stage }));
+  if (i !== LAST) {
+    bed += Math.round((rnd(i) - .4) * 140);
+    const j = hyp.map((s, k) => s.dur * (s.stage === 'Awake' ? 1 : .7 + .6 * rnd(i * 31 + k))), asleep = j.reduce((a, v, k) => a + (hyp[k].stage === 'Awake' ? 0 : v), 0);
+    let t = 0; hyp = hyp.map((s, k) => { const dur = Math.max(3, Math.round(s.stage === 'Awake' ? j[k] : j[k] * d.sleepMin / asleep)); const r = { start: t, dur, stage: s.stage }; t += dur; return r; });
+  }
+  const tot = Object.fromEntries(STAGES.map(n => [n, hyp.filter(s => s.stage === n).reduce((a, s) => a + s.dur, 0)])), end = hyp[hyp.length - 1].start + hyp[hyp.length - 1].dur;
+  return { i, d, bed, hyp, tot, end, min: d.sleepMin, score: d.sleepScore };
+}
+const NIGHTS = []; for (let i = FIRST; i <= LAST; i++) NIGHTS[i] = night(i);
+const usual = k => { const v = NIGHTS.filter(Boolean).map(k); return v.reduce((a, x) => a + x, 0) / v.length; };
+const NORM = Object.fromEntries(STAGES.map(n => [n, usual(N => N.tot[n])])), NORM_MIN = usual(N => N.min);
+function hypChart(N, W, H, ink, sub) {
+  const L = 44, x = m => L + m / N.end * (W - L), rh = H / 4;
+  const bars = N.hyp.map(s => `<rect x="${x(s.start).toFixed(1)}" y="${(ROW[s.stage] * rh + rh * .18).toFixed(1)}" width="${Math.max(1.5, x(s.start + s.dur) - x(s.start) - 1).toFixed(1)}" height="${(rh * .64).toFixed(1)}" rx="3" fill="${ink}" fill-opacity="${s.stage === 'Awake' ? .45 : .85}"/>`).join('');
+  const lab = Object.keys(ROW).map(k => `<text x="0" y="${(ROW[k] * rh + rh * .68).toFixed(1)}" font-size="11" fill="${sub}">${k}</text>`).join('');
+  let hrs = ''; for (let h = Math.ceil(N.bed / 60) * 60; h < N.bed + N.end; h += 60) { const hx = x(h - N.bed); if (hx > W - 6) break;
+    hrs += `<line x1="${hx.toFixed(1)}" y1="0" x2="${hx.toFixed(1)}" y2="${H}" stroke="${ink}" stroke-opacity=".16" stroke-width="1"/><text x="${hx.toFixed(1)}" y="${H + 13}" font-size="10.5" text-anchor="middle" fill="${sub}">${String((h / 60) % 24).padStart(2, '0')}</text>`; }
+  return `<svg width="${W}" height="${H + 16}" viewBox="0 0 ${W} ${H + 16}" aria-hidden="true">${lab}${hrs}${bars}</svg>`;
+}
+const OP = { other: .55, band: .10, grid: .16, night: .16, stage: [.95, .66, .46] };
+const sd = a => { const m = a.reduce((x, y) => x + y, 0) / a.length; return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / a.length); };
+function trends(N, P, glass, dy) {
+  const ns = NIGHTS.slice(FIRST, LAST + 1), W = 356, cnt = ns.length, ink = P.primary, sub = P.secondary, L = 24, bw = (W - L) / cnt, PAGE = NIGHT ? '#152256' : '#BFE3D8';
+  const bx = k => L + k * bw + 1, op = n => n.i === N.i ? 1 : OP.other;
+  const grid = ys => ys.map(([y, t]) => `<line x1="${L}" y1="${y.toFixed(1)}" x2="${W}" y2="${y.toFixed(1)}" stroke="${ink}" stroke-opacity="${OP.grid}"/><text x="0" y="${(y + 4).toFixed(1)}" font-size="10.5" fill="${sub}">${t}</text>`).join('');
+  const foot = `<div style="display:flex;justify-content:space-between;font-size:11px;color:${sub};margin:4px 0 0 ${L}px"><span>${ns[0].d.dayNum} ${ns[0].d.monthName.slice(0, 3)}</span><span>Last night</span></div>`;
+  const card = (top, h, title, right, body) => `<div class="glass" style="${glass};top:${top - dy}px;left:12px;right:12px;height:${h}px;padding:12px 16px"><div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:${sub}"><span style="color:${ink};font-size:15px;font-weight:500">${title}</span><span>${right}</span></div><div style="margin-top:10px">${body}</div></div>`;
+  const H1 = 112, y1 = m => H1 - (Math.min(Math.max(m, 330), 510) - 330) / 180 * H1, s1 = sd(ns.map(n => n.min));
+  const cxk = k => L + (k + .5) * bw, line = (ys, op2 = .9) => `<path d="${ys.map((y, k) => `${k ? 'L' : 'M'}${cxk(k).toFixed(1)} ${y.toFixed(1)}`).join(' ')}" fill="none" stroke="${ink}" stroke-opacity="${op2}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  const selK = ns.findIndex(n => n.i === N.i), guide = H => `<line x1="${cxk(selK).toFixed(1)}" y1="0" x2="${cxk(selK).toFixed(1)}" y2="${H}" stroke="${ink}" stroke-opacity=".30" stroke-dasharray="2 3"/>`;
+  const dot = (y, r = 4.5) => `<circle cx="${cxk(selK).toFixed(1)}" cy="${y.toFixed(1)}" r="${r}" fill="${ink}"/>`;
+  const dur = `<svg width="${W}" height="${H1}" viewBox="0 0 ${W} ${H1}" aria-hidden="true" style="overflow:visible">${grid([[y1(360), '6h'], [y1(420), '7h'], [y1(480), '8h']])}
+    <rect x="${L}" y="${y1(NORM_MIN + s1).toFixed(1)}" width="${W - L}" height="${(y1(NORM_MIN - s1) - y1(NORM_MIN + s1)).toFixed(1)}" fill="${ink}" fill-opacity="${OP.band}"/>
+    ${guide(H1)}${line(ns.map(n => y1(n.min)))}${dot(y1(ns[selK].min))}</svg>${foot}`;
+  const H2 = 150, T0 = 21.5 * 60, T1 = 33 * 60, y2 = m => (Math.min(Math.max(m, T0), T1) - T0) / (T1 - T0) * H2, LATE = 24 * 60;
+  const bedG = grid([22, 24, 26, 28, 30, 32].map(h => [y2(h * 60), String(h % 24).padStart(2, '0')]));
+  const top = ns.map(n => y2(n.bed)), bot = ns.map(n => y2(n.bed + n.end));
+  const fill = `<path d="${top.map((y, k) => `${k ? 'L' : 'M'}${cxk(k).toFixed(1)} ${y.toFixed(1)}`).join(' ')} ${bot.map((y, k) => [k, y]).reverse().map(([k, y]) => `L${cxk(k).toFixed(1)} ${y.toFixed(1)}`).join(' ')} Z" fill="${ink}" fill-opacity="${OP.night}"/>`;
+  const lateDots = ns.map((n, k) => n.bed > LATE && k !== selK ? `<circle cx="${cxk(k).toFixed(1)}" cy="${top[k].toFixed(1)}" r="3.4" fill="${PAGE}" stroke="${ink}" stroke-width="1.6"/>` : '').join('');
+  const bed = `<svg width="${W}" height="${H2}" viewBox="0 0 ${W} ${H2}" aria-hidden="true" style="overflow:visible">${bedG}${fill}${guide(H2)}${line(top)}${line(bot)}${lateDots}${dot(top[selK])}${dot(bot[selK])}
+    <text x="${W}" y="${(Math.min(...top) - 5).toFixed(1)}" font-size="10.5" text-anchor="end" fill="${sub}">asleep</text><text x="${W}" y="${(Math.max(...bot) + 13).toFixed(1)}" font-size="10.5" text-anchor="end" fill="${sub}">awake</text></svg>${foot}`;
+  const lateN = ns.filter(n => n.bed > LATE).length;
+  const H3 = 84, y3 = v => H3 - (Math.max(v, 40) - 40) / 60 * H3, sc = ns.map(n => n.score), ms = sc.reduce((a, b) => a + b, 0) / cnt, s3 = sd(sc);
+  const score = `<svg width="${W}" height="${H3}" viewBox="0 0 ${W} ${H3}" aria-hidden="true" style="overflow:visible">${grid([[y3(60), '60'], [y3(80), '80']])}
+    <rect x="${L}" y="${y3(ms + s3).toFixed(1)}" width="${W - L}" height="${(y3(ms - s3) - y3(ms + s3)).toFixed(1)}" fill="${ink}" fill-opacity="${OP.band}"/>
+    ${ns.map((n, k) => `<rect x="${bx(k).toFixed(1)}" y="${y3(n.score).toFixed(1)}" width="${(bw - 2).toFixed(1)}" height="${(H3 - y3(n.score)).toFixed(1)}" rx="2" fill="${ink}" fill-opacity="${op(n)}"/>`).join('')}</svg>${foot}`;
+  const weeks = [0, 1, 2, 3].map(w => ns.slice(cnt - 7 * (w + 1), cnt - 7 * w)).reverse();
+  const mix = weeks.map(wk => { const t = ['Deep', 'REM', 'Light'].map(n => wk.reduce((a, x) => a + x.tot[n], 0)), all = t.reduce((a, b) => a + b, 0); return { wk, p: t.map(v => v / all), on: wk.some(x => x.i === N.i) }; });
+  const stages = mix.map(({ wk, p, on }, r) => { let x = 0; const segs = p.map((v, j) => { const w = v * W - (j < 2 ? 3 : 0), s = `<rect x="${x.toFixed(1)}" y="0" width="${Math.max(0, w).toFixed(1)}" height="10" rx="3" fill="${ink}" fill-opacity="${(OP.stage[j] * (on ? 1 : .85)).toFixed(3)}"/>`; x += v * W; return s; }).join('');
+    const e = wk[wk.length - 1].d; return `<div style="margin-top:${r ? 10 : 0}px"><div style="display:flex;justify-content:space-between;font-size:12px;color:${on ? ink : sub};${on ? 'font-weight:500' : ''}"><span>Week to ${e.dayNum} ${e.monthName.slice(0, 3)}</span><span>Deep ${Math.round(p[0] * 100)}% · REM ${Math.round(p[1] * 100)}% · Light ${Math.round(p[2] * 100)}%</span></div>
+      <svg width="${W}" height="10" viewBox="0 0 ${W} 10" aria-hidden="true" style="margin-top:4px;display:block">${segs}</svg></div>`; }).join('');
+  return `<div class="abs" style="top:${794 - dy}px;left:22px;font-size:12px;color:${sub}">Last 30 nights</div>`
+    + card(818, 176, 'Sleep', `usual ${hmT(Math.round(NORM_MIN))} · band = your normal`, dur)
+    + card(1006, 220, 'Bedtime and wake', `○ = asleep after midnight (${lateN})`, bed)
+    + card(1238, 148, 'Sleep score', `usual ${Math.round(ms)}`, score)
+    + card(1398, 214, 'Stages by week', 'share of time asleep', stages);
+}
+const chev = (dir, c) => `<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="${dir < 0 ? 'M14.5 5.5 8 12l6.5 6.5' : 'M9.5 5.5 16 12l-6.5 6.5'}" fill="none" stroke="${c}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+// the glass of the hour: night = G2 land-tinted dark glass (s1/measure.json, 23:10); day = white 22% (3.15 / G1); dusk = white 34% (DD1, fair)
+const G = NIGHT ? { mode: 'dark', tint: '#152256', a: .22, navA: .3, ink: { primary: '#FFFFFF', secondary: '#C9D7EA' }, sky: '#F2F6FB', sat: 1, btn: { fill: '#FFFFFF', ink: '#0B3A66' } }
+  : { mode: 'light', tint: '#FFFFFF', a: HOUR >= 17.5 ? .34 : .22, navA: .3, ink: { primary: '#0E2A43', secondary: '#2E4A62' }, sky: '#0E2A43', sat: 1.6, btn: { fill: '#0B5FA5', ink: '#FFFFFF' } };
+function page(N) {
+  const P = G.ink, S = G.sky, dark = G.mode === 'dark', last = N.i === LAST, dy = TOP;
+  const glass = `background:${rgba(G.tint, G.a)};-webkit-backdrop-filter:blur(22px) saturate(${G.sat});backdrop-filter:blur(22px) saturate(${G.sat});box-shadow:${dark ? 'inset 0 0 0 1px rgba(255,255,255,.10), inset 0 1px 0 rgba(255,255,255,.08), 0 10px 28px rgba(0,0,0,.12)' : '0 10px 28px rgba(14,42,67,.10)'}`;
+  const dm = Math.round(N.min - NORM_MIN), diff = `${Math.abs(dm)} min ${dm >= 0 ? 'more' : 'less'} than usual`, span = `${clk(N.bed)} – ${clk(N.bed + N.end)}`;
+  const ctx = n => { const v = Math.round(N.tot[n] - NORM[n]); return Math.abs(v) < 10 ? 'Within normal' : `${v > 0 ? '↑' : '↓'} ${Math.abs(v)}m vs normal`; };
+  const stepBtn = (dir, off, label) => `<button class="step" aria-label="${label}" aria-disabled="${off}" style="background:${rgba(S, .12)};box-shadow:inset 0 0 0 1px ${rgba(S, .28)}">${chev(dir, S)}</button>`;
+  const hh = Math.floor(HOUR), mm = Math.round((HOUR - hh) * 60);
+  return `<div class="scroll" id="sc"><div class="content" style="height:${1730 - dy}px">
+    <div class="abs" id="hero" style="top:${112 - dy}px;left:22px;color:${S}"><div style="font-size:72px;font-weight:300;line-height:1;letter-spacing:-0.035em;margin-left:-3px">${hm(N.min)}</div><div id="hwd"><div style="font-size:23px;line-height:1.25;margin-top:8px">${word(N.score)}</div><div style="font-size:15px;line-height:1.35;margin-top:4px">Score ${N.score} · ${diff}</div></div></div>
+    <div class="glass" style="${glass};top:${384 - dy}px;left:12px;right:12px;height:164px;padding:12px 16px"><div style="display:flex;justify-content:space-between;font-size:12px;color:${P.secondary}"><span>Stages</span><span>${span}</span></div><div style="margin-top:8px">${hypChart(N, 356, 92, P.primary, P.secondary)}</div></div>
+    <div class="glass" style="${glass};top:${560 - dy}px;left:12px;right:12px;height:140px;padding:12px 16px"><div style="font-size:12px;color:${P.secondary}">Time in each stage</div>
+      ${STAGES.map(n => `<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:4px"><div><span style="font-size:15px;font-weight:500">${n}</span> <span style="font-size:12px;color:${P.secondary}">${ctx(n)}</span></div><div style="font-size:15px;font-weight:500">${hmT(N.tot[n])}</div></div>`).join('')}</div>
+    <div class="glass" style="${glass};top:${712 - dy}px;left:12px;right:12px;height:64px;padding:8px 8px 8px 16px;display:flex;align-items:center;justify-content:space-between"><div style="font-size:15px">Times right?<div style="font-size:12px;color:${P.secondary}">${span}</div></div>
+      <div><span class="btn" style="color:${P.primary}">Edit</span><span class="btn" style="background:${G.btn.fill};color:${G.btn.ink}">Looks right</span></div></div>
+    ${trends(N, P, glass, dy)}</div></div>
+    <div class="abs" style="top:12px;left:20px;font:500 12px Roboto, 'Segoe UI';color:${S}">${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}</div>
+    <div class="abs" style="top:40px;left:20px;color:${S}"><div style="font-size:19px;font-weight:500">${last ? 'Last night' : N.d.label}</div><div style="font-size:12px;margin-top:2px">${last ? N.d.label + ' · ' : ''}${span}</div></div>
+    <div class="abs" style="top:40px;right:14px;display:flex;gap:6px">${stepBtn(-1, N.i === FIRST, 'Earlier night')}${stepBtn(1, last, 'Later night')}</div>
+    <nav class="nav" style="background:${rgba(G.tint, G.navA)};color:${P.secondary};border-top-color:${rgba('#FFFFFF', dark ? .14 : .6)};-webkit-backdrop-filter:blur(22px) saturate(${G.sat});backdrop-filter:blur(22px) saturate(${G.sat})">${['Today', 'Sleep', 'Trends', 'Coach'].map(l => `<span class="${l === 'Sleep' ? 'on' : ''}" style="${l === 'Sleep' ? 'color:' + P.primary : ''}">${l}</span>`).join('')}</nav>`;
+}
+const ph = document.getElementById('ph'); ph.style.color = G.ink.primary;
+document.getElementById('ui').innerHTML = page(NIGHTS[LAST]);
+if (q.get('device') === '1') { const z = innerWidth / 412; ph.style.transform = `scale(${z})`; ph.style.height = (innerHeight / z) + 'px'; }
+const S = SceneGL.mount(document.getElementById('c'), { hour: HOUR, readiness: q.has('r') ? +q.get('r') : 86, sky: SceneGL.PRESETS[q.get('sky')], animate: q.get('anim') !== '0', post: true, seed: q.has('seed') ? +q.get('seed') : undefined, doy: q.has('doy') ? +q.get('doy') : undefined, tilt: q.get('tilt') === '1' });
+const sc = document.getElementById('sc'), hwd = document.getElementById('hwd');
+// SC1: the hero's word and detail fade over the first ~90 px (the reference's condition word is gone by ~25% of its header's travel); the number stays
+const sstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+function onScroll() { const y = sc.scrollTop; S.setScroll(y); const f = sstep(0, 90, y); hwd.style.opacity = (1 - f).toFixed(3); hwd.style.transform = `translateY(${(-10 * f).toFixed(1)}px)`; }
+sc.addEventListener('scroll', onScroll, { passive: true });
+if (q.has('y')) { sc.scrollTop = +q.get('y'); onScroll(); }
+// measurement for the board: every glass rectangle and the sky text as they sit now, clipped to what shows between the header and the nav
+window.SC1 = { S, setY(y) { sc.scrollTop = y; onScroll(); }, measure() {
+  const pr = ph.getBoundingClientRect(), z = pr.width / 412, rects = [];
+  document.querySelectorAll('.glass').forEach((g, i) => { const r = g.getBoundingClientRect(), y0 = Math.max(TOP, (r.top - pr.top) / z), y1 = Math.min(851, (r.bottom - pr.top) / z); if (y1 - y0 > 12) rects.push(['card ' + (i + 1), 12, Math.round(y0), 400, Math.round(y1)]); });
+  const glass = glassCheck(document.getElementById('c'), rects, G.ink.secondary, G.a, 22, G.tint, G.sat);
+  const hr = document.getElementById('hero').getBoundingClientRect(), hy0 = Math.max(TOP, (hr.top - pr.top) / z), hy1 = Math.min(851, (hr.top - pr.top) / z + 80);
+  const sky = hy1 - hy0 > 8 ? glassCheck(document.getElementById('c'), [['hero number', 18, Math.round(hy0), 250, Math.round(hy1)]], G.sky, 0, 0) : [];
+  return { y: sc.scrollTop, glass, sky };
+} };
+if (q.get('hud') === '1') { const hud = document.getElementById('hud'); hud.hidden = false; let n = 0, t = performance.now(), fps = 0;
+  (function tick(now) { n++; if (now - t > 1000) { fps = n * 1000 / (now - t); n = 0; t = now; } hud.textContent = `scroll ${sc.scrollTop.toFixed(0)}  ${fps.toFixed(0)} fps\nframes ${S.frames}  render ${S.cost.toFixed(0)} ms`; requestAnimationFrame(tick); })(t); }
+</script>
+</body>
+</html>

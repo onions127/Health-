@@ -671,6 +671,7 @@ uniform sampler2D uS0, uS1, uS2, uS3, uM2, uM3; uniform vec2 uRes, uMargin, uSli
 uniform vec4 uXf;                                                       // canvas px -> frame px (scale, offset): a baked frame covers any screen aspect
 uniform vec2 uSun; uniform float uSunR, uShowSun, uVeil, uStars; uniform vec3 uSunDisc, uHalo;
 uniform float uT, uRain, uNight, uWind, uBirds, uDpr, uWindDbg; uniform vec3 uRainCol, uBirdCol;
+uniform float uScrK, uLift, uScrLod;                                     // SC1: scroll progress 0..1, land lift (frame px), the blur's top mip level
 uniform float uSnowF, uBolt; uniform vec3 uSnowCol;                                            // 3.15: falling snow (0..1), lightning (review visual only: D2 keeps storms out of the body mapping)
 out vec4 o;
 float hash(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x*p.y); }
@@ -776,12 +777,31 @@ float bolt(vec2 P, float asp){
   float px = 1./uRes.y;
   return (1. - smoothstep(.6*px*uDpr, 1.6*px*uDpr, d)) + .55*(1. - smoothstep(.4*px*uDpr, 1.2*px*uDpr, d2)) + .21*exp(-d/.012) + .15*exp(-d2/.008);
 }
-vec4 tap(sampler2D t, vec2 px){ return texture(t, (px + uMargin)/uSliceRes); }
-vec4 tap1(vec2 px){ return texture(uS1, (px + uMargin)/uSliceRes1); }     // the near-cloud slice is wider when baked: room to drift
+vec4 tap(sampler2D t, vec2 px){ return textureLod(t, (px + uMargin)/uSliceRes, 0.); }
+vec4 tap1(vec2 px){ return textureLod(uS1, (px + uMargin)/uSliceRes1, 0.); }     // the near-cloud slice is wider when baked: room to drift
+// SC1: a slice seen through the scroll blur: five taps on its mip chain (lod 0 = the slice itself)
+vec4 tapB(sampler2D t, vec2 px, float lod){
+  vec2 uv = (px + uMargin)/uSliceRes;
+  if (lod < .02) return textureLod(t, uv, 0.);
+  vec2 d = exp2(lod)*.7/uSliceRes;
+  return (2.*textureLod(t, uv, lod) + textureLod(t, uv + d, lod) + textureLod(t, uv - d, lod) + textureLod(t, uv + vec2(d.x, -d.y), lod) + textureLod(t, uv + vec2(-d.x, d.y), lod))/6.;
+}
 void main(){
   vec2 px = gl_FragCoord.xy*uXf.xy + uXf.zw;
-  vec4 s0 = tap(uS0, px + uO0), s1 = tap1(px + uO1), s2 = tap(uS2, px + uO2), s3 = tap(uS3, px + uO3);
-  s2 = windLand(s2, tap(uM2, px + uO2), px + uO2); s3 = windLand(s3, tap(uM3, px + uO3), px + uO3);
+  // SC1: scrolling the page lifts the near land a little and blurs the land away; the sky, the sun and the page under the cards stay put.
+  // uScrK: progress over the first 200 CSS px of scroll; the blur eases out (half way at ~30%), as the reference's land does
+  float yS = 1. - px.y/uRes.y, f = 1. - (1. - uScrK)*(1. - uScrK);
+  float band = 1. - smoothstep(.40, .60, yS);                            // the land and the lip; the page under the cards is not moved
+  float lodL = uScrLod*f*band, lod0 = uScrLod*f*smoothstep(HOR - .07, HOR - .01, yS)*band;   // slice 0: only its far hills and lake, never the sky
+  vec2 lift = vec2(0., uLift*band);
+  vec4 s0 = tapB(uS0, px + uO0, lod0), s1 = tap1(px + uO1), s2 = tapB(uS2, px + uO2 - lift, lodL), s3 = tapB(uS3, px + uO3 - lift, lodL);
+  s2 = windLand(s2, tapB(uM2, px + uO2 - lift, lodL), px + uO2 - lift); s3 = windLand(s3, tapB(uM3, px + uO3 - lift, lodL), px + uO3 - lift);
+  if (uScrK > 0.) {                                                      // and the near land fades into the page's own top colour (the reference's land goes to its gradient)
+    // above the lip the trees and tufts fade out to the sky; from the lip down the turf goes to the page's colour (the page itself is unchanged)
+    float below = smoothstep(.392, .408, yS);
+    vec4 pg = tap(uS3, vec2(px.x, (1. - .445)*uRes.y) + uO3);
+    s3 = mix(s3*(1. - f), mix(s3, pg, f*(1. - smoothstep(.41, .445, yS))), below); s2 *= 1. - f;
+  }
   vec3 c = s0.rgb;
   {                                                                     // live over the open sky (slice 0's mask): the sun's or moon's halo, and stars that twinkle
     vec2 q0 = px + uO0, P = vec2(q0.x/uRes.y, 1. - q0.y/uRes.y);
@@ -1199,7 +1219,7 @@ void main(){
       const F = baked ? { W: man.W, H: man.H, dpr: man.dpr, E: man.E } : { W: CW, H: CH, dpr: cssDpr(), E: st.bake ? Math.round(DRIFT_ROOM * cssDpr()) : 0 };
       if (RT && RT.W === F.W && RT.H === F.H && RT.CW === CW && RT.CH === CH && RT.E === F.E) return false;
       if (RT) [...RT.s, RT.acc, RT.a, RT.b, RT.c, RT.d, RT.r, RT.o].forEach(drop);
-      k = 0; trn = null;                                                               // new buffers: restart the average
+      k = 0; trn = null; mipDirty = true;                                              // new buffers: restart the average
       const m = Math.ceil(MARGIN * F.dpr), q = n => [Math.max(1, Math.ceil(CW / n)), Math.max(1, Math.ceil(CH / n))];
       RT = { W: F.W, H: F.H, CW, CH, m, E: F.E, dpr: F.dpr, s: [0, 1, 2, 3].map(i => target(F.W + 2 * m + (i === 1 ? F.E : 0), F.H + 2 * m, i >= 2 ? true : baked ? false : 'pad')),
         acc: target(CW, CH), a: target(...q(4)), b: target(...q(4)), c: target(...q(16)), d: target(...q(16)), r: target(...q(4)), o: target(CW, CH, null, 'u8') };   // o: the last picture, held while a transition runs
@@ -1217,6 +1237,16 @@ void main(){
       const E = RT.E, d = (now - t0) / 1000 * DRIFT_V * RT.dpr, k0 = .8 * E;
       return d < k0 ? d : k0 + .2 * E * (1 - Math.exp(-(d - k0) / (.2 * E)));
     }
+    // SC1 (2026-11-24): scrolling a page over the sky. After the reference (Samsung Weather on the S21): over the first ~200 px the near
+    // land lifts at ~.15 of the scroll and blurs away (half way at ~30%), the far land blurs with it; the sky, sun and the page stay.
+    // The blur reads the slices' mip chains, rebuilt only when a slice changed while the page is scrolled.
+    const SCROLL_RANGE = 200, LIFT = .15, SCROLL_BLUR = 24;
+    let mipDirty = true;
+    function mips() {
+      gl.activeTexture(gl.TEXTURE6);
+      [RT.s[0].t, RT.s[2].t, RT.s[3].t, RT.s[2].m, RT.s[3].m].forEach(t => { if (!t) return; gl.bindTexture(gl.TEXTURE_2D, t); gl.generateMipmap(gl.TEXTURE_2D); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); });
+      mipDirty = false;
+    }
     function compose(now) {
       const dpr = RT.dpr;
       gl.useProgram(pC); gl.bindFramebuffer(gl.FRAMEBUFFER, RT.acc.f); gl.viewport(0, 0, RT.CW, RT.CH);
@@ -1230,6 +1260,9 @@ void main(){
       gl.uniform1f(Up(pC, 'uSnowF'), cur.w.snow || 0); gl.uniform3fv(Up(pC, 'uSnowCol'), hex(mixV('#FBFDFF', cur.p.cl, cur.p.night)).map(v => v ** 2.2 * (1 - .4 * cur.p.night)));   // G3: at night the flakes are lit like the cloud's moonlit side, a little under it (L* ~60)
       gl.uniform1f(Up(pC, 'uBolt'), cur.w.bolt || 0);   // ST1: this call sat inside the comment above since G3, so the bolt never drew
       gl.uniform1f(Up(pC, 'uWind'), cur.w.wind); gl.uniform1f(Up(pC, 'uDpr'), dpr); gl.uniform1f(Up(pC, 'uWindDbg'), st.windDebug ? 1 : 0);
+      { const sc = Math.max(0, st.scroll || 0), kS = Math.min(1, sc / SCROLL_RANGE);   // SC1: the page's scroll (CSS px) lifts and blurs the land
+        if (kS > 0 && mipDirty) mips();
+        gl.uniform1f(Up(pC, 'uScrK'), kS); gl.uniform1f(Up(pC, 'uLift'), LIFT * Math.min(sc, SCROLL_RANGE) * dpr); gl.uniform1f(Up(pC, 'uScrLod'), Math.log2(SCROLL_BLUR * dpr)); }
       gl.uniform1f(Up(pC, 'uBirds'), live ? (1 - cur.p.night) * (1 - cur.w.rain) * (1 - .8 * Math.min(1, cur.w.fog)) * (1 - .7 * cur.w.grey) : 0);   // day, dry, clear enough to see them; none when still
       gl.uniform3fv(Up(pC, 'uBirdCol'), hex(mixV('#2F3B48', cur.p.mid, .18)).map(v => v ** 2.2));   // dark, a little hazed by the air between
       gl.uniform2f(Up(pC, 'uSun'), cur.sp[0], cur.sp[1]); gl.uniform1f(Up(pC, 'uSunR'), cur.p.sunR);
@@ -1341,7 +1374,7 @@ void main(){
       const alpha = k === 0 ? 1 : Math.max(1 / (k + 1), live ? .25 : 0);
       if (k === 0) gl.disable(gl.BLEND); else { gl.enable(gl.BLEND); gl.blendColor(0, 0, 0, alpha); gl.blendFunc(gl.CONSTANT_ALPHA, gl.ONE_MINUS_CONSTANT_ALPHA); }
       RT.s.forEach((x, i) => { useSlice(i); gl.bindFramebuffer(gl.FRAMEBUFFER, x.f); gl.viewport(0, 0, x.w, x.h); gl.uniform1f(U('uSlice'), i); gl.drawArrays(gl.TRIANGLES, 0, 3); if (G.SCENE_T && G.__lt && k <= 1) { sync(); gl.bindFramebuffer(gl.FRAMEBUFFER, x.f); G.__lt('frame ' + k + ' slice ' + i + (k ? ' (blend)' : ' (no blend)')); } });
-      gl.disable(gl.BLEND); k++; dirty = true;
+      gl.disable(gl.BLEND); k++; dirty = true; mipDirty = true;
       if (timed) sync();
       cost = performance.now() - a; if (timed) gpu = cost;
     }
@@ -1398,6 +1431,7 @@ void main(){
         [[ta[2 * i], 'uAc'], [ta[2 * i + 1], 'uAa'], [tb[2 * i], 'uBc'], [tb[2 * i + 1], 'uBa']].forEach(([t, n], j) => { gl.activeTexture(gl.TEXTURE7 + j); gl.bindTexture(gl.TEXTURE_2D, t); gl.uniform1i(Up(pD, n), 7 + j); });
         gl.uniform1f(Up(pD, 'uW'), w); gl.uniform2f(Up(pD, 'uDst'), x.w, x.h); gl.drawArrays(gl.TRIANGLES, 0, 3);
       });
+      mipDirty = true;
     }
     function resizeBaked() { size(); if (targets() && lastDec) { decode(...lastDec); k = 24; } }
 
@@ -1464,6 +1498,7 @@ void main(){
       holdTransition(p) { if (trn) { trn.hold = p; dirty = true; kick(); } },   // review: freeze a transition at progress p (0..1); null lets it run
       get transitioning() { return !!trn; }, get transitionReady() { return !!(trn && trn.t0 != null); },
       setTilt(x, y) { setTarget(x, y); },
+      setScroll(px) { if (px === st.scroll) return; st.scroll = px; dirty = true; kick(); },   // SC1: the page's scroll over the sky, CSS px
       skip(sec) { t0 -= sec * 1000; dirty = true; kick(); },              // jump the clock (board: bring the birds now)
       get t() { return (performance.now() - t0) / 1000 + 40; },
       canvas, baked, get ready() { return baked ? ready : k >= 24; }, get loadMs() { return loadMs; }, get drift() { return RT ? driftAt(performance.now()) / RT.dpr : 0; },   // CSS px the baked near clouds have slid

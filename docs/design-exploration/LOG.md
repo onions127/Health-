@@ -1561,3 +1561,29 @@ The user said **lock**. Every round above is approved; the work moves into `andr
 **Tests:** 141, all pass (`./gradlew testDebugUnitTest`).
 
 **Next (plan §4):** the spikes on the S21 (renderer compile time and frame cost; the two-image hand-off and one glass card while scrolling), then the renderer port.
+
+## SC1 · Scrolling over the sky (2026-11-24)
+
+**Asked:** when a page scrolls, the scene should move up a bit and blur, as in Samsung Weather. A change to the approved look, so it is a round in the prototype first (lock rule).
+
+**The reference, measured on the S21** (slow-scroll video at 30 fps, frame tracking, the app's view tree; stills in `reference/scroll/`, local only):
+- The sky gradient, the sun and the page gradient under the cards **do not move** (identical samples in the strip between the cards and the screen edge before and after scrolling; the sun keeps its rays).
+- The land band reacts over the first ~200 px of scroll and then holds: the figure (a near layer) lifts at ~.15 of the scroll while blurring and fading; near grass is half gone at ~56 px and 95% gone by ~180 px; the sea fades slower (half by ~190 px); the far hills barely move.
+- Header: the condition word and narrative fade, high/low and feels-like move beside the number (a MotionLayout transition, progress 0 → 1 within the first swipe); then the hero scrolls off under the pinned location row and cards clip just below it. Scrolling back reverses it exactly.
+- Built as stacked scene layers (AGSL shader views for sky, clouds, sun/stars, rain, snow, fog; image layers for far land, land gradient, near land; a character view) under a CoordinatorLayout with a collapsing AppBarLayout (MotionLayout header) and a RecyclerView of cards.
+
+**Built:**
+- `scene-gl.js` COMPOSE: `setScroll(px)` → `uScrK` (progress over 200 CSS px), `uLift`, `uScrLod`. The near land (slices 2–3 above the page) lifts by .15 × scroll (30 px at most, tapering to 0 by y .60 so the page under the cards never moves) and is read through its mip chain with 5 taps (blur up to 24 CSS px, eased: `1 − (1 − k)²`, half way at ~30%, as the reference's grass); slice 0 blurs only below y .30 (hills, lake), never the sky; above the lip the trees and tufts fade out to the sky, from the lip down the turf fades into the page's own top colour. Mip chains are rebuilt only when a slice changed while scrolled. Near clouds, sun, halo, stars, birds: untouched.
+- `sc1.html`: Sleep (S4, the one long page) live over the scene, header pinned (the page clips at y 96), the hero's word and detail line fade over the first 90 px (Sleep's number is too wide for the side-by-side; the sky text must keep left of x 262 at night); glass of the hour (day 22%, dusk 34% DD1, night G2).
+- `sc1-board.html`, shots `sc1/<day|dusk|night>-y<scroll>.png`, `tools/visual-loop/sc1.js` (shots + contrast), `sc1-bench.js`, `sc1-phone.js`.
+
+**Measured:**
+- Glass text, weakest at each scroll step 0 → 900 px (floor 3.0): day 4.82–5.66, dusk 3.56–3.64, night 4.87–9.22. Sky text (the number, while it shows): day 7.08–7.46, dusk 3.48–3.89, night 4.05–4.46.
+- Compose + post per frame: PC 0.38 ms at rest → 0.49–0.53 ms scrolled; Galaxy S21 (Chrome) 10.3–10.6 → 11.2–11.3 ms (+0.8 ms).
+- A first version faded the slice everywhere above the page, which painted the page colour over the whole sky; fixed (the fade is limited to the land).
+
+**Open:** Today, Trends and the metric pages fit the screen, so they never scroll unless a card on the lip pushes them (~45 px: the land a quarter of the way). The phone swipe test (page fps while scrolling) waits for the phone to be unlocked.
+
+STOP.
+
+**Approved (2026-11-24):** SC1 as built. The renderer port carries it (COMPOSE's scroll uniforms and the land's mip chains); the S21 swipe-fps check runs with the renderer spike.

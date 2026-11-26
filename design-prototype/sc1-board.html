@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Health++ · Round SC1 · Scrolling over the sky</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:#E9EBEE; color:#14171A; font:400 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding:32px 32px 80px; }
+  header.board { max-width:1180px; margin-bottom:24px; } header.board h1 { font-size:26px; font-weight:600; margin-bottom:8px; } header.board p { color:#3A424B; max-width:110ch; margin-bottom:8px; }
+  section.dir { display:flex; gap:24px; align-items:flex-start; padding:28px 0; border-top:1px solid #D5DAE0; }
+  .sheet { width:340px; flex:none; background:#fff; border-radius:14px; padding:18px; font-size:12.5px; line-height:1.5; color:#30363D; }
+  .sheet h2 { font-size:19px; font-weight:600; color:#111; margin-bottom:4px; } .sheet h3 { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#6A727C; margin:12px 0 4px; } .sheet ul { padding-left:16px; }
+  table.m { border-collapse:collapse; font-size:11.5px; font-variant-numeric:tabular-nums; } table.m td, table.m th { padding:2px 6px; border-bottom:1px solid #E6E9ED; text-align:right; } table.m td:first-child, table.m th:first-child { text-align:left; } table.m th { color:#6A727C; font-weight:500; }
+  .phones { display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap; } figure { margin:0; } figcaption { font-size:12px; color:#3A424B; margin-top:6px; }
+  figure img { width:206px; height:457px; border-radius:16px; display:block; box-shadow:0 1px 2px rgba(20,23,26,.08), 0 10px 24px rgba(20,23,26,.12); }
+  a { color:#0B5FA5; }
+</style>
+</head>
+<body>
+<header class="board">
+  <h1>Round SC1 · Scrolling over the sky</h1>
+  <p>Before SC1, a page that scrolls (Sleep, S4) took the whole picture with it: sky, land and all slid away 1:1. SC1 follows the reference (Samsung Weather, measured on the S21 from a slow-scroll video and its view tree): <b>the sky, the sun and the page under the cards stay put</b>; over the first 200 px of scroll <b>the near land lifts a little (.15 of the scroll, 30 px at most), blurs and fades away</b>, the far hills and the lake blur with it; the header stays pinned and the page clips under it; the hero's word and detail line fade over the first ~90 px while the number stays and scrolls off with the page. Scrolling back plays it in reverse: it follows the finger, not a timer.</p>
+  <p>Shown on Sleep, the one page long enough to scroll. Today, Trends and the metric pages fit the screen (Today's last tile ends at 808, above the tab bar at 851), so they only move when a card on the lip pushes them down (~45 px: the land a quarter of the way).
+  Live: <a href="sc1.html?h=7.7">sc1.html</a> (scroll it; <code>?h=</code> hour, <code>?device=1&amp;hud=1</code> on the phone).</p>
+</header>
+<main id="board"></main>
+<script>
+const YS = [0, 30, 60, 100, 200, 400], T = { day: ['Day, 07:42', 'white glass 22%'], dusk: ['Dusk, 19:45', 'white glass 34% (DD1)'], night: ['Night, 23:10', 'land-tinted glass 22% (G2)'] };
+(async () => {
+  let M = {}; try { M = await (await fetch('sc1/measure.json?' + Date.now())).json(); } catch (e) {}
+  const B = document.getElementById('board');
+  const ref = document.createElement('section'); ref.className = 'dir';
+  ref.innerHTML = `<div class="sheet"><h2>The reference, measured</h2>
+    <h3>What moves</h3><ul><li>Sky gradient, sun and the page gradient under the cards: not at all (identical samples at the screen edge before and after)</li><li>The figure (a near layer): up at ~.15 of the scroll, blurring and fading</li><li>Near grass: half gone after ~56 px, 95% by ~180 px; the sea slower (half by ~190 px); far hills barely move</li><li>Header: condition word and narrative fade, high/low move beside the number (MotionLayout, done within ~200 px); then the hero scrolls off under the pinned location row</li></ul>
+    <h3>How it is built</h3><ul><li>Scene: stacked layers: AGSL shader views (sky, clouds, sun/stars, rain, snow, fog), image layers (far land, land gradient, near land), a character view</li><li>Page: CoordinatorLayout, a collapsing AppBarLayout with a MotionLayout header, a RecyclerView of cards; the app bar's offset drives the header and the land</li></ul>
+    <h3>Ours</h3><ul><li>The land is our slices 2–3 (lip, trees, tufts) and the lower part of slice 0 (hills, lake): the compose pass lifts, blurs (mip chain, 5 taps) and fades them; the sky part of slice 0 and the near clouds are never touched</li><li>Near land above the lip fades to the sky; from the lip down the turf fades into the page's own top colour</li><li>Hero: the word and the detail line fade (Sleep's number is too wide for Samsung's side-by-side; the sky text keeps left of x 262 at night)</li></ul></div>
+    <div class="sheet" style="width:460px"><h2>Cost and contrast</h2>
+    <h3>Frame cost (compose + post)</h3><table class="m"><tr><th></th><th>at rest</th><th>scrolled</th></tr><tr><td>PC (RTX 4060, 824×1830)</td><td>0.38 ms</td><td>0.49–0.53 ms</td></tr><tr><td>Galaxy S21 (Chrome)</td><td>10.3–10.6 ms</td><td>11.2–11.3 ms</td></tr></table>
+    <p style="margin-top:6px">The mip chains are rebuilt only when a slice changed while the page is scrolled (baked: once per hour; live: per cloud re-render).</p>
+    <h3>Weakest glass text while scrolling (floor 3.0)</h3><table class="m"><tr><th>scroll</th>${Object.keys(T).map(k => `<th>${k}</th>`).join('')}</tr>
+    ${[0, 30, 60, 100, 150, 200, 400, 900].map(y => `<tr><td>${y} px</td>${Object.keys(T).map(k => { const g = M[k] && M[k][y] ? M[k][y].glass : []; return `<td>${g.length ? Math.min(...g.map(r => r.worst)).toFixed(2) : '–'}</td>`; }).join('')}</tr>`).join('')}</table>
+    <h3>Sky text: the number (3:1 for its size)</h3><table class="m"><tr><th>scroll</th>${Object.keys(T).map(k => `<th>${k}</th>`).join('')}</tr>
+    ${[0, 30, 60].map(y => `<tr><td>${y} px</td>${Object.keys(T).map(k => { const s = M[k] && M[k][y] ? M[k][y].sky : []; return `<td>${s.length ? s[0].worst.toFixed(2) : '–'}</td>`; }).join('')}</tr>`).join('')}</table></div>`;
+  B.appendChild(ref);
+  for (const [k, [title, glass]] of Object.entries(T)) {
+    const el = document.createElement('section'); el.className = 'dir';
+    el.innerHTML = `<div class="phones">${YS.map(y => `<figure><img src="sc1/${k}-y${y}.png" alt="Sleep over the sky, ${title}, scrolled ${y} px"><figcaption>${title} · ${y} px</figcaption></figure>`).join('')}</div>`;
+    el.insertAdjacentHTML('afterbegin', `<div class="sheet" style="width:200px"><h2>${title}</h2><p>${glass}</p></div>`);
+    B.appendChild(el);
+  }
+})();
+</script>
+</body>
+</html>
