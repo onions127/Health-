@@ -1,0 +1,185 @@
+{
+ "good": {
+  "notes": [
+   "Mostly clear: readiness 86, 7 above your normal."
+  ],
+  "layers": {
+   "fog": 0,
+   "hrv": 0,
+   "activity": 0,
+   "load": 0,
+   "ill": 0,
+   "storm": 0
+  },
+  "regime": "fair",
+  "sky": {
+   "light": 1,
+   "dark": 6.83
+  }
+ },
+ "shortSleep": {
+  "notes": [
+   "Partly cloudy: readiness 72, 7 below your normal.",
+   "Morning mist in the valley: you slept 5 h 40 m, 100 min less than usual. It clears by late morning."
+  ],
+  "layers": {
+   "fog": 1,
+   "hrv": 0,
+   "activity": 0,
+   "load": 0,
+   "ill": 0,
+   "storm": 0
+  },
+  "regime": "partly",
+  "sky": {
+   "light": 1,
+   "dark": 5.03
+  }
+ },
+ "shortSleepNoon": {
+  "notes": [
+   "Partly cloudy: readiness 72, 7 below your normal."
+  ],
+  "layers": {
+   "fog": 0,
+   "hrv": 0,
+   "activity": 0,
+   "load": 0,
+   "ill": 0,
+   "storm": 0
+  },
+  "regime": "partly",
+  "sky": {
+   "light": 1,
+   "dark": 6.22
+  }
+ },
+ "lowHrv": {
+  "notes": [
+   "Partly cloudy: readiness 68, 11 below your normal.",
+   "Streaks of high cloud: HRV 52 ms, under your normal 55-63."
+  ],
+  "layers": {
+   "fog": 0,
+   "hrv": 0.45318603515625,
+   "activity": 0,
+   "load": 0,
+   "ill": 0,
+   "storm": 0
+  },
+  "regime": "partly",
+  "sky": {
+   "light": 1,
+   "dark": 6.37
+  }
+ },
+ "veryLowHrv": {
+  "notes": [
+   "Broken cloud: readiness 61, 18 below your normal.",
+   "A milky veil of high cloud: HRV 44 ms, under your normal 55-63."
+  ],
+  "layers": {
+   "fog": 0,
+   "hrv": 1,
+   "activity": 0,
+   "load": 0,
+   "ill": 0,
+   "storm": 0
+  },
+  "regime": "stratocumulus",
+  "sky": {
+   "light": 1,
+   "dark": 9.58
+  }
+ },
+ "training": {
+  "notes": [
+   "Mostly clear: readiness 84, 5 above your normal.",
+   "Clouds building through the afternoon: 14,200 steps, ahead of your usual pace."
+  ],
+  "layers": {
+   "fog": 0,
+   "hrv": 0,
+   "activity": 1,
+   "load": 0,
+   "ill": 0,
+   "storm": 0
+  },
+  "regime": "fair",
+  "sky": {
+   "light": 1,
+   "dark": 6.27
+  }
+ },
+ "load": {
+  "notes": [
+   "Partly cloudy: readiness 70, 9 below your normal.",
+   "A humid haze: skin temperature +0.3 °C and resting HR 55 bpm (usual 52), both up. Your body is under some load."
+  ],
+  "layers": {
+   "fog": 0,
+   "hrv": 0,
+   "activity": 0,
+   "load": 1,
+   "ill": 0,
+   "storm": 0
+  },
+  "regime": "partly",
+  "sky": {
+   "light": 1,
+   "dark": 6.31
+  }
+ },
+ "ill": {
+  "notes": [
+   "Broken cloud: readiness 52, 27 below your normal.",
+   "Morning mist in the valley: you slept 6 h 40 m, 40 min less than usual. It clears by late morning.",
+   "Light rain: skin temperature +0.6 °C and resting HR 59 bpm (usual 52), both up. This can be an early sign of illness."
+  ],
+  "layers": {
+   "fog": 0.7084548104956269,
+   "hrv": 0,
+   "activity": 0,
+   "load": 1,
+   "ill": 1,
+   "storm": 0
+  },
+  "regime": "stratocumulus",
+  "sky": {
+   "light": 1.45,
+   "dark": 5.59
+  }
+ },
+ "storm": {
+  "notes": [
+   "Low grey cloud: readiness 30, 49 below your normal.",
+   "A storm: skin temperature +0.8 °C and resting HR 61 bpm (usual 52), both up, and readiness 30. This can mean your body is fighting something; rest if you can."
+  ],
+  "layers": {
+   "fog": 0,
+   "hrv": 1,
+   "activity": 0,
+   "load": 1,
+   "ill": 1,
+   "storm": 1
+  },
+  "regime": "stratus",
+  "sky": {
+   "light": 1.55,
+   "dark": 4.06
+  }
+ },
+ "firstRun": {
+  "notes": [
+   "A plain fair sky: there is no readiness score yet today."
+  ],
+  "layers": {
+   "fog": 0
+  },
+  "regime": "firstRun",
+  "sky": {
+   "light": 1,
+   "dark": 6.51
+  }
+ }
+}

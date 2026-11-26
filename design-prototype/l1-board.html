@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Health++ · Round L1 · Sun and moon spikes</title>
+<style>
+  body { background:#E9EBEE; color:#14171A; font:400 14px/1.45 system-ui, "Segoe UI", sans-serif; padding:28px; margin:0; }
+  h1 { font-size:24px; font-weight:600; margin:0 0 8px; } p { max-width:110ch; color:#3A424B; margin:0 0 8px; }
+  .grid { display:grid; grid-template-columns:120px repeat(3, 412px); gap:12px 14px; margin-top:18px; align-items:start; }
+  .grid h2 { font-size:15px; font-weight:600; margin:0; } .lab { font-size:13px; color:#3A424B; padding-top:6px; }
+  .crop { width:412px; height:400px; overflow:hidden; border-radius:12px; box-shadow:0 8px 24px rgba(20,23,26,.12); }
+  .crop img { display:block; width:412px; height:915px; }
+</style></head><body>
+<h1>Round L1 · Sun and moon spikes</h1>
+<p>The 3.15 starburst draws ten hairline spikes, about 12% of the screen long, after the Samsung reference. The moon gets them too, weaker but still visible at twilight. <b>A · Soft glare</b>: a round glow with six broad, short petals (about 4% of the height), like glare in the eye rather than a camera lens. <b>B · None</b>: only the disc, its bloom and the halo. In both, the moon has no spikes. Light shafts, lens ghosts and the silver rim on clouds are unchanged. The scene no longer moves when the phone tilts.</p>
+<div class="grid" id="g"><div></div><h2>Now · 3.15 starburst</h2><h2>A · Soft glare</h2><h2>B · None</h2></div>
+<script>
+const H = [[9, 'Morning 09:00'], [13, 'Day 13:00'], [19, 'Dusk 19:00'], [19.75, 'Dusk 19:45'], [20.5, 'Twilight 20:30, moon'], [23, 'Night 23:00, moon']];
+const g = document.getElementById('g');
+for (const [h, l] of H) { g.insertAdjacentHTML('beforeend', `<div class="lab">${l}</div>` + [2, 1, 0].map(r => `<div class="crop"><img src="l1/${String(h).replace('.', '_')}-r${r}.png" alt="${l}, style ${r}"></div>`).join('')); }
+</script></body></html>

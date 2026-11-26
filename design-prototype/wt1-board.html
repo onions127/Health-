@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Health++ · Round WT1 · Log weight</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:#E9EBEE; color:#14171A; font:400 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding:32px 32px 80px; }
+  header.board { max-width:1180px; margin-bottom:24px; } header.board h1 { font-size:26px; font-weight:600; margin-bottom:8px; } header.board p { color:#3A424B; max-width:110ch; margin-bottom:8px; }
+  section.dir { display:flex; gap:24px; align-items:flex-start; padding:28px 0; border-top:1px solid #D5DAE0; }
+  .sheet { width:340px; flex:none; background:#fff; border-radius:14px; padding:18px; font-size:12.5px; line-height:1.5; color:#30363D; }
+  .sheet h2 { font-size:19px; font-weight:600; color:#111; margin-bottom:4px; } .sheet .thesis { font-size:13.5px; font-weight:500; color:#1D2125; margin-bottom:10px; }
+  .sheet h3 { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#6A727C; margin:12px 0 4px; } .sheet ul { padding-left:16px; }
+  table.m { border-collapse:collapse; font-size:11.5px; font-variant-numeric:tabular-nums; } table.m td, table.m th { padding:2px 6px; border-bottom:1px solid #E6E9ED; text-align:right; } table.m td:first-child, table.m th:first-child { text-align:left; } table.m th { color:#6A727C; font-weight:500; }
+  .phones { display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; } figure { margin:0; } figcaption { font-size:12px; color:#3A424B; margin-top:6px; max-width:297px; }
+  .phone { position:relative; width:412px; height:915px; overflow:hidden; border-radius:30px; isolation:isolate; zoom:.72; box-shadow:0 1px 2px rgba(20,23,26,.08), 0 16px 40px rgba(20,23,26,.14); font-family:Roboto, "Segoe UI", system-ui, sans-serif; font-variant-numeric:tabular-nums; }
+  .phone img.scene { position:absolute; inset:0; width:100%; height:100%; display:block; z-index:0; }
+  .abs { position:absolute; z-index:1; } .glass { position:absolute; z-index:1; border-radius:26px; }
+  .btn { display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 18px; border-radius:24px; font-size:15px; font-weight:500; white-space:nowrap; }
+  .row { display:flex; align-items:center; justify-content:space-between; min-height:48px; gap:12px; }
+  .ico { width:14px; height:14px; vertical-align:-2px; }
+  .nav { position:absolute; left:0; right:0; bottom:0; height:64px; z-index:2; display:grid; grid-template-columns:repeat(4,1fr); align-items:center; text-align:center; font-size:12px; border-top:1px solid; }
+  .nav span { position:relative; padding-top:10px; } .nav span.on { font-weight:500; }
+  .nav span.on::before { content:""; position:absolute; top:-2px; left:50%; width:24px; height:3px; margin-left:-12px; border-radius:2px; background:currentColor; }
+</style>
+</head>
+<body>
+<header class="board">
+  <h1>Round WT1 · Log weight</h1>
+  <p>Logging weight is one tap from Today (the brief), from the top-right button. Shipped, it is a graphite bottom sheet: a decimal field prefilled with your last weight and selected, the unit, a Date button (any day in the loaded series), "Replaces 64.2 kg" and Update when that day already has an entry, a range check (30–300 kg), and a "Saved … · Undo" snackbar. Weight feeds the calorie estimate and the Trends weight row.</p>
+  <p>Here it is a glass sheet over Today, like the morning check (MC1 B), at 07:15 just after the check. Two ways to enter the number; both keep every shipped rule (prefill, date, Replaces/Update, range, Undo). Prototype data: last entry 64.2 kg on 17 Nov.</p>
+</header>
+<main id="board"></main>
+<script src="scores.js"></script><script src="data.js"></script>
+<script src="night.js"></script>
+<script>
+const TD = HEALTH_DATA.today, PRE = TD.readinessOvernight, POST = TD.readiness, MH = HEALTH_DATA.METRICS.hrv;   // BD6: today's story from data.js
+// measured with tools/visual-loop/g2.js (mc1/measure.json 07:10, mc2/measure.json 05:20); inlined so the board opens without the server
+const MEAS = { am0710p: { mode: 'light', tint: '#FFFFFF', a: .22, navA: .3, ink: { primary: '#0E2A43', secondary: '#2E4A62' }, skyInk: '#0E2A43', cardS: 5.45, sky: 6.58, hero: 5.69 },
+  am0710f: { mode: 'light', tint: '#FFFFFF', a: .22, navA: .3, ink: { primary: '#0E2A43', secondary: '#2E4A62' }, skyInk: '#0E2A43', cardS: 5.45, sky: 7.28, hero: 7.62 } };
+MEAS.am0715f = { mode: 'light', tint: '#FFFFFF', a: .22, navA: .3, ink: { primary: '#0E2A43', secondary: '#2E4A62' }, skyInk: '#0E2A43', cardS: 3.79, sky: 7.13, hero: 7.55 };   // wt1/measure.json
+const rgba = (h, a) => `rgba(${[1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(',')},${a})`;
+const I = { check: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  ring: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>',
+  heart: '<svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-3px"><path d="M8 13.6S2 10 2 6.2A3.1 3.1 0 0 1 8 4.7a3.1 3.1 0 0 1 6 1.5C14 10 8 13.6 8 13.6z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>',
+  scale: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.2" y="2.2" width="11.6" height="11.6" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.6 6.2a3.4 3.4 0 0 1 4.8 0M8 6.6l1-1.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+  chev: '<svg width="8" height="12" viewBox="0 0 10 16" aria-hidden="true" style="vertical-align:-1px"><path d="M2.5 2.5 8 8l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' };
+function trace(w, h, c, until = 1) {
+  const gaps = [1.02, 0.98, 1.07, 0.99, 1.05, 0.97, 1.03], pts = [[0, 0]]; let t = 0.2;
+  const beat = x => [[x - 6, 0], [x - 3, -0.08], [x - 1, 0.12], [x, -0.92], [x + 2, 0.3], [x + 5, 0], [x + 14, -0.16], [x + 20, 0]];
+  for (const g of gaps) { const x = (t / 6.6) * w; if (x > w * until) break; pts.push(...beat(x)); t += g; }
+  pts.push([w * until, 0]);
+  const d = pts.filter(p => p[0] >= 0 && p[0] <= w * until).map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${(h * 0.62 + p[1] * h * 0.55).toFixed(1)}`).join('');
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><path d="${d}" fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${(w * until).toFixed(1)}" cy="${(h * 0.62).toFixed(1)}" r="3.5" fill="${c}"/></svg>`;
+}
+// one phone: Today (header, hero, cards, nav) and, optionally, the check's sheet over it
+// Round LT1: Today's tiles when a card sits on the lip (off = 76): 'scroll' (as built: the Daily score tile ends at 884, under the tab bar at 851),
+// 'compact' (Steps and HRV 76 high, their note on the label line; Sleep 164; nothing dropped), 'grid' (two rows of two: Sleep, Steps / HRV, Daily score; Sleep drops its note).
+function tilesFor(fit, off, tl, glass, P) {
+  const lbl = (t, r) => `<div style="display:flex;justify-content:space-between;font-size:12px;color:${P.secondary}"><span>${t}</span>${r ? `<span>${r}</span>` : ''}</div>`;
+  const big = (v, mt = 0) => `<div style="font-size:29px;font-weight:500;line-height:1.25${mt ? ';margin-top:' + mt + 'px' : ''}">${v}</div>`, small = t => `<div style="font-size:12px;color:${P.secondary}">${t}</div>`;
+  const card = (top, pos, h, inner, pad = '14px 16px') => `<div class="glass" style="${glass};top:${top}px;${pos};height:${h}px;padding:${pad}">${inner}</div>`;
+  const L = 'left:12px;width:188px', R = 'left:212px;right:12px', W = 'left:12px;right:12px', y = 500 + off;
+  if (fit === 'compact') return card(y, L, 164, lbl('Sleep') + big(tl.sleep, 2) + `<div style="font-size:15px">${tl.score}</div>` + small(tl.sleepSub))
+    + card(y, R, 76, lbl('Steps', tl.stepsSub) + big(tl.steps), '12px 16px') + card(y + 88, R, 76, lbl('HRV', tl.hrvSub) + big(tl.hrv), '12px 16px')
+    + card(y + 176, W, 84, lbl('Daily score') + `<div style="font-size:29px;font-weight:500;line-height:1.2">—</div>`, '12px 16px');
+  if (fit === 'grid') return card(y, L, 100, lbl('Sleep') + big(tl.sleep) + small(tl.score)) + card(y, R, 100, lbl('Steps') + big(tl.steps) + small(tl.stepsSub))
+    + card(y + 112, L, 100, lbl('HRV') + big(tl.hrv) + small(tl.hrvSub)) + card(y + 112, R, 100, lbl('Daily score') + big('—') + small('so far today'));
+  return card(y, L, 212, lbl('Sleep') + big(tl.sleep, 2) + `<div style="font-size:15px">${tl.score}</div>` + small(tl.sleepSub)) + card(y, R, 100, lbl('Steps') + big(tl.steps) + small(tl.stepsSub))
+    + card(y + 112, R, 100, lbl('HRV') + big(tl.hrv) + small(tl.hrvSub)) + card(y + 224, W, 84, lbl('Daily score') + `<div style="font-size:29px;font-weight:500;line-height:1.2">—</div>`, '12px 16px');
+}
+function phone(img, g, o) {
+  const P = g.ink, S = g.skyInk, dark = g.mode === 'dark', BLUE = dark ? '#FFFFFF' : '#0B5FA5', ON = dark ? '#0B3A66' : '#FFFFFF', line = rgba(P.primary, dark ? .16 : .10);
+  const glass = `background:${rgba(g.tint, g.a)};` + (dark ? '-webkit-backdrop-filter:blur(22px) saturate(1);backdrop-filter:blur(22px) saturate(1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.10), inset 0 1px 0 rgba(255,255,255,.08), 0 10px 28px rgba(0,0,0,.12)'
+    : '-webkit-backdrop-filter:blur(22px) saturate(1.6);backdrop-filter:blur(22px) saturate(1.6);box-shadow:0 1px 1px rgba(14,42,67,.05), 0 10px 28px rgba(14,42,67,.10)');
+  const done = o.ready === POST || o.done, off = o.entry === 'card' || o.alert ? 76 : 0;
+  const tl = o.tiles || { sleep: '7h 20m', score: 'Score ' + TD.sleepScore, sleepSub: TD.sleepSub, steps: o.time < '06' ? '0' : '240', stepsSub: 'on pace', hrv: done ? TD.hrv + ' ms' : TD.hrvOvernight + ' ms', hrvSub: done ? 'morning check' : 'overnight' };
+  const sub = o.sub || (done ? `${I.check} Morning check ${o.at} · HRV ${tl.hrv} ${I.chev}` : `${I.ring} Morning check not done`);
+  let h = `<div class="abs" style="top:12px;left:20px;font:500 12px Roboto, 'Segoe UI';color:${S}">${o.time}</div>
+    <div class="abs" style="top:40px;left:20px;color:${S}"><div style="font-size:19px;font-weight:500">Mon 23 Nov</div><div style="font-size:12px;margin-top:2px">${sub}</div></div>
+    <div class="abs btn" style="top:40px;right:20px;background:${g.btn ? g.btn.fill : BLUE};color:${g.btn ? g.btn.ink : ON}">${o.wlabel || I.scale + '&nbsp;Log weight'}</div>
+    <div class="abs" style="top:112px;left:22px;right:${SKY_RIGHT(60)}px;color:${S}"><div style="font-size:89px;font-weight:300;line-height:1;letter-spacing:-0.035em;margin-left:-4px">${o.num != null ? o.num : o.ready}</div><div style="font-size:23px;line-height:1.25;margin-top:6px">${o.word ? o.word : o.ready >= 80 ? 'Ready' : o.ready >= 65 ? 'Steady' : o.ready >= 50 ? 'Take it easy' : 'Rest'}</div><div style="font-size:15px;line-height:1.35;margin-top:4px">${o.detail || ('Readiness · ' + vsNormal(o.ready))}</div></div>`;
+  if (o.entry === 'hero') h += `<div class="abs btn" style="top:286px;left:20px;background:${BLUE};color:${ON};padding:0 18px 0 14px">${I.heart}&nbsp; Morning check · 60 s</div>`;
+  if (o.entry === 'card') h += `<div class="glass" style="${glass};top:384px;left:12px;right:12px;height:64px;padding:0 8px 0 16px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:15px">Morning check</div><div style="font-size:12px;color:${P.secondary}">60 s lying still · updates readiness</div></div><div class="btn" style="background:${BLUE};color:${ON};height:48px">Begin</div></div>`;
+  if (o.alert) h += `<div class="glass" style="${glass};top:384px;left:12px;right:12px;height:64px;padding:0 8px 0 16px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:15px;font-weight:500">${o.alert[0]}</div><div style="font-size:12px;color:${P.secondary}">${o.alert[1]}</div></div><div class="btn" style="background:${BLUE};color:${ON};height:48px">${o.alert[2]}</div></div>`;   // UH1: the sync failed (shipped: Band not found · Retry)
+  const week = o.week || [74, 81, 69, 77, 83, 72, o.ready], days = o.weekDays || ['Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Today'];
+  h += `<div class="glass" style="${glass};top:${384 + off}px;left:12px;right:12px;height:104px;padding:10px 14px"><div style="font-size:12px;color:${P.secondary}">Readiness this week</div><div style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-top:10px">${week.map((v, i) => `<div><div style="font-size:12px;${i === 6 ? 'font-weight:500' : 'color:' + P.secondary}">${days[i]}</div><div style="font-size:15px;font-weight:500;line-height:1.2;margin-top:14px">${v}</div></div>`).join('')}</div></div>
+    ${tilesFor(off ? o.fit || 'compact' : 'scroll', off, tl, glass, P)}
+    <nav class="nav" style="${glass.replace(rgba(g.tint, g.a), rgba(g.tint, g.navA))};border-radius:0;color:${P.secondary};border-top-color:${rgba('#FFFFFF', dark ? .14 : .6)}">${['Today', 'Sleep', 'Trends', 'Coach'].map(l => `<span class="${l === 'Today' ? 'on' : ''}" style="${l === 'Today' ? 'color:' + P.primary : ''}">${l}</span>`).join('')}</nav>`;
+  if (o.sheet || o.custom) {
+    const btn = (t, solid) => `<div class="btn" style="width:100%;height:56px;border-radius:28px;font-size:16px;margin-top:10px;${solid ? `background:${BLUE};color:${ON}` : `color:${P.primary};box-shadow:inset 0 0 0 1.5px ${rgba(P.primary, .45)}`}">${t}</div>`;
+    const quiet = t => `<div class="btn" style="width:100%;margin-top:4px;color:${P.primary}">${t}</div>`;
+    const row = (l, r, s, k) => `<div class="row" style="${k ? `border-top:1px solid ${line};` : ''}padding:6px 0"><div><div style="font-size:15px">${l}</div>${s ? `<div style="font-size:12.5px;color:${P.secondary}">${s}</div>` : ''}</div><div style="font-size:15px;color:${P.secondary};white-space:nowrap">${r}</div></div>`;
+    const live = `<div style="font-size:12.5px;color:${P.secondary}">Heart rate · live</div><div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:2px"><div style="font-size:30px;font-weight:300;line-height:1.1">58<span style="font-size:14px;color:${P.secondary};margin-left:4px">bpm</span></div>${trace(236, 44, P.primary, .82)}</div><div style="font-size:12.5px;color:${P.secondary};margin-top:6px">The small changes between beats are your HRV.</div>`;
+    const title = (t, r) => `<div style="display:flex;align-items:baseline;justify-content:space-between"><div style="font-size:19px;font-weight:500">${t}</div>${r ? `<div style="font-size:15px;color:${P.secondary}">${r}</div>` : ''}</div>`;
+    const para = t => `<div style="font-size:15px;color:${P.secondary};margin-top:6px">${t}</div>`;
+    const S_ = {
+      measuring: [500, title('Keep still', '42 s left') + `<div style="height:3px;border-radius:2px;background:${rgba(P.primary, .22)};margin:12px 0 16px;position:relative"><div style="position:absolute;left:0;top:0;bottom:0;width:30%;border-radius:2px;background:${P.primary}"></div></div>` + live + btn('Stop', false)],
+      result: [620, title(`Check done · ${o.at}`) + row('HRV', TD.hrv + ' ms', `${TD.hrv > MH.normalMax ? 'Above' : TD.hrv < MH.normalMin ? 'Below' : TD.hrv === MH.normalMax ? 'At the top of' : 'Within'} your normal (${MH.normalMin}–${MH.normalMax})`) + row('Resting heart rate', TD.rhr + ' bpm', 'Within your normal', 1) + row('Readiness', `${PRE} → ${POST}`, 'The sky cleared with it', 1) + btn('Done', true)],
+      failed: [560, title('No clean reading') + para('The band lost your pulse for part of the minute. Wear it snug, a finger above the wrist bone, and keep your arm still.') + `<div style="font-size:12.5px;color:${P.secondary};margin-top:10px">Readiness stays at ${PRE}, from last night, until a check works.</div>` + btn('Try again', true) + quiet('Not now')],
+      unsaved: [560, title('Measured, not saved') + row('HRV this morning', '64 ms', 'On this phone, not stored yet') + para('No need to measure again. Readiness and the sky update once it is saved.') + btn('Retry save', true) + quiet('Later: retry on the next sync')],
+      noband: [580, title('Band not found') + para('Put the band on and keep the phone near you. The check starts on its own once the band answers.') + btn('Try again', true) + quiet('Not now')],
+    }[o.sheet] || o.custom({ P, BLUE, ON, line, btn, quiet, row, title, para });
+    h += `<div class="glass" style="${glass};z-index:3;left:0;right:0;top:${S_[0]}px;bottom:-26px;border-radius:28px 28px 0 0;padding:10px 20px 40px"><div style="width:36px;height:4px;border-radius:2px;background:${rgba(P.primary, .3)};margin:0 auto 10px"></div>${S_[1]}</div>`;
+  }
+  if (o.kbd) h += keyboard();
+  if (o.snack) h += `<div class="abs" style="z-index:3;left:12px;right:12px;top:771px;height:56px;border-radius:18px;padding:0 6px 0 18px;display:flex;align-items:center;justify-content:space-between;background:${dark ? 'rgba(242,246,251,.96)' : 'rgba(14,42,67,.94)'};color:${dark ? '#0E2A43' : '#FFFFFF'};box-shadow:0 8px 24px rgba(14,42,67,.22)"><span style="font-size:15px">${o.snack}</span><span class="btn" style="color:${dark ? '#0B5FA5' : '#A8CBFF'};font-weight:600">${o.snackAct || 'Undo'}</span></div>`;
+  return `<div class="phone" style="color:${P.primary}"><img class="scene" src="${img}" alt="">${skyVeil(g)}${h}</div>`;
+}
+// Android's own number keyboard (system UI, drawn only to show what it covers)
+const keyboard = () => { const K = [['1', '2', '3', '−'], ['4', '5', '6', '␣'], ['7', '8', '9', '⌫'], [',', '0', '.', '✓']];
+  return `<div class="abs" style="z-index:5;left:0;right:0;bottom:0;height:252px;background:#E8EAED;padding:8px 6px 18px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px">${K.flat().map(k => `<div style="border-radius:8px;background:${k === '✓' ? '#0B57D0' : '#FFFFFF'};color:${k === '✓' ? '#fff' : '#202124'};display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 1px 0 rgba(0,0,0,.12)">${k}</div>`).join('')}</div>`; };
+// the ruler: 0.1 kg per tick, 14 px apart, centred on the value
+const ruler = (v, P) => { let t = ''; for (let i = -14; i <= 14; i++) { const q = Math.round(v * 10) + i, x = 186 + i * 14, major = q % 10 === 0, half = q % 5 === 0;
+    t += `<line x1="${x}" y1="10" x2="${x}" y2="${major ? 38 : half ? 30 : 22}" stroke="${P.primary}" stroke-opacity="${major ? .7 : .4}" stroke-width="${major ? 2 : 1.5}" stroke-linecap="round"/>` + (major ? `<text x="${x}" y="56" font-size="12" fill="${P.secondary}" text-anchor="middle">${q / 10}</text>` : ''); }
+  return `<svg width="372" height="62" viewBox="0 0 372 62" aria-hidden="true" style="display:block;margin:8px auto 0;-webkit-mask:linear-gradient(90deg,transparent,#000 18%,#000 82%,transparent);mask:linear-gradient(90deg,transparent,#000 18%,#000 82%,transparent)">${t}<line x1="186" y1="2" x2="186" y2="44" stroke="${P.primary}" stroke-width="3" stroke-linecap="round"/></svg>`; };
+const chip = (t, P) => `<span class="btn" style="height:48px;padding:0 14px 0 16px;color:${P.primary};box-shadow:inset 0 0 0 1.5px ${rgba(P.primary, .4)}">${t}&nbsp;<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`;
+// A: the shipped field with the system keyboard; Save sits above the keyboard
+const typed = (val, date, replaces) => c => [384, c.title('Log weight')
+  + `<div style="display:flex;align-items:baseline;gap:10px;margin-top:12px;padding-bottom:4px;border-bottom:2px solid ${c.P.primary}"><span style="font-size:56px;font-weight:300;line-height:1.05;letter-spacing:-0.02em;${replaces ? `background:${rgba(c.BLUE, .22)};border-radius:6px;padding:0 4px;margin-left:-4px` : ''}">${val}</span>${replaces ? '' : `<span style="width:2px;height:44px;background:${c.P.primary};align-self:center"></span>`}<span style="font-size:23px;color:${c.P.secondary}">kg</span></div>`
+  + `<div style="font-size:12.5px;color:${c.P.secondary};margin-top:6px">${replaces ? 'Replaces 64.2 kg, logged on 17 Nov' : 'Last 64.2 kg on 17 Nov · −0.3 kg'}</div>`
+  + `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px">${chip(date, c.P)}<span class="btn" style="background:${c.BLUE};color:${c.ON};padding:0 28px">${replaces ? 'Update' : 'Save'}</span></div>`];
+// UH1: a typed value out of range (shipped: Enter 30.0 to 300.0 kg); Save waits until it is in range
+const typedBad = (val, date) => c => [384, c.title('Log weight')
+  + `<div style="display:flex;align-items:baseline;gap:10px;margin-top:12px;padding-bottom:4px;border-bottom:2px solid ${TONE[1]}"><span style="font-size:56px;font-weight:300;line-height:1.05;letter-spacing:-0.02em">${val}</span><span style="width:2px;height:44px;background:${c.P.primary};align-self:center"></span><span style="font-size:23px;color:${c.P.secondary}">kg</span></div>`
+  + `<div style="font-size:12.5px;color:${TONE[1]};font-weight:500;margin-top:6px">! Enter 30.0 to 300.0 kg · did you mean ${(+val / 10).toFixed(1)}?</div>`
+  + `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px">${chip(date, c.P)}<span class="btn" style="color:${c.P.secondary};box-shadow:inset 0 0 0 1.5px ${rgba(c.P.primary, .25)};padding:0 28px" aria-disabled="true">Save</span></div>`];
+// B: a ruler you drag from your last weight, − / + for one tenth, tap the number to type it
+const ruled = (val, diff, date, replaces) => c => [430, c.title('Log weight') + `<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">`
+  + ['−', null, '+'].map(k => k ? `<span class="btn" style="width:48px;height:48px;padding:0;font-size:24px;color:${c.P.primary};box-shadow:inset 0 0 0 1.5px ${rgba(c.P.primary, .4)}" aria-label="${k === '+' ? 'Add' : 'Remove'} 0.1 kg">${k}</span>`
+    : `<div style="text-align:center"><div style="font-size:56px;font-weight:300;line-height:1.05;letter-spacing:-0.02em;text-decoration:underline dotted ${rgba(c.P.primary, .35)} 2px;text-underline-offset:8px">${val}<span style="font-size:23px;color:${c.P.secondary};margin-left:6px">kg</span></div><div style="font-size:12.5px;color:${c.P.secondary};margin-top:4px">${diff}</div></div>`).join('') + '</div>'
+  + ruler(+val, c.P) + `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">${chip(date, c.P)}<span style="font-size:12.5px;color:${c.P.secondary}">${replaces || 'Tap the number to type it'}</span></div>`
+  + c.btn(replaces ? 'Update' : 'Save', true)];
+if (ALT) MEAS.am0715f = { ...ALT_G, skyInk: ALT_G.skyInk.sky };
+const T = { time: ALT ? CLOCK : '07:15', ready: POST, at: TIME === 'dawn' ? '06:24' : '07:11' }, IMG = ALT ? ALT_IMG : 'wt1/am0715f.png', okLabel = `<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>&nbsp;63.9 kg`;
+const SECTIONS = [
+  { name: 'A · Type it', thesis: 'The shipped sheet on glass: the field opens prefilled with your last weight, selected, so typing replaces it; the decimal keyboard comes up at once. Date and Save sit in one row above the keyboard, so nothing is hidden behind it.',
+    pro: ['Fastest for any change: four key taps', 'Exactly the shipped behaviour; nothing new to build', 'Works the same in kg and lb'], con: ['The keyboard covers half the screen and the scene', 'Easy to mistype a decimal (64,2 / 642): the range check catches only the wild ones'],
+    meas: 'am0715f', phones: [[IMG, 'am0715f', { ...T, kbd: 1, custom: typed('63.9', 'Today') }, 'Today: typed over the prefilled 64.2'], [IMG, 'am0715f', { ...T, kbd: 1, custom: typed('64.2', '17 Nov', 1) }, 'An earlier day: Replaces …, Update']] },
+  { name: 'B · Nudge it', thesis: 'No keyboard: the sheet opens on your last weight and you drag the ruler or tap − / + for a tenth. Day-to-day weight moves by a few tenths, so it is usually a short drag. Tapping the number opens the keyboard (A) for a big change or TalkBack.',
+    pro: ['The scene stays visible; one-handed', 'Hard to enter a wrong decimal', 'The change since last time is shown as you move'], con: ['Slower for big changes (or the first entry): that falls back to typing', 'A drag needs care for accessibility: − / + and typing cover it'],
+    meas: 'am0715f', phones: [[IMG, 'am0715f', { ...T, custom: ruled('63.9', '−0.3 since 17 Nov', 'Today') }, 'Today: dragged from 64.2 to 63.9'], [IMG, 'am0715f', { ...T, custom: ruled('64.2', 'Logged on 17 Nov', '17 Nov', 'Replaces 64.2 kg') }, 'An earlier day: Replaces …, Update']] },
+  { name: 'After saving (both)', thesis: 'The sheet closes; a snackbar (solid ink, so it never melts into the cards under it) says what was saved, for which day, with Undo (as shipped). The top-right button then shows today’s weight with a tick; tap it to change it. Tomorrow it is “Log weight” again.',
+    pro: ['Today shows that both morning tasks are done: the check in the header line, the weight in its button'], con: ['The button is wider with a number in it (fits up to “✓ 199.9 lb”)'],
+    meas: 'am0715f', phones: [[IMG, 'am0715f', { ...T, wlabel: okLabel, snack: 'Saved 63.9 kg for 23 Nov' }, 'Saved, with Undo'], [IMG, 'am0715f', { ...T, time: '09:40', wlabel: okLabel }, 'Later: the button holds today’s weight']] },
+];
+
+(async () => {
+  try { const N = (await (await fetch('mc2/measure.json')).json()).m; for (const k in N) { const g = N[k]['3']; MEAS[k] = { mode: g.mode, tint: g.tint, a: g.a, navA: Math.max(.3, g.navA || .3), ink: g.ink, skyInk: g.skyInk.sky, cardS: g.cardS, sky: g.sky, hero: g.hero }; } }
+  catch (e) { /* opened as a file: night values below */ }
+  MEAS.am0520p = MEAS.am0520p || { mode: 'dark', tint: '#1C2739', a: .22, navA: .3, ink: { primary: '#FFFFFF', secondary: '#C9D7EA' }, skyInk: '#F2F6FB', cardS: 5.76, sky: 4.57, hero: 5.12 };
+  MEAS.am0520f = MEAS.am0520f || { mode: 'dark', tint: '#1C2738', a: .22, navA: .3, ink: { primary: '#FFFFFF', secondary: '#C9D7EA' }, skyInk: '#F2F6FB', cardS: 5.69, sky: 4.53, hero: 5.14 };
+  for (const s of SECTIONS) {
+    const g = MEAS[s.meas], el = document.createElement('section'); el.className = 'dir';
+    el.innerHTML = `<div class="sheet"><h2>${s.name}</h2><div class="thesis">${s.thesis}</div><h3>For</h3><ul>${s.pro.map(x => `<li>${x}</li>`).join('')}</ul><h3>Against</h3><ul>${s.con.map(x => `<li>${x}</li>`).join('')}</ul>
+      <h3>Measured (floor 3.0, no veil)</h3><table class="m"><tr><td>Glass text, weakest</td><td>${g.cardS.toFixed(2)}</td></tr><tr><td>Sky text / number</td><td>${g.sky.toFixed(2)} / ${g.hero.toFixed(2)}</td></tr></table></div>
+      <div class="phones">${s.phones.map(([img, m, o, cap]) => `<figure>${phone(img, MEAS[m], o)}<figcaption>${cap}</figcaption></figure>`).join('')}</div>`;
+    document.getElementById('board').appendChild(el);
+  }
+  if (/[?&]first=1/.test(location.search)) {   // FW1: a new band, as if it arrived on 5 Nov (data.js FIRST_WEEK)
+    const FWD = FIRST_WEEK, hm = m => `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m`;
+    const strip = k => { const w = []; for (let j = k - 6; j <= k; j++) w.push(j < 0 ? '' : FWD[j].readiness == null ? '—' : FWD[j].readiness); return w; };
+    const stripDays = k => { const w = []; for (let j = k - 6; j <= k; j++) w.push(j === k ? 'Today' : j < 0 ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][HEALTH_DATA.days[82 + j].dateObj.getDay()] : FWD[j].dow); return w; };
+    const fwPhone = (k, o) => { const f = FWD[k], d = f.sleepUsual != null ? f.sleepMin - f.sleepUsual : null;
+      return phone(IMG, MEAS.am0715f, { ...T, ready: f.readiness, sub: `${I.ring} Day ${f.day} with your band`, week: strip(k), weekDays: stripDays(k),
+        detail: f.readiness == null ? null : 'Readiness · your normal from day 11',
+        tiles: { sleep: hm(f.sleepMin), score: 'Score ' + f.sleepScore, sleepSub: d == null ? (k ? `your usual from day 8` : 'your first night') : `${Math.abs(d)} min ${d >= 0 ? 'more' : 'less'} than usual`,
+          steps: '240', stepsSub: f.stepsUsual == null ? 'learning your day' : 'on pace', hrv: f.hrv + ' ms', hrvSub: 'overnight' }, ...o }); };
+    const f0 = FWD[0];
+    uhSection('FW1 · Today in the first week', `A new band, as if it arrived on 5 Nov. The app's own minimums set the stages: readiness after 3 nights (day 4), a normal after 7 days (day 8; readiness's own after 7 readiness days, day 11), a usual bedtime after 5 nights (day 5). The sky stays a plain fair sky until there is a readiness ("A plain fair sky: there is no readiness score yet today"); haze and rain wait for a usual resting HR (day 8), and the high cloud waits for an HRV normal. Day 1 has no number, so the hero says the day (picked in FW1 over leading with the sleep score).`,
+      [[fwPhone(0, { num: 'Day 1', word: 'Getting to know you', detail: 'Readiness from day 4 · after 3 nights' }), 'Day 1: the day (picked over leading with the sleep score)'],
+       [fwPhone(3, {}), `Day 4 · first readiness, ${FWD[3].readiness}`], [fwPhone(7, {}), `Day 8 · normals for HRV, resting HR and steps`]]);
+  }
+  if (POOR) uhSection('PD1 · Today on a poor day', 'The number, its word and the sky say it first: 58, Take it easy, a lower grey sheet of stratocumulus. The tiles keep their places and hold the day’s values plainly; no colour, as on a good day.',
+    [[phone(IMG, MEAS.am0715f, { ...T, ready: 58, done: 1, detail: vsNormal(58), tiles: { sleep: '6h 05m', score: 'Score ' + HEALTH_DATA.days[81].sleepScore, sleepSub: '1h 07m less than usual', steps: NIGHT ? '4,820' : '3,240', stepsSub: 'an easy day', hrv: '46 ms', hrvSub: 'morning check' } }), 'Today, poor day']]);
+  if (BAD) {   // VP1: a very poor day and likely illness, through the day, then the sky tapped (D4)
+    const DAYS = { hz: { ready: 67, detail: vsNormal(67), steps: ['300', '4,700', '7,100', '7,900'], tl: { sleep: '6h 50m', score: 'Score 70', sleepSub: '24 min less than usual', stepsSub: 'on pace', hrv: '52 ms', hrvSub: 'morning check' },
+        note: ['Partly cloudy: readiness 67, ' + vsNormal(67, 1) + '.', 'Streaks of high cloud: HRV 52 ms, under your normal ' + MH.normalMin + '–' + MH.normalMax + '.', 'A humid haze: skin temperature +0.4 °C and resting HR 57 bpm (usual 54), both up. Your body is under some load.'], noteAt: 1,
+        title: 'BD3 · Today on the haze day', thesis: 'Skin temperature and resting HR a little up (+0.4 °C, +3), not enough for illness: a humid haze over a partly cloudy day, readiness 67, <b>Steady</b>. No card on the lip: nothing to act on, so the sky and its note carry it, and Trends and Coach say it in words. At dusk the sky text needs a 4% white veil behind it (3.25), the first dusk that does.' },
+      vp: { ready: 46, detail: vsNormal(46), steps: ['180', '2,900', '4,100', '4,600'], tl: { sleep: '4h 40m', score: 'Score 42', sleepSub: '2h 34m less than usual', stepsSub: 'a rest day', hrv: '38 ms', hrvSub: 'morning check' },
+        note: ['Low grey cloud: readiness 46, ' + vsNormal(46, 1) + '.', 'Morning mist in the valley: you slept 4 h 40 m, 154 min less than usual. It clears by late morning.'], noteAt: 0,
+        title: 'VP1 · Today on a very poor day', thesis: 'Readiness 46 (HRV 38 ms, resting HR 59, 4h 40m asleep): the word is <b>Rest</b>, the sky low grey cloud all day with mist on the loch until late morning. Nothing else changes: the tiles hold the numbers plainly, no colour. HRV’s high veil is still set but does not show under the low sheet, so the sky note leaves it out.' },
+      ill: { ready: 49, detail: vsNormal(49), steps: ['120', '2,400', '3,050', '3,300'], tl: { sleep: '6h 05m', score: 'Score 56', sleepSub: '1h 09m less than usual', stepsSub: 'a rest day', hrv: '44 ms', hrvSub: 'morning check' },
+        alert: ['Your body may be fighting something', 'Skin +0.8 °C · resting HR 6 above usual', 'Why'],
+        note: ['Low grey cloud: readiness 49, ' + vsNormal(49, 1) + '.', 'Light rain: skin temperature +0.8 °C and resting HR 60 bpm (usual 54), both up. This can be an early sign of illness.'], noteAt: 1,
+        title: 'VP1 · Today with likely illness', thesis: 'Skin temperature +0.8 °C and resting HR 6 above usual, both up (D6): light rain, and one card on the lip that says it in words, so the sky never carries it alone. Why opens the same note as tapping the sky. Readiness 49, <b>Rest</b>.'  },
+      st: { ready: 34, detail: vsNormal(34), steps: ['60', '1,100', '1,400', '1,500'], tl: { sleep: '4h 50m', score: 'Score 40', sleepSub: '2h 24m less than usual', stepsSub: 'a rest day', hrv: '36 ms', hrvSub: 'morning check' },
+        alert: ['Your body may be fighting something', 'Skin +1.1 °C · resting HR 10 above usual', 'Why'],
+        note: ['Low grey cloud: readiness 34, ' + vsNormal(34, 1) + '.', 'A storm: skin temperature +1.1 °C and resting HR 64 bpm (usual 54), both up, and readiness 34. This can mean your body is fighting something; rest if you can.'], noteAt: 1,
+        title: 'ST1 · Today on the storm day', thesis: 'Likely illness and readiness under 35 (D2): the one day the sky storms. Denser rain and a bolt in the right sky, clear of the number and below the top-right button. The card on the lip says it in words, as on a rain day; the tiles go compact under it (LT1).' } };
+    const fig = (day, i, extra = {}) => { const D = DAYS[day], [k, clock] = VP1_HOURS[i], g0 = vp1G(day, k), g = { ...g0, skyInk: g0.skyInk.sky }; window.NIGHT = k === 'night'; window.BOLT = day === 'st';
+      const h = phone(badImg(day, k), g, { ...T, time: clock, ready: D.ready, done: 1, detail: D.detail, alert: D.alert, tiles: { ...D.tl, steps: D.steps[i] }, ...extra });
+      return [h, `${clock} · ${g.mode === 'dark' ? 'land' : 'white'} glass ${Math.round(g.a * 100)}% · glass text ${g.cardS.toFixed(2)} · sky text ${g.sky.toFixed(2)}`]; };
+    const note = day => ({ title, para, P }) => [DAYS[day].alert ? 560 : 520, title('The sky today') + DAYS[day].note.map(para).join('') + `<div style="font-size:12.5px;color:${P.secondary};margin-top:12px">Each part of the sky follows one of your numbers.</div>`];
+    ['hz', 'vp', 'ill', 'st'].forEach((day, n) => { const D = DAYS[day];
+      addSection(D.title, D.thesis, [0, 1, 2, 3].map(i => fig(day, i)).concat([[fig(day, D.noteAt, { custom: note(day) })[0], `${VP1_HOURS[D.noteAt][1]} · the sky tapped`]]), !n); });
+    window.NIGHT = TIME === 'night'; window.BOLT = false; }
+  if (/[?&]fit=1/.test(location.search)) {   // LT1: the last tile with a card on the lip; three fits per situation
+    const FITS = [['scroll', 'A · as built: scrolls, Daily score under the tab bar'], ['compact', 'B · compact: Steps and HRV 76 high'], ['grid', 'C · grid: two rows of two']];
+    const ill = { ready: 49, done: 1, detail: vsNormal(49), alert: ['Your body may be fighting something', 'Skin +0.8 °C · resting HR 6 above usual', 'Why'] }, illTl = i => ({ sleep: '6h 05m', score: 'Score 56', sleepSub: '1h 09m less than usual', steps: ['120', '2,400', '3,050', '3,300'][i], stepsSub: 'a rest day', hrv: '44 ms', hrvSub: 'morning check' });
+    const illPh = (i, fit) => { const [k, clock] = VP1_HOURS[i], g0 = vp1G('ill', k); window.NIGHT = k === 'night'; return phone(`vp1/ill-${k}.png`, { ...g0, skyInk: g0.skyInk.sky }, { ...T, time: clock, ...ill, tiles: illTl(i), fit }); };
+    const SIT = [['Likely illness, 15:10', fit => illPh(1, fit)], ['Likely illness, 23:10', fit => illPh(3, fit)],
+      ['The sync failed, 07:15', fit => { window.NIGHT = false; return phone(IMG, MEAS.am0715f, { ...T, alert: ['Band not found', `Last synced ${LAST} · keep it near the phone`, 'Retry'], fit }); }],
+      ['Morning check not done, 07:15', fit => { window.NIGHT = false; return phone(IMG, MEAS.am0715f, { ...T, ready: PRE, entry: 'card', fit }); }]];
+    SIT.forEach(([t, f], n) => addSection('LT1 · ' + t, n ? '' : 'A card on the lip (illness, a failed sync, the morning check) moves the tiles down 76 px and the Daily score tile ends at 884, under the tab bar at 851. A: leave it, Today scrolls. B: Steps and HRV lose 24 px each and carry their note on the label line; nothing is dropped. C: two rows of two, Daily score beside HRV; Sleep drops “less than usual”. B and C apply only while a card sits on the lip.',
+      FITS.map(([fit, cap]) => [f(fit), cap]), !n));
+    window.NIGHT = TIME === 'night'; }
+  if (UH) { const g = MEAS.am0715f;
+    uhSection('UH1 · Today and Log weight when something fails', 'A failed sync puts one card on the lip, in the shipped words with Retry, above the tiles; the numbers under it stay the last good ones. A typed weight out of range says the range in words (coral with a mark, not colour alone) and offers the likely decimal; Save waits. A failed save keeps the snackbar, with Retry instead of Undo.',
+      [[phone(IMG, g, { ...T, alert: ['Band not found', `Last synced ${LAST} · keep it near the phone`, 'Retry'] }), 'Today: the sync failed'], [phone(IMG, g, { ...T, kbd: 1, custom: typedBad('639', 'Today') }), 'Typed 639: out of range'], [phone(IMG, g, { ...T, snack: 'Couldn’t save 63.9 kg for 23 Nov', snackAct: 'Retry' }), 'The save failed: Retry']]); }
+})();
+</script>
+</body>
+</html>

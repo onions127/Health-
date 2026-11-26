@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Health++ · Round TR1 · Trends</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:#E9EBEE; color:#14171A; font:400 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding:32px 32px 80px; }
+  header.board { max-width:1180px; margin-bottom:24px; } header.board h1 { font-size:26px; font-weight:600; margin-bottom:8px; } header.board p { color:#3A424B; max-width:110ch; margin-bottom:8px; }
+  section.dir { display:flex; gap:24px; align-items:flex-start; padding:28px 0; border-top:1px solid #D5DAE0; }
+  .sheet { width:340px; flex:none; background:#fff; border-radius:14px; padding:18px; font-size:12.5px; line-height:1.5; color:#30363D; }
+  .sheet h2 { font-size:19px; font-weight:600; color:#111; margin-bottom:4px; } .sheet .thesis { font-size:13.5px; font-weight:500; color:#1D2125; margin-bottom:10px; }
+  .sheet h3 { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#6A727C; margin:12px 0 4px; } .sheet ul { padding-left:16px; }
+  table.m { border-collapse:collapse; font-size:11.5px; font-variant-numeric:tabular-nums; } table.m td, table.m th { padding:2px 6px; border-bottom:1px solid #E6E9ED; text-align:right; } table.m td:first-child, table.m th:first-child { text-align:left; } table.m th { color:#6A727C; font-weight:500; } .bad { color:#B3261E; font-weight:600; }
+  .phone { position:relative; width:412px; height:915px; overflow:hidden; border-radius:30px; isolation:isolate; zoom:.72; box-shadow:0 1px 2px rgba(20,23,26,.08), 0 16px 40px rgba(20,23,26,.14); font-family:Roboto, "Segoe UI", system-ui, sans-serif; }
+  .phone img.scene { position:absolute; inset:0; width:100%; height:100%; display:block; z-index:0; }
+  .abs { position:absolute; z-index:1; } .glass { position:absolute; z-index:1; border-radius:26px; }
+  .btn { display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 18px; border-radius:24px; font-size:15px; font-weight:500; white-space:nowrap; }
+  .nav { position:absolute; left:0; right:0; bottom:0; height:64px; z-index:2; display:grid; grid-template-columns:repeat(4,1fr); align-items:center; text-align:center; font-size:12px; border-top:1px solid; }
+  .nav span { position:relative; padding-top:10px; } .nav span.on { font-weight:500; }
+  .nav span.on::before { content:""; position:absolute; top:-2px; left:50%; width:24px; height:3px; margin-left:-12px; border-radius:2px; background:currentColor; }
+  .ico { width:1em; height:1em; vertical-align:-0.12em; display:inline-block; }
+</style>
+</head>
+<body>
+<header class="board">
+  <h1>Round TR1 · Trends</h1>
+  <p>Trends is the third tab. Shipped, it is a graphite list: one row per metric with a 30-day sparkline, today's value turned red when it is outside your normal, and a Calendar button. Here it moves onto the scene and glass. It shows the same sky as Today at this hour (15:10) and takes the place of Today's number with a <b>count</b>: how many of your numbers are within your normal. <b>Sleep</b> keeps its row, and the row opens the Sleep tab, so its charts are not drawn twice. <b>Steps</b> are judged against your usual pace for this time of day, not a full day (brief rule).</p>
+  <p>Outside normal is never shown by colour alone: the row says "Above normal" or "Below normal", and the day's dot is ringed. Every metric opens its detail (range, chart, difference from your average), unchanged for now.</p>
+</header>
+<main id="board"></main>
+<script src="scores.js"></script><script src="data.js"></script>
+<script>
+const HD = window.HEALTH_DATA, days = HD.days, t = HD.today, M = HD.METRICS, last30 = days.slice(-30);
+const rgba = (h, a) => `rgba(${[1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(',')},${a})`;
+const hmT = m => `${Math.floor(m / 60)}h ${String(Math.round(m % 60)).padStart(2, '0')}m`, n = v => Math.round(v).toLocaleString('en-US');
+const HOUR = 15 + 10 / 60, PACE = Math.min(1, Math.max(.05, (HOUR - 7) / 14));
+// the rows: key in the day data, label, value text, normal band
+const ROWS = [
+  ['hrv', 'HRV', v => `${v} ms`], ['rhr', 'Resting HR', v => `${v} bpm`], ['sleep', 'Sleep', v => hmT(v)], ['readiness', 'Readiness', v => `${v}`],
+  ['steps', 'Steps', v => `${n(v)} so far`], ['strain', 'Strain', v => `${v}`], ['spo2', 'Blood oxygen', v => `${v}%`], ['skinTemp', 'Skin temp', v => `${v >= 0 ? '+' : ''}${v.toFixed(1)} °C`],
+].map(([id, label, fmt]) => { const m = M[id], key = m.dataKey || id, v = t[key], series = last30.map(d => d[key]);
+  let lo = m.normalMin, hi = m.normalMax, st;
+  if (id === 'steps') { const usual = m.avg30 * PACE; st = v > usual * 1.15 ? 'Ahead of your pace' : v < usual * .85 ? 'Behind your pace' : 'On your pace'; series[29] = v / PACE; }   // today's dot: the pace, scaled to a full day
+  else st = v > hi ? 'Above normal' : v < lo ? 'Below normal' : 'Normal';
+  return { id, label, v, text: fmt(v), series, lo, hi, st, out: !/^(Normal|On your pace)$/.test(st), norm: id === 'steps' ? `usual ${n(m.avg30)} a day` : id === 'sleep' ? `normal ${hmT(lo)}–${hmT(hi)}` : `normal ${m.normalMin}–${m.normalMax}${id === 'skinTemp' ? ' °C' : ''}` }; });
+const inN = ROWS.filter(r => !r.out).length, outs = ROWS.filter(r => r.out);
+// a 30-day line with the normal band; the last point (today) is a dot, ringed when it is outside the band; big = days outside the band as hollow dots
+function spark(r, W, H, ink, big = false) {
+  const vs = r.series, lo = Math.min(r.lo, ...vs), hi = Math.max(r.hi, ...vs), pad = (hi - lo) * .12 || 1, y = v => H - 3 - (v - (lo - pad)) / ((hi + pad) - (lo - pad)) * (H - 6), x = k => 3 + k / (vs.length - 1) * (W - 9);
+  const band = `<rect x="0" y="${y(r.hi).toFixed(1)}" width="${W}" height="${(y(r.lo) - y(r.hi)).toFixed(1)}" fill="${ink}" fill-opacity=".10"/>`;
+  const line = `<path d="${vs.map((v, k) => `${k ? 'L' : 'M'}${x(k).toFixed(1)} ${y(v).toFixed(1)}`).join(' ')}" fill="none" stroke="${ink}" stroke-opacity=".85" stroke-width="${big ? 2 : 1.6}" stroke-linejoin="round" stroke-linecap="round"/>`;
+  const outsDots = big ? vs.slice(0, -1).map((v, k) => v > r.hi || v < r.lo ? `<circle cx="${x(k).toFixed(1)}" cy="${y(v).toFixed(1)}" r="3" fill="none" stroke="${ink}" stroke-width="1.4"/>` : '').join('') : '';
+  const L = vs.length - 1, dot = `<circle cx="${x(L).toFixed(1)}" cy="${y(vs[L]).toFixed(1)}" r="${big ? 4.5 : 3.6}" fill="${ink}"/>` + (r.out ? `<circle cx="${x(L).toFixed(1)}" cy="${y(vs[L]).toFixed(1)}" r="${big ? 8 : 6.4}" fill="none" stroke="${ink}" stroke-width="1.4"/>` : '');
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true" style="overflow:visible;display:block">${band}${line}${outsDots}${dot}</svg>`;
+}
+const chev = c => `<svg width="10" height="16" viewBox="0 0 10 16" aria-hidden="true"><path d="M2.5 2.5 8 8l-5.5 5.5" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const cal = '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M2 6.5h12M5.5 1.8v2.6M10.5 1.8v2.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+function phone(img, g, layout) {
+  const P = g.ink, S = g.skyInk, glass = `background:${rgba(g.tint, g.a)};-webkit-backdrop-filter:blur(22px) saturate(1.6);backdrop-filter:blur(22px) saturate(1.6);box-shadow:0 1px 1px rgba(14,42,67,.05), 0 10px 28px rgba(14,42,67,.10)`;
+  const hero = `<div class="abs" style="top:112px;left:22px;right:30px;color:${S.sky}"><div style="font-size:72px;font-weight:300;line-height:1;letter-spacing:-0.035em;margin-left:-3px">${inN}<span style="font-size:.5em;letter-spacing:0"> of ${ROWS.length}</span></div><div style="font-size:23px;line-height:1.25;margin-top:8px">within your normal</div><div style="font-size:15px;line-height:1.35;margin-top:4px">${outs.map(r => r.label).join(', ').replace(/, ([^,]*)$/, ' and $1')} ${outs.length === 1 ? 'is' : 'are'} ${outs.every(r => /Above|Ahead/.test(r.st)) ? 'above' : 'outside'} it</div></div>`;
+  let body = '';
+  if (layout === 'list') {
+    const rh = 56;
+    body = `<div class="glass" style="${glass};top:384px;left:12px;right:12px;height:${ROWS.length * rh + 8}px;padding:4px 0">${ROWS.map((r, k) => `<div style="height:${rh}px;display:flex;align-items:center;gap:10px;padding:0 12px 0 16px;${k ? `border-top:1px solid ${rgba(P.primary, .10)}` : ''}">
+      <div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:500">${r.label}</div><div style="font-size:12px;color:${P.secondary}">${r.text}${r.out ? ` · <b style="font-weight:500;color:${P.primary}">${r.st}</b>` : ''}</div></div>
+      ${spark(r, 112, 30, P.primary)}<div style="width:16px;display:flex;justify-content:center">${chev(P.secondary)}</div></div>`).join('')}</div>`;
+  } else if (layout === 'tiles') {
+    body = ROWS.map((r, k) => `<div class="glass" style="${glass};top:${384 + Math.floor(k / 2) * 116}px;${k % 2 ? 'right:12px' : 'left:12px'};width:188px;height:104px;padding:10px 14px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:${P.secondary}"><span>${r.label}</span><span style="${r.out ? `color:${P.primary};font-weight:500` : ''}">${r.out ? r.st.split(' ')[0] : ''}</span></div>
+      <div style="font-size:21px;font-weight:500;line-height:1.3">${r.text.replace(' so far', '')}</div>
+      <div style="margin-top:6px">${spark(r, 160, 30, P.primary)}</div></div>`).join('');
+  } else {
+    const big = (r, top) => `<div class="glass" style="${glass};top:${top}px;left:12px;right:12px;height:118px;padding:10px 16px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><div><span style="font-size:15px;font-weight:500">${r.label}</span> <span style="font-size:12px;color:${P.secondary}">${r.norm}</span></div><div style="font-size:12px;color:${P.secondary}">30 days ${chev(P.secondary)}</div></div>
+      <div style="font-size:22px;font-weight:500;line-height:1.25">${r.text} <span style="font-size:15px">${r.st}</span></div><div style="margin-top:6px">${spark(r, 356, 36, P.primary, true)}</div></div>`;
+    const rest = ROWS.filter(r => !r.out);
+    body = outs.map((r, k) => big(r, 384 + k * 130)).join('') + `<div class="glass" style="${glass};top:${384 + outs.length * 130}px;left:12px;right:12px;height:${Math.max(160, 851 - 12 - 384 - outs.length * 130)}px;padding:10px 16px">
+      <div style="font-size:12px;color:${P.secondary}">Within your normal</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px;margin-top:2px">${rest.map(r => `<div style="display:flex;justify-content:space-between;align-items:baseline;height:38px;border-bottom:1px solid ${rgba(P.primary, .10)};padding-top:8px"><span style="font-size:13px">${r.label}</span><span style="font-size:15px;font-weight:500">${r.text.replace(' so far', '')}</span></div>`).join('')}</div></div>`;
+  }
+  return `<div class="phone" style="color:${P.primary}"><img class="scene" src="${img}" alt="">
+    <div class="abs" style="top:12px;left:20px;font:500 12px Roboto, 'Segoe UI';color:${S.sky}">15:10</div>
+    <div class="abs" style="top:40px;left:20px;color:${S.sky}"><div style="font-size:19px;font-weight:500">Trends</div><div style="font-size:12px;margin-top:2px">Last 30 days · against your normal</div></div>
+    <div class="abs btn" style="top:40px;right:20px;background:${g.btn.fill};color:${g.btn.ink}">${cal}&nbsp;Calendar</div>
+    ${hero}${body}
+    <nav class="nav" style="background:${rgba(g.tint, g.navA)};color:${P.secondary};border-top-color:${rgba('#FFFFFF', .6)};-webkit-backdrop-filter:blur(22px) saturate(1.6);backdrop-filter:blur(22px) saturate(1.6)">${['Today', 'Sleep', 'Trends', 'Coach'].map(l => `<span class="${l === 'Trends' ? 'on' : ''}" style="${l === 'Trends' ? 'color:' + P.primary : ''}">${l}</span>`).join('')}</nav></div>`;
+}
+// contrast of a mark (ink at alpha) over the glass on the page under the cards: the worst band of the page (sRGB blending, as CSS does)
+const hx3 = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)), over = (f, b, a) => f.map((v, i) => v * a + b[i] * (1 - a));
+const lumi = c => { const l = c.map(v => (v /= 255) <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4); return .2126 * l[0] + .7152 * l[1] + .0722 * l[2]; };
+const cr = (a, b) => { const x = lumi(a), y = lumi(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+const DIRS = [
+  { id: 'list', name: 'A · List', thesis: 'The shipped list on glass: one row per metric, the value and a 30-day line with your normal band. Calm and complete; the order never changes.',
+    pro: ['Familiar: same order and rows as today’s app', 'All eight metrics with a trend line on the first screen', 'Rows are 56 dp: easy targets'], con: ['Small lines: a trend reads as shape only', 'Out-of-normal is a word in a row, easy to miss'] },
+  { id: 'tiles', name: 'B · Tiles', thesis: 'A two-column grid like Today’s tiles: each metric a tile with its value large and its line under it. Scannable at a glance, numbers first.',
+    pro: ['Numbers read first, like Today', 'All eight fit above the nav', 'Same tile language as Today'], con: ['Long names and values crowd a half-width tile', 'Normal range not written in the tile (shown by the band)'] },
+  { id: 'focus', name: 'C · Outside first', thesis: 'What needs a look comes first: each metric outside your normal gets a full 30-day chart (days outside the band marked); everything within normal is a compact list below.',
+    pro: ['Answers “what changed?” in one look (the 60-second job)', 'Big charts where they matter, with the normal written out', 'Order follows today’s data'], con: ['The order changes from day to day', 'Metrics within normal show no trend until opened', 'On a fully normal day it becomes just the list', 'With three outside, the normal list starts below the fold'] },
+];
+(async () => {
+  const Mm = await (await fetch('tr1/measure.json?' + Date.now())).json(), g = Mm.m.day1510['3'];
+  const im = new Image(); im.src = 'tr1/day1510.png'; await im.decode(); const cv = document.createElement('canvas'); cv.width = 412; cv.height = 915; const cx = cv.getContext('2d'); cx.drawImage(im, 0, 0, 412, 915);
+  const bands = []; for (let y = 390; y <= 840; y += 15) { const px = cx.getImageData(12, y, 388, 1).data, a = [0, 0, 0]; for (let i = 0; i < px.length; i += 4) for (let j = 0; j < 3; j++) a[j] += px[i + j] / 388; bands.push(a); }
+  const worst = alpha => Math.min(...bands.map(b => { const card = over(hx3(g.tint), b, g.a); return cr(over(hx3(g.ink.primary), card, alpha), card); }));
+  const meas = [['Lines, dots, rings', worst(.85)], ['Days outside, hollow dots (C)', worst(1)], ['Row dividers (decoration)', worst(.10)], ['Normal band (decoration)', worst(.10)]];
+  window.TR1M = Object.fromEntries(meas.map(([k, v]) => [k, +v.toFixed(2)]));
+  for (const d of DIRS) {
+    const el = document.createElement('section'); el.className = 'dir';
+    el.innerHTML = `<div class="sheet"><h2>${d.name}</h2><div class="thesis">${d.thesis}</div><h3>For</h3><ul>${d.pro.map(x => `<li>${x}</li>`).join('')}</ul><h3>Against</h3><ul>${d.con.map(x => `<li>${x}</li>`).join('')}</ul>
+      <h3>Measured (15:10, floor 3.0, no veil)</h3><table class="m"><tr><th>what</th><th>contrast</th></tr><tr><td>Card text (weakest)</td><td>${g.cardS.toFixed(2)}</td></tr><tr><td>Sky text / number</td><td>${g.sky.toFixed(2)} / ${g.hero.toFixed(2)}</td></tr><tr><td>Calendar button</td><td>${g.btnC.toFixed(2)}</td></tr>
+      ${meas.map(([k, v]) => `<tr><td>${k}</td><td class="${v < 3 && !/decoration/.test(k) ? 'bad' : ''}">${v.toFixed(2)}</td></tr>`).join('')}</table></div>
+      <figure>${phone('tr1/day1510.png', g, d.id)}</figure>`;
+    document.getElementById('board').appendChild(el);
+  }
+})();
+</script>
+</body>
+</html>

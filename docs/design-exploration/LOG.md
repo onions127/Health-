@@ -623,3 +623,941 @@ STOP: waiting for the user's pick (A flat / B swell / C fields, or a mix).
 - First run read ~1 fps: the test drove a background Chrome tab (throttled); `phoneT.js` now brings the test tab to the front. No GL errors; the only 404 is `favicon.ico`.
 
 **Terrain lock done.** Nothing committed yet.
+
+## G1 · Glass for dusk and night (2026-11-22)
+**Asked:** dark glass for dusk and night (open since 3.12: night with the day glass reads 1.35:1).
+
+**Measured first** (`tools/visual-loop/glassSweep.js`, `glassNeed.js`; `glass-check.js` now takes a glass tint, `saturate()` and light ink):
+- The day glass (22% white, ink `#2E4A62`) fails well before night: 18:00–19:45 reads 3.2–4.2, dawn 05:15–05:45 1.7–3.7.
+- At dusk the page under the cards is mid grey (L\* 55–70): dark ink on light glass and light ink on dark glass both fail at their usual strengths. The smallest glass for AA (4.6) rises to ~.5 on both sides; the two are equal at page L\* ≈ 55.
+- Clear night needs almost no glass (any dark tint passes); rain and snow nights sit at L\* 37–43.
+- Sky text: the hero cloud behind the number is lit by day and by the moon at night (`#7789C2`, white on it 3.15). Which ink needs less help follows the sky behind the text, not the page (rain night: light ink needs no veil; snow night: dark ink + white veil .34).
+
+**Proposed rule (`design-prototype/glass-rule.js`, the same for every option):**
+- Cards follow the page L\* under them: ≥ 56 day glass, strength from a measured table (22% → 53% as the light falls); < 56 night glass with light ink (`#FFFFFF` / `#C9D7EA`), ≥ 40%. Nav 55% day / 72% night.
+- Sky text takes the ink that needs the weaker veil; the veil is a top band (full to 272 px, gone by 340 px) in the glass tint or white, at the measured strength + .03.
+- The Log weight button picks its fill from the sky behind it: blue `#0B5FA5`, light pill `#DCE9F7`, or deep navy `#082F5A` (non-text 3:1), sitting on the veil.
+
+**Board:** `design-prototype/r5a-board.html` (renders `g1/`, numbers `g1/measure.json` from `tools/visual-loop/g1.js`). One decision, the night glass's colour: **A · Navy** `#0A1E4A` (constant, like the reference) · **B · Smoke** `#0E1116` (neutral) · **C · Sky** (the zenith's hue at Y .013: navy at night, `#1D1B33` at dusk, `#1B1D2F` in rain).
+
+**Measured (9 states: day control, 18:30, 19:45, 20:30, night clear / partly / rain / snow, dawn 05:30):** every text passes in every state for A, B and C; worst 4.78 (day glass at 18:30, secondary text). Cards at night 9.3–10.4 (A), 10.4–15.1 (B); nav ≥ 5.57; sky text ≥ 4.83; button ≥ 3.35. The night options differ in look, not in contrast.
+
+**Open / still differs:** twilight 20:30, snow night and dawn need a white veil of 28–41% behind dark sky text (the moonlit or dusk-lit hero cloud is mid-grey): visible as a pale band. A scene-side fix (dim the hero cloud's lit side behind the text after sunset) would remove it; not in this round. Transition timing (how fast the swap animates when it crosses while the app is open) not shown on stills.
+STOP: waiting for the pick (A navy / B smoke / C sky).
+
+## G2 · Scene glass, lower contrast (2026-11-22)
+**Asked:** none of G1's night glasses (navy, smoke, sky) felt right: the cards felt cut off from the scene. Lower the contrast to get the feel right.
+
+**Found:** at night the text needs almost no glass. White ink passes AA at 12–16% on every clear, cloudy and rainy night. G1's slabs came from the **40% night floor** (a design choice) and from `saturate(1.6)`, which lifted the blue land under the cards *above* the page around them. Contrast only costs glass at dusk (18:00–20:00, page L\* 55–65), at dawn, on snow nights, and for the sky text over the moonlit hero cloud.
+
+**G2 material (the same in every section):** the glass is only as strong as the text needs. Night glass = the land's hue under the cards at Y .02 (`#152256` clear night, `#1E263F` twilight), 22% floor (the day glass's strength), `saturate(1)` (reads a little darker than its surroundings, like the reference), faint light edge (inset 10% white hairline). Day glass unchanged (white, ≥ 22%, saturate 1.6, dark ink). Mode = whichever ink needs less glass. Sky text: veil in the same tint only where the floor needs it.
+
+**Board:** `design-prototype/r5b-board.html` (scene renders reused from `g1/`, numbers `g2/measure.json` from `tools/visual-loop/g2.js`, `SATD=` sets the night saturate). One decision, the contrast floor for small text:
+| Floor | Worst small text | Hero number | Dusk 19:45 glass | Night veil |
+|---|---|---|---|---|
+| 4.5 (AA, control) | 4.65 | 4.29 | white 52% | 29–32% |
+| 4.0 | 4.17 | 3.76 | white 44% | 21–24% |
+| 3.5 | 3.69 | 3.38 | white 36% | 11–15% |
+| 3.0 (AA large only) | 3.18 | 3.29 | white 27% | 0–4% |
+Night cards 9.3:1 and the button ≥ 3.32 under every floor. Deep night and day look the same in all four sections.
+
+**Still differs:** dusk 19:45 stays a milky lavender light glass under every floor above 3.0. Twilight and snow nights keep a 19–40% veil behind the sky text: the scene-side fix (dim the hero cloud's lit side after sunset) is still open. Below 4.5, the 12 px secondary text fails WCAG AA at dusk and dawn. This rewrites the brief's "AA measured" rule for those hours: the user's call.
+**Picked (2026-11-22): 3.0.** Encoded as `GlassRule.G2` in `design-prototype/glass-rule.js` (floor 3.0; day glass white ≥ 22% from page L\* 50 up, 27% at L\* 55, 31% at 50; night glass the land's hue, 22%, saturate 1, light edge; nav 55% / 30%). Checked against `g2/measure.json`: mode and strength match all 9 states. G1's navy / smoke / sky options are dropped. Still open: the 19–24% veil behind the sky text at twilight and on snow nights (scene-side fix: dim the hero cloud's lit side after sunset).
+
+## G3 · The sky behind the text after sunset (2026-11-22)
+**Asked:** remove the veil behind the sky text (number, header) that G2 at 3.0 still needed: twilight 20:30 24%, snow night 19%, dawn 05:30 12%.
+
+**Found** (`tools/visual-loop/skyProbe.js`: L\* range under each sky-text rect, no glass): light ink reaches 3:1 only where the sky under it is L\* ≤ 59, dark ink only where it is ≥ 48. After sunset four things broke that, all in the scene:
+- Cloud sky light mixed 55% white at every hour (`ambHi`): the moonlit hero cloud read L\* 61–81 behind the text at twilight and dawn.
+- The key light faded linearly from dusk (I 1.1) to night (I .26): cloud tops stayed sunlit next to sky gaps that were already dark (05:30: L\* 43–79 in one rect, so neither ink passes).
+- Stars at full strength: L\* 70–78 points under the header.
+- Falling snow pure white at night: L\* 96 specks on an L\* 41 sky.
+
+**Changed (scene-gl.js):** `ambHi` white mix × (1 − `AMBN`·night), `AMBN` 1. Key intensity × (1 − `TWI`·sstep(.35, .6, night)·(1 − sstep(.85, 1, night))), `TWI` .9 (`?twi=` to preview; 19:45 is untouched, the sun is still up). Stars × .30 (the reference's "low intensity"). Snow colour `uSnowCol` = white by day, the palette's lit-cloud colour × .6 at night. `glass-check.js`: header rect ends at 245 px, where its text ends (it ran under the button and the moon's starburst). Log weight button: the pale pill `#DCE9F7` failed on the moonlit sky without a veil (2.58), so its light option is now white (`#FFFFFF`, ink `#0B3A66`).
+
+**Measured (floor 3.0, `g2.js` with `OUT=g3 SHOOT=1 FLOORS=3`):** veil 0 in all 9 states (was 24 / 19 / 12 / 4% at twilight / snow / dawn / partly). Worst sky text 3.17 (snow night), number 3.20, cards 3.18 (dusk 19:45), button 3.14. Sweep (`glassNeed.js`, T 3.05): no veil from 20:15 to 06:15; 5–14% left at 20:00 (clear 6, rain 5, partly 14), the minute the ink swaps. Clear night passes even AA 4.5 with no veil (4.61). Pixel diff vs G1 renders: day 13:00 mean 1.0 (noise); changes in the top half at twilight, night and dawn, and the flakes. Load to converged 29.3 s (baseline ~25 s; no new call sites).
+
+**Board:** `design-prototype/r5c-board.html` (before = G2 scene `g1/` + `g2/measure.json` regenerated on the pre-G3 scene; after = `g3/`).
+
+**Still differs:** twilight clouds are greyer and flatter than before (they lost the set sun's glow); the moon's starburst still shows at 20:30. Baked keyframes (`baked/`) are stale for twilight and night hours: rebake before phone tests.
+**Picked (2026-11-22): keep** the greyer twilight clouds (`AMBN` 1, `TWI` .9). Re-baked `baked/today` (`bakeAll.js`): 17 keyframes, 20.2 MB. The twilight dip is not linear in the hour, so 20:30 read 32.7 dB as a blend of 20:00 + 21:00: keyframes 5.5, 20.25 and 20.5 added (`KEYFRAMES`), Cache Storage bumped to `sky-v4`. Baked vs live (`abT.js`): keyframes 47.5–48.8 dB; between them 5:15 44.9, 5:36 41.9, 20:06 39.1, 20:45 44.1.
+
+**G3 phone test** (Galaxy S21, Chrome 157 over adb + DevTools, new `tools/visual-loop/phoneG3.js`; today's bakes, seed 20779; the page set to the app's full-screen 360×800 @2× through DevTools, since Chrome's address bar leaves 360×691 and moves the sky under the text; battery 36.2–36.7 °C, 58–59%):
+- Bakes play at every hour tested: ready 1.8–1.9 s, no GL errors, page 57–60 fps.
+- Sky text with **no veil**, measured on the phone's own canvas at 3:1: pass at 19:45 (dark ink 3.18), 20:15 (light 3.11), 20:30 (4.68), 21:00 (4.04), 23:00 (3.99), 05:15 (3.87), 05:30 (3.08). Fail at 20:00 (best 2.07) and 05:45 (2.85): both are ink-swap minutes, where the rule lays its thin veil (on the PC, 20:00 needed 6% and 05:45 none; the phone's 05:45 plays a blend of the 05:30 and 05:45 bakes).
+- Log weight button ≥ 3.23 at every hour.
+- Measures are approximate: the phone's canvas is 100vh (1712 px, 56 CSS px taller than the view), so the horizon sits ~7% lower in the 412-wide frame than on the PC.
+
+## L1 · A still scene, and the sun's and moon's spikes (2026-11-22)
+**Asked:** two problems with the current UI: the scene moving when the phone tilts feels odd, and the rays from the sun and the moon look bad.
+
+**Tilt:** off. `phone.html` mounts with `tilt: false` (`?tilt=1` brings it back for comparison); no board or other page used it. The four depth slices stay: drift and the bakes use them. CLAUDE.md updated.
+
+**Rays:** the 3.15 starburst (`sunOptics` in FINAL) draws 10 hairline spikes (`pow(cos, 600)`), ~12% of the screen long, plus 10 short ones; the moon got the same at `flare × (1 − .93·night)`, clearly visible at twilight (night .75: 30%). New `?rays=` switch (`SPIKES` in JS, `uSpk`/`uSpkS` in FINAL):
+- **2 · Now:** the 3.15 starburst, unchanged (moon included).
+- **1 · A soft glare** (default for now): a round glow with six broad, short petals (`pow(cos 3θ, 18)`, ~4% of the height, × .30). Reads as glare in the eye, not a camera lens.
+- **0 · B none:** disc, bloom and halo only.
+In A and B the moon has no spikes (`uSpk` × (1 − sstep(.25, .5, night))). Lens ghosts, light shafts and the silver rim are unchanged. Post-pass only (no bake change). Cost: two `pow` per pixel near the sun, same as before.
+
+**Board:** `design-prototype/l1-board.html` (renders `l1/`, from `tools/visual-loop/l1.js`): 09:00, 13:00, 19:00, 19:45, 20:30, 23:00 × the three styles.
+
+**Differs from the reference:** Samsung's sun has 8–12 thin spikes (CLAUDE.md "Light"). A or B departs from it on purpose.
+**Picked (2026-11-22): A · soft glare** (`SPIKES` default 1; `?rays=2` keeps the old starburst for comparison, `?rays=0` none). The moon has no spikes. Phone (S21, `phoneG3.js` at 13:00 and 20:30): soft glare renders, no spikes on sun or moon, no GL errors, 54–60 fps, sky text still passes 3:1 with no veil (6.58 / 4.89). Still on the page by day: the two faint round lens ghosts under the cards (3.15).
+
+## B1 · The weather of the body, and M1 · the mountain range (2026-11-22)
+**Asked:** the body → sky mapping (PLAN-sky section 4, rounds 3.8 sky lab), and "work a bit on the mountains": the shape is wrong, it should be a range rather than two mountains, and the spikes on the right do not look organic.
+
+**B1, mapping** (`design-prototype/body-sky.js`, `BodySky.bodySky(body, hour, SceneGL)`; pure, no state, ports to Kotlin): one layer per signal, thresholds against the person's own normal. Readiness → regime (`SceneGL.weather`, unchanged). Sleep score 78 → 50 or 20 → 100 min under the usual → morning valley fog (05–07 in, thinning from 10:30, gone by noon). HRV under the normal band → cirrus streaks, then a milky veil with a halo. Activity pace (steps against the usual for the hour, or strain) → cumulus build 10–19 h. Skin temp + RHR both up: +0.3 °C / +3 bpm haze; +0.5 °C / +5 bpm likely illness → light rain (D6); likely illness and readiness < 35 → storm (D2). No data → neutral fair. Returns the SkyState, the layer weights, the tap note (D4) and TalkBack text; notes only describe what the sky shows (under rain the HRV note is dropped).
+- Example days (`b1-days.js`, rendered by `tools/visual-loop/b1.js` into `b1/`): good day, short sleep 07:30 and noon, HRV under / well under normal, heavy training 16:00, body under load, likely illness, likely illness with readiness 30, first run. Sky text with no veil 4.06–9.62 (storm lowest).
+- Board `design-prototype/b1-board.html`: mapping table, live sky lab (sliders for hour, readiness, sleep, HRV, steps, skin temp, RHR; example-day buttons; tap the sky for the note; TalkBack text and SkyState readout), the gallery, the mountain before/after.
+
+**M1, mountains** (`tCrest`, `MTN`): the T4/T5 massing (a broad bump plus a narrow second peak, a cos ripple) and its high-frequency ridged detail (`r1²` at 26) made two mountains with needle spikes. Now one long envelope (u 0 → ~.7) carved by a ridged multifractal at 15 (three octaves, each weighted by the coarser one, finer octaves `pow 1.5` so they make shoulders, not needles), warped and varied in height by one slow noise. Snow: an altitude line again (the peaks now differ in height, so the tall ones wear caps and the low ones stay bare), wandering along the range and down the gullies with softer streaks.
+- Compile: the new crest first doubled the load to converged (29 → 57 s). Each layer's crest is now computed once per pixel and passed down (`tCoverC`, `tColor(…, c)`; the two slice loops share one cover pass): ~13 inlined crest copies → 7. One slow noise does warp and height; the fine-noise term is gone. Load **36.6 s** (G3 29.3 s).
+- Re-baked `baked/today` (17 keyframes, 20.5 MB); baked vs live 47.9–48.7 dB. Phone (S21): ready 1.8 s, 60 fps, no GL errors, sky text passes 3:1 with no veil at 13:00 (6.66) and 20:30 (4.83).
+
+**Still differs:** the snow on the main peak keeps a fine vertical streak texture; the storm's bolt is hard to see on stills; "body under load" (haze) is the subtlest state. Thresholds are proposals.
+STOP: waiting for review of the mapping (thresholds, the look of each day) and the range.
+
+## M2 · Rounder summits, a faint tilt (2026-11-22)
+**Asked:** the mountains a little more round; the tilt is still too much (keep it, much smaller).
+- **Summits:** the ridged octaves use a soft |.| (`sqrt(v² + k²) − k`, k .12 / .14 / .11) instead of `abs`, so each summit comes to a soft top rather than a point (a first try at k .17 on the big peaks read as a dome). Shape and snow otherwise as M1. Board `b1-board.html` shows `m1/i-*.png`.
+- **Tilt:** back on in `phone.html` (`?tilt=0` holds it still), AMP `[3, 9, 14, 22]` → **`[1, 3, 5, 7]`** CSS px at full tilt (about a third). CLAUDE.md updated.
+- Re-baked `baked/today` (17 keyframes, 20.6 MB); baked vs live 47.6–48.7 dB. Load to converged 40.6 s (M1 36.6 s; the four `sqrt` and run-to-run spread).
+
+## M3 · A lower, rounder range (2026-11-22)
+**Asked:** still adjust: the range a bit shorter and rounder still.
+- Lower: envelope .078 → **.064** of the screen height; snow line scaled with it (`mtn` .074 → .061), so the caps stay on the tall peaks.
+- Rounder: soft |.| k on the three ridged octaves .12 / .14 / .11 → **.19 / .17 / .15** (`sqrt(v² + k²) − k`).
+- Board `b1-board.html`: the mountain section now shows M2 against M3 (`m1/i-*` vs `m1/k-*`); the gallery re-rendered.
+- Re-baked `baked/today` (17 keyframes, 20.5 MB); baked vs live 47.0–48.7 dB. Phone not re-checked: the S21 disconnected from adb.
+
+## M4 · A narrower range (2026-11-22)
+**Asked:** the range is way too wide; make it 20 percent less wide.
+- Envelope width .46 → **.368** (−20%), centre .32 → .26 so it still starts at the left edge: where the range is a quarter of its height it now ends at u ≈ .69 (was ≈ .86). Peak size and rounding as M3; fewer peaks.
+- Board `b1-board.html`: M3 against M4 (`m1/k-*` vs `m1/l-*`); gallery re-rendered.
+- Re-baked `baked/today` (17 keyframes, 20.3 MB); baked vs live 45.8–48.7 dB. Phone not re-checked (not connected).
+
+## M5 · Layered ridges, after a photo reference (2026-11-22)
+**Asked:** redesign the mountain simply, after a photo of layered blue alpine ridges (far ridges pale into the haze, nearer ones darker, the detail on the crest lines); keep the footprint.
+- Same outline (M4 footprint and crest). Inside it, two lower ridges stand in front (`tColor`, mountain branch): heights .70 and .50 of the massing, soft-ridged with two octaves each, clamped under the outline. Each takes its own distance through the existing `tAir` (far 38 km, mid × .55, near × .35), so the tone steps come from the haze, at every hour and weather, with no new colours. Foot mist and crest light per ridge (crest light on the far ridge only). Snow on the far ridge only; no far sliver under 3 px where a front ridge reaches the outline.
+- Board `b1-board.html`: M4 against M5 (`m1/l-*` vs `m1/p-*`); gallery re-rendered. Load to converged 19.0 s (one run; earlier runs today 36–57 s, so treat as noisy). Re-baked `baked/today` (17 keyframes, 20.3 MB); baked vs live 47.1–48.8 dB. Phone not re-checked (not connected).
+
+## M6 · The range shaped after the photo, no layering (2026-11-22)
+**Asked:** M5 looked very bad: use the reference photo for the shape, discard the layering.
+- M5's front ridges removed. The mountain's massing (`tMass` for the mountain layer) is now five designed peaks, `PEAKS` = [u, height, left slope, right slope] (slopes .24–.50, ~30–48° on this screen), joined by a ridge at half the envelope so it reads as one range: straight flanks, V notches, an uneven main peak centre-left, M4 footprint (u 0 → ~.67, top .064). New uniform `uPk[5]`.
+- `tCrest` adds the photo's broken edge: fine ridged teeth on the crest (amp .0035, freq 70 and 161, none at the foot) and a slow ridged octave that puts shoulders on the flanks (± 12% of the height). Slope light now follows the peaks (lit and shaded flanks). Snow: the altitude line, on the three tall peaks.
+- Board `b1-board.html`: M4 against M6 (`m1/l-*` vs `m1/s-*`). Load to converged 17.1 s. Re-baked `baked/today` (17 keyframes, 20.2 MB); baked vs live 47.8–48.7 dB. Phone not re-checked (not connected). CLAUDE.md terrain note updated.
+
+## M7 · Lower peaks, higher snow line (2026-11-22)
+**Asked:** the peaks a bit too high, the snow line too low.
+- `PEAKS` heights × .85 (main .064 → .054). Snow line `mt.x·(1 − .55·snow)` → `(1 − .40·snow)`: in late November only the main peak's top keeps snow; the season still moves it (deep in winter, gone in summer).
+- Board `b1-board.html`: M6 against M7 (`m1/s-*` vs `m1/t-*`); gallery re-rendered. Re-baked `baked/today`; phone not re-checked (not connected).
+
+## M8 · Mountain removed (2026-11-23)
+
+**Asked:** remove the mountains altogether.
+
+**Changed:** `MTN` dropped from `LAND.layers` in `scene-gl.js` (the shader already loops over `uNL` layers, so the two low ranges become layers 0 and 1; `uLm` is all zero, the peak branch never runs). `MTN` and `PEAKS` are kept in the file, unused, so the M7 range can come back with one line. CLAUDE.md terrain note updated.
+
+**Measured:** shots `m1/u-*.png` (13:00, 18:30, 23:00): only the two long low ranges on the horizon, no seam where the mountain was. Rebaked `baked/today` (17 keyframes, 21.5 MB); baked vs live 47.3–48.3 dB PSNR. B1 gallery re-rendered. Board: `b1-board.html` mountain section shows M7 vs M8.
+
+**Not checked:** phone (not connected), load time.
+
+**Picked (2026-11-23):** keep the horizon without the mountain.
+
+## X1 · Sky transitions (PLAN-sky 3.9, 2026-11-23)
+
+**Asked:** continue the redesign with transitions: how the sky changes when data syncs or the hour moves.
+
+**Built:** `set({ ..., transition: 'fade' | 'front' | 'patches' })` in `scene-gl.js`. On set, the canvas's last frame (it keeps its buffer) is copied into one 8-bit target `RT.o`; after post, one small pass (`XF`) lays it over the new picture with an alpha per pixel. The old picture **holds until the new one is complete** (live: 24 frames converged; baked: both keyframes decoded), so no half-drawn frame shows, then gives way:
+- **A · Fade** 1.8 s, eased.
+- **B · Front** 3.5 s, even pace: the new weather crosses from the left behind a soft, cloud-torn edge (fbm).
+- **C · Patches** 3 s, even pace: the new sky opens in cloud-shaped patches (fbm spread to 0..1).
+- Reduced motion: any style becomes a 1.2 s fade. The hour: `phone.html ?device=1` now sets the clock hour once a minute with a fade (invisible step; hides the live re-accumulation).
+- Cost: one full-screen pass only while a transition runs; one 8-bit canvas-sized target (~3 MB at 824×1830). No shader change to the scene programs (no compile cost).
+
+**Cases** (`x1-cases.js`, from the B1 days through `BodySky`): morning sync (no data → short sleep, 07:30), signs of illness (good → light rain, 13:00), readiness recalculated (61 → 86, 13:00). Frames at 0/25/50/75/100% shot by `tools/visual-loop/x1.js` into `x1/`. First run: front and patches did most of their change between 25 and 50%; retuned to an even pace.
+
+**Measured:** live in the pane, illness case, front: old picture held 2.3 s while the new sky converged, then 3.5 s run, done at 5.4 s. Baked (`phone.html?baked=today&h=13`, 86 → 58): new keyframes decoded in < 0.2 s, run done at 3.6 s. No console errors.
+
+**Not done:** the hero number and the glass do not animate yet (the number swaps at once; the glass follows the palette). Morph (gliding SkyState so clouds really grow and fog really lifts) left out: it re-renders the sky every step, so it is live-only and cannot run on baked phones (API 26–32). Phone not tested (not connected).
+
+**Board:** `x1-board.html` (play each case in each style, frame strips). STOP for the pick.
+
+**Picked (2026-11-23):** A · Fade (1.8 s, eased) for data syncs; the hour tick already uses it. Front and patches stay in `XF` for comparison only.
+
+## S1 · Sleep on the scene (2026-11-23)
+
+**Asked:** continue the redesign with the Sleep screen (second by importance in the brief).
+
+**Shipped today (control):** a graphite Sleep Detail (one night: "You slept", score gauge, stages chart, time in each stage vs normal, "Is this right? Looks right / Edit") and Sleep Trends (duration, bedtime → wake, score, stage mix by week).
+
+**Built:** `s1-board.html`, three directions on the same scene, glass (G2) and type as Today. Same content in all three: duration as the hero (number, word from the sleep score, detail vs usual), the night's stages, time in each stage vs normal, and the times check. Trends continue below the fold (not drawn this round).
+- **A · Last night:** the sky at bedtime (23:10), moon and stars, dark land glass, light ink. Stages as labelled rows (position carries the stage, not colour) with a faint step line.
+- **B · This morning:** the sky at the wake time (06:30). After a short night the valley mist of the body mapping is there too (shown with the `valleyFog` preset), so Sleep and Today show the same morning. Day glass, dark ink.
+- **C · The night drawn:** the night sky with the whole night as one light line across it (low = deep sleep, high = awake), the number smaller; the first screen also holds the last 7 nights.
+
+**Measured** (`g2.js` now takes `STATES` and `RECTS`; renders and values in `s1/`, `s1c/`), floor 3.0, no veil anywhere: bedtime cards 9.21, sky text 4.59, number 4.06; wake 06:30 cards 5.32, sky 7.47; wake with mist cards 5.36, sky 5.43; C's night line over the sky 4.11, its smaller number 4.89.
+- **Found:** with the number as wide as "7h 20m" at 89 px, its box reaches the moon (x ≈ 300) and needs a 37% veil at night. The hero is 72 px here (box to x 260). Also seen: at 02:30 the moonlit cloud is as bright as at 23:00 in this seed; the narrow box clears it.
+
+**Not done:** trends below the fold, the Today ↔ Sleep tab change, very early wake times in B (night sky), phone check (not connected).
+
+**Board:** `s1-board.html`. STOP for the pick.
+
+**Picked (2026-11-23):** A · Last night. Asked for next: an indication of the time in the stages chart (non-intrusive, e.g. hour lines), and switching between nights with back/forward buttons (from C's idea of other nights).
+
+## S2 · Sleep: hours in the night, and other nights (2026-11-23)
+
+**Asked:** A, with a non-intrusive indication of the time in the stages chart (e.g. hour lines), and back/forward buttons to switch nights.
+
+**Built:** `s2-board.html` (A only, the phone is live: tap the buttons).
+- **Hours:** a 1 px line at each full hour (ink at 16%, behind the stage bars) and the hour under it as two digits (00 … 06, 10.5 px, secondary ink). Bedtime and wake stay in the card's corner. The stages card grew 20 px; the stage list below it is 20 px shorter.
+- **Other nights:** back and forward, 48 dp circles at the top right (the slot Today uses for Log weight), ink at 12% with a 28% ring. Forward is dimmed (not hidden) on last night, back on the oldest of 30. An older night takes its date as the title and "N nights ago" in the detail line; every number, the stages, the stage totals vs normal and the times follow it. TalkBack: "Earlier night", "Later night".
+- Prototype data: only last night has stages; older nights are made from it, scaled to each night's real sleep time with a varied bedtime. Last night's wake time now follows its stages (23:10 – 06:52: 7 h 20 m asleep + 22 m awake), not the 06:30 of S1.
+
+**Measured** (floor 3.0, no veil): back/forward icons over the sky 7.93, cards 9.21 (weakest text, the hour labels use it), sky text 4.59, number 4.07. Shots: `tools/visual-loop/s2.js` → `out/s2-last.png`, `s2-back1.png`, `s2-nov4.png`.
+
+**Not done:** the sky does not change between nights (a night's own bedtime sky and seed would come from the renderer), swipe between nights, trends below the fold, phone check.
+
+**Board:** `s2-board.html`. STOP.
+
+**Feedback (2026-11-23):** hour lines and night buttons approved; the faint line joining the stage bars removed (bars only).
+
+## S3 · Sleep: trends below the fold (2026-11-23)
+
+**Asked:** design the trends below the fold of the Sleep tab.
+
+**Built:** `s3-board.html` (A from S2; both phones scroll and work). The scene scrolls away; the page keeps its night colour under the cards (sampled from the scene's bottom row, #0E1A55-ish). Under "Last 30 nights", four glass cards in the same ink, each replacing a shipped Sleep Trends chart:
+- **Sleep:** 30 bars from 4 h, hour grid 5–8 h, your normal as a faint band (mean ± 1 sd), usual in the header.
+- **Bedtime and wake:** one bar per night from falling asleep to waking, on a clock 22:00 → 09:00. Nights asleep after midnight are **hollow** (outline), not red as shipped, and the header counts them: shape carries the meaning, not colour.
+- **Sleep score:** 30 bars from 40, normal band.
+- **Stages by week:** four weeks, deep / REM / light as one segmented bar each (ink strength by stage), the shares written above.
+- **One selection:** the night shown above is the bright bar in every chart and its week the bright row. Tap a night in any chart to open it (tested: tapping 4 Nov opens it and moves every highlight); back/forward move it too. Charts are hidden from TalkBack; each gets a one-line text summary when built.
+
+**Measured** (ink over the glass on the sampled page colour, sRGB blending as CSS): night shown 14.36, other nights and the hollow outline 5.24, weakest stage segment 3.33 (first try 2.67 failed: light segment raised .40 → .46, other weeks dimmed .85 not .80), secondary text 9.84; grid lines 1.59 and the band 1.32 are decoration. Shots: `tools/visual-loop/s3.js` → `out/s3-full.png`, `s3-trends.png`, `s3-trends-nov4.png`.
+
+**Prototype data:** older nights' bedtimes spread wider (±70 min) so late nights occur (10 of 30). Bars are 9.8 px wide: the tap target is the chart column; a list view for TalkBack and larger targets is for the build.
+
+**Not done:** phone check, the Trends tab itself (the shipped Trends now overlaps this), swipe between nights.
+
+**Board:** `s3-board.html`. STOP.
+
+## S4 · Sleep: easier trends (2026-11-23)
+
+**Asked:** the bedtime/wake and sleep charts were hard to read; make sleep a graph instead of columns; bedtime and wake can stay or be redesigned.
+
+**Built:** `s4-board.html` (two scrolled phones, A and B, both live).
+- **Sleep:** one 2 px line through the 30 nights, a dot and a dotted guide on the night shown, the normal band behind. Scale 5 h 30 → 8 h 30 (the range the nights use; first try 4 → 9 h left the bottom half empty).
+- **Bedtime and wake, A · Two lines:** falling asleep and waking as two lines on a clock 21:30 → 09:00, the night filled faintly between them, nights asleep after midnight as hollow dots on the bedtime line (counted in the header), dots on both lines for the night shown, "asleep" / "awake" at the right end.
+- **Bedtime and wake, B · Bars:** S3 unchanged, for comparison.
+- Score and stages by week unchanged.
+
+**Measured** (ink over the glass on the page): lines and dots 11.82, secondary text 9.84, other-night bars 5.24, weakest stage segment 3.33; grid 1.59, night fill 1.59, band 1.32 are decoration. Tap to open still works (tested on 4 Nov: the dots and guides move to it). Shots: `tools/visual-loop/s4.js` → `out/s4-a.png`, `s4-b.png`, `s4-a-nov4.png`.
+
+**Board:** `s4-board.html`. STOP for the pick (A two lines / B bars).
+
+**Picked (2026-11-23):** B · Bars for bedtime and wake (S3 bars, late nights hollow), with sleep as the S4 line. Score and stages by week as S3. The Sleep tab is: last night (S2) + these trends (`s4-board.html`, phone B).
+
+## TR1 · Trends on the scene (2026-11-23)
+
+**Asked:** push, then continue to the Trends tab.
+
+**Shipped today (control):** graphite list, one row per metric (HRV, resting HR, sleep, readiness, steps, strain, blood oxygen, skin temp, then weight) with a 30-day sparkline; today's value in red when outside normal; Calendar button; each row opens the metric detail.
+
+**Built:** `tr1-board.html`, three layouts on the same sky as Today at this hour (15:10, fair), G2 day glass. Common: header "Trends · Last 30 days · against your normal", Calendar as Today's top-right button, and in the hero's place a **count**: "5 of 8 within your normal", then which are outside. Outside normal is a word ("Above normal", "Ahead of your pace") plus a ring round today's dot, never colour alone. Steps are judged against the usual pace for the hour (brief rule), so 8,420 at 15:10 is "ahead of your pace". The Sleep row opens the Sleep tab (its charts are not drawn twice).
+- **A · List:** the shipped list on one glass panel, 56 dp rows: name, value (+ the word when outside), 30-day line with the normal band, chevron.
+- **B · Tiles:** a 2-column grid of 8 tiles (value large, line under it, a short tag when outside); everything above the nav.
+- **C · Outside first:** each metric outside normal as a card with its normal written out and a full 30-day line (days outside the band as hollow dots); the rest in a compact "Within your normal" list below (below the fold with three outside).
+
+**Measured** (`g2.js` on `tr1/day1510.png`, floor 3.0): card text 5.57, sky text 6.85, number 7.04, Calendar button from the G2 rule, no veil; marks over the glass on the worst page band: lines, dots and rings 6.18, hollow dots 8.75; dividers and the band 1.19 (decoration). Shots: `tools/visual-loop/tr1.js` → `out/tr1-0..2.png`.
+
+**Not done:** weight (no prototype data yet), the metric detail and Calendar, night state, phone check.
+
+**Board:** `tr1-board.html`. STOP for the pick.
+
+**Picked (2026-11-23):** A · List, with colour added for good or bad when a metric strays from your normal (the word stays: colour never alone).
+
+## TR2 · Trends list with good and bad (2026-11-23)
+
+**Asked:** the list (A), with some colour to show good or bad when a metric strays from baseline.
+
+**Built:** `tr2-board.html`. Per metric, a direction sense: good = HRV up, resting HR down, more sleep, readiness up, steps ahead of pace; bad = the opposite, skin temperature up, blood oxygen down; neither = strain (stays in ink, word only). When a metric is outside its normal, the colour goes on the arrow + word ("↑ Above normal"), today's dot and its ring, and a 3 px bar at the row's left edge. The hero says it in words ("… better than usual", "… need a look"; past three, "6 numbers need a look today"). Colour is never alone: the arrow and word carry the meaning.
+- Colours per glass: day green `#17703C`, coral `#B23A2E`; night green `#7BE3A4`, coral `#FFA095`.
+- Shown on today at 15:10 (three changes, all good) and on 4 Nov, a poor day, at 23:10 on night glass (six bad, strain neither).
+
+**Measured** (colour against the card on the worst page band, floor 3.0): day good 3.66, day bad 3.54, night good 8.78, night bad 7.04. Shots: `tools/visual-loop/tr2.js` → `out/tr2-0.png`, `tr2-1.png`.
+
+**Board:** `tr2-board.html`. STOP.
+
+**Approved (2026-11-23):** the good/bad colour as built.
+
+## CO1 · Coach on the scene (2026-11-23)
+
+**Asked:** commit Trends, then the Coach tab.
+
+**Shipped today (control):** graphite chat: header with a recovery chip, three suggested questions, a text field with Ask, answers of three lines at most grounded in your own normal, and "Ask in Claude Pro App ($0 API)" which copies 14 days of metrics into the Claude app.
+
+**Built:** `co1-board.html`, on the same sky as Today at 15:10 (G2 day glass). In the hero's place: **the coach's read of today in one sentence** ("A good day to train hard.", 36 px light) and the numbers it rests on under it. Every answer ends with a line naming its source ("From HRV and readiness, this morning"). Your questions are blue bubbles (the action colour), the coach's are glass. The handoff stays as a quiet link ("Ask in the Claude app ↗ copies your last 14 days").
+- **A · Chat on the sky:** the conversation under the horizon, chips and the field docked above the nav.
+- **B · Briefing, then a sheet:** opens on "Today's read" (readiness, HRV, sleep with their comparison) and the questions as chips; asking raises a glass sheet over the sky holding the conversation, with the read kept small above it.
+
+**Measured** (`g2.js`, `co1/measure.json`, floor 3.0, no veil): sky text incl. the sentence over the sun's glare 6.85; glass text 5.57 below the horizon and 3.74 where B's sheet covers the land and water (same 22% glass); send button from the G2 rule. Shots: `tools/visual-loop/co1.js` → `out/co1-0..2.png`.
+
+**Not done:** night state, typing/keyboard state, error and offline states, phone check.
+
+**Board:** `co1-board.html`. STOP for the pick.
+
+**Picked (2026-11-23):** A · Chat on the sky.
+
+## SE1 · Settings on the scene (2026-11-23)
+
+**Asked:** commit Coach, then Settings.
+
+**Shipped today (control):** a long graphite page: Profile (name, height, weight), Band (status, battery, background sync, Pair as companion, Sync now, Forget band), Backup to home server, Recent syncs, Units, Data (export), Morning summary, Bedtime reminder, About.
+
+**Built:** `se1-board.html`, same sky (15:10) and G2 day glass. Every setting kept, grouped (Band, You, Reminders, Data; About follows), rows ≥ 48 dp, Forget band last in its group and asks first. **Placement:** the new nav has four tabs (Today, Sleep, Trends, Coach), so Settings is no longer a tab; proposed: a gear at the top of Today opens it as a page with a back arrow (drawn here, no tab lit). The prototype uses a placeholder name.
+- **A · Band as the hero:** battery "61%", "Band connected", last and next sync; Sync now as the top-right button; groups under the horizon, scrolling.
+- **B · List over the sky:** no hero; the grouped list starts under the header over the sky, the band row holding battery and Sync now; four groups on the first screen.
+
+**Measured** (`g2.js`, `se1/measure.json`, floor 3.0, no veil): glass text 3.75 at its weakest (B's cards over the sky and the tree crown, 22% glass), sky text 6.83, number 7.04, Sync now vs sky 3.54. Shots: `tools/visual-loop/se1.js` → `out/se1-0.png`, `se1-1.png`.
+
+**Not done:** band disconnected / low battery hero states (A), the gear on Today, night state, phone check.
+
+**Board:** `se1-board.html`. STOP for the pick.
+
+**Picked (2026-11-23):** A · Band as the hero (Settings opened from a gear on Today).
+
+## MC1 · Morning check on the scene (2026-11-23)
+
+**Asked:** design the Morning check screen (last in the brief's order).
+
+**Shipped today (control):** graphite flow: Intro ("Lie still, 60 seconds", Begin), Measuring (countdown ring, live HR), Result (updated recovery gauge, HRV and resting HR with chips, Done), plus "Couldn't save" and "Check failed".
+
+**Built:** `mc1-board.html`, the 07:10 sky (renders in `mc1/`), G2 day glass, three steps per direction. Tied to the scene: the check updates readiness (78 from last night → 82 with this morning's HRV), so the sky goes from partly cloudy to fair with the X1 fade, and the result says it in words ("78 → 82"). No ring, no gauge.
+- **A · The check on the sky:** its own page with ✕; the hero is the countdown ("60 s · Lie still", then "42 s · Keep still"), the 60 s run as a 3 px line along the shore; live heart trace in a glass card; result leads with HRV ("64 ms · Above your normal"), then readiness and HRV against the normal band.
+- **B · A sheet over Today:** Today stays; a glass sheet rises with Begin / Not now, holds the countdown, progress and trace, then lowers while Today's own hero changes 78 → 82.
+
+**Measured** (`g2.js`, `mc1/measure.json`, floor 3.0, no veil): glass text 5.45 (partly and fair, incl. B's sheet over land and water), sky text 6.58 / 7.28, hero number 5.69 / 7.62. Shots: `tools/visual-loop/mc1.js` → `out/mc1-0..5.png`.
+
+**Not done:** failed and couldn't-save states, the entry point on Today, night/early-dark mornings, phone check.
+
+**Board:** `mc1-board.html`. STOP for the pick.
+
+**Picked (2026-11-23):** B · A sheet over Today (the check rises over Today; Today's own hero changes 78 → 82 as the sky clears).
+
+## MC2 · Morning check: the rest of B (2026-11-23)
+
+**Asked:** continue with B (the sheet over Today).
+
+**Built:** `mc2-board.html`, nine phones; Today's cards now drawn behind the sheet. Rule: readiness and the sky change only when a check is **saved**; a failed or unsaved check leaves 78 and the partly cloudy sky, and says so.
+- **Starting it from Today (pick one):** E1 · a card on the lip ("Morning check · 60 s lying still · updates readiness", Begin; the cards below move down 76 px) or E2 · a blue button under the hero ("Morning check · 60 s"). Before the check the header line reads "Morning check not done"; after it, "✓ Morning check 07:11 · HRV 64 ms ›", which reopens the result (Redo there), and the entry is gone until tomorrow.
+- **When it goes wrong:** "No clean reading" (cause, how to wear the band, readiness stays 78; Try again / Not now), "Measured, not saved" (keeps 64 ms, no need to measure again; Retry save / Later: retry on the next sync, new behaviour: shipped forgets it on Done), "Band not found" (before it starts).
+- **Before sunrise, 05:20:** the same sheet on night glass (land tint, light ink, white button); measuring, result (78 → 82, the low cloud clears from the night sky), and Today after.
+
+**Measured** (`g2.js`; 07:10 from `mc1/`, 05:20 in `mc2/measure.json`, floor 3.0, no veil): day glass text 5.45, sky 6.58, number 5.69; night glass text 5.69–5.76, sky 4.53–4.57, number 5.12–5.14. Measured on the scene alone; the cards behind the sheet only add glass under it. Shots: `tools/visual-loop/mc2.js` → `out/mc2-0..8.png`.
+
+**Not done:** phone check; the result reopened from the header (with Redo); TalkBack labels for the live trace.
+
+**Board:** `mc2-board.html`. STOP for the entry pick (E1 / E2).
+
+**Picked (2026-11-23):** E1 · the card on the lip (Begin), until the check is saved; then the header line holds it.
+
+## WT1 · Log weight (2026-11-23)
+
+**Asked:** design Log weight (one tap from Today, per the brief).
+
+**Shipped today (control):** graphite bottom sheet: decimal field prefilled with the last weight and selected, unit suffix, Date button (any day in the series), "Replaces 64.2 kg" + Update when the day has an entry, range check 30–300 kg, save error with Retry, "Saved … · Undo" snackbar.
+
+**Built:** `wt1-board.html`, a glass sheet over Today at 07:15 (after the morning check, `wt1/am0715f.png`), every shipped rule kept.
+- **A · Type it:** the shipped field with the system number keyboard; Date chip and Save in one row above the keyboard. Earlier day: the prefill selected, "Replaces 64.2 kg, logged on 17 Nov", Update.
+- **B · Nudge it:** no keyboard; opens on the last weight; drag a ruler (0.1 kg ticks) or − / + (48 dp); the change since last time shows as you move ("−0.3 since 17 Nov"); tap the number to type it (A's keyboard).
+- **After saving (both):** a solid-ink snackbar "Saved 63.9 kg for 23 Nov · Undo" (glass melted into the cards under it), and Today's top-right button shows "✓ 63.9 kg" for the rest of the day (tap to change).
+
+**Measured** (`g2.js`, `wt1/measure.json`, floor 3.0, no veil): sheet glass text 3.79 at its weakest (the taller sheet reaches the land and water), sky text 7.13, number 7.55; snackbar white on #0E2A43 at 94%.
+
+**Not done:** night state, lb, the range error and save-error states drawn, phone check.
+
+**Board:** `wt1-board.html`. STOP for the pick.
+
+**Picked (2026-11-23):** B · Nudge it (ruler and − / +, tap the number to type), with the solid snackbar and the "✓ 63.9 kg" button after saving.
+
+## MD1 · A metric's page, and the Calendar (2026-11-23)
+
+**Asked:** continue (open items after Log weight: the Trends metric page and Calendar).
+
+**Shipped today (control):** metric detail: back and name; hero card (today's value, Normal chip, insight chip); Week / Month / 3M / Year; chart card (picked day's value and chip, smoothed line, daily dots, outliers, tap to pick); how the score is made (score metrics); 30-day average. Calendar: a 14-day grid with a coloured dot per day; tap opens that day's Today.
+
+**Built:** `md1-board.html`, HRV on today's sky (15:10, `md1/day1510.png`), G2 day glass, TR2 good/bad colours (with arrow and word). Data: last 30 days of `data.js` (today 64 ms, normal 55–63).
+- **A · Chart in a card:** hero = today's value and word; range control in glass; one chart card with a light grid (labels outside the plot), band = your normal, 3-day line, daily dots, days outside ringed in their colour; picking a past day adds "Open 4 Nov". The About card did not fit above the nav and is dropped (the shipped page has none).
+- **B · The line on the sky:** the 30 days drawn under the number on the sky itself (x 22–236, clear of the trees), band and ringed outliers; cards hold the picked day ("lowest in 30 days", Open 4 Nov), the average and About HRV.
+- **Calendar:** a month sheet over Trends; each day carries its sky as the week-strip glyph from its readiness (sun 80+, sun and cloud 65–79, cloud 50–64, grey cloud under 50); shape carries it, not colour. Tapping a day opens it in Today's layout under its own sky (4 Nov = stratocumulus, `md1/nov4.png`) with "Back to today".
+
+**Measured** (`g2.js`, `md1/measure.json`, floor 3.0, no veil): glass text 3.75 (sheet reaching the land), sky text incl. B's line 5.55, number 7.04; past day (stratocumulus) glass 3.29, sky 5.07.
+
+**Found:** `data.js` ends on 12 Nov while the other screens say 23 Nov; the Calendar follows the data.
+
+**Not done:** Week / 3M / Year ranges drawn, other metrics (score metrics' "how it's made", weight with Log), night state, phone check.
+
+**Board:** `md1-board.html`. STOP for the pick (A / B; the Calendar is one proposal).
+
+**Picked (2026-11-23):** A · Chart in a card, with a Today range added to Week / Month / 3M / Year.
+
+## MD2 · A metric's page: Today to Year (2026-11-23)
+
+**Asked:** A (chart in a card), and add a Today range to Week / Month / 3M / Year.
+
+**Found:** the band measures HRV (and HR, SpO2, temperature) on the sync interval (30 min, `buildSetAutoIntervalFrame`); a day's HRV is the mean of that day's readings (`DailySeriesRepository`), the morning check when there is one. So a Today range can show the readings themselves.
+
+**Built:** `md2-board.html`, five phones (one per range), same page and sky (15:10). The range control has five segments (76 px each, ≥ 48 dp); the hero stays today's value in every range, the chart card and the average card change.
+- **Today:** the readings every 30 min from midnight to now (prototype data), asleep shaded (runs higher), the morning check as a marked dot ("check 64", used for readiness), the rest of the day faded after a "now" line; average so far in the header; "Asleep and awake" averages below. No single reading is marked outside normal: the normal is for the day's value (said on the card).
+- **Week:** raw daily values with each day's number over its dot (shipped: no smoothing); 7-day average and how many days were outside normal.
+- **Month:** MD1 A (3-day average).
+- **3M:** 90 days, 7-day average, month labels; only days outside normal get a ring.
+- **Year:** weekly averages placed on the year (J–D), the months before the band started shaded "no data yet"; "Average this year, since 15 Aug".
+
+**Measured:** as MD1 (`md1/measure.json`): glass text 3.75, sky 5.55, number 7.04; green / coral on the card 3.66 / 3.54 (TR2). Shots: `tools/visual-loop/md2.js` → `out/md2-0..4.png`.
+
+**Not done:** other metrics (score metrics' "how it's made", weight with its Log button, skin temperature as a difference), night state, phone check. The Calendar (MD1) is still unanswered.
+
+**Board:** `md2-board.html`. STOP.
+
+**Approved (2026-11-23):** the five ranges as built.
+
+**Calendar (MD1) approved (2026-11-23):** the month sheet over Trends with each day's sky glyph; a tapped day opens under its own sky with "Back to today".
+
+## NT1 · The new screens at night (2026-11-23)
+
+**Asked:** continue (open item: night versions of the screens drawn by day only).
+
+**Built:** `night.js` (shared): any of `co1`, `se1`, `wt1`, `md2` boards opened with `?night=1` draws its screen at 23:10 (fair, `nt1/night.png`) on G2 night glass: land hue #152256 at 22%, saturate 1, faint light edge, light ink, white buttons with dark ink, TR2 night green/coral. Day versions are unchanged (shots byte-identical). `nt1-board.html` shows the picked designs at night: Coach (CO1 A), Settings (SE1 A), Log weight (WT1 B) and after saving, HRV Today and Month (MD2). Shots: `tools/visual-loop/nt1.js` → `design-prototype/nt1/*.png`.
+- Settings' on-toggles take a lighter blue (#5B8FD6) at night (the button colour is white there); the weight snackbar turns light; the metric page's "after now" slab darkens instead of lightening.
+
+**Measured** (`g2.js`, `nt1/measure.json`, floor 3.0; rects = all four screens' cards, sheets and nav): glass text 6.96, sky text and numbers 4.11 with no veil, white button 8.62.
+- **Found:** with Coach's sentence box out to x 380 the moon falls inside it and the sky text needs a 37% veil (3.36). Sky text kept left of the moon (x ≤ 262, as S1) needs none. Rule: at night all sky text boxes end at x 262 (`SKY_RIGHT`); Coach's sentence wraps to two lines, Settings' detail line is shortened.
+
+**Not done:** Coach's line at night still reads as a day plan ("A good day to train hard"); dusk and dawn states of these screens; phone check.
+
+**Board:** `nt1-board.html`. STOP.
+
+**Approved (2026-11-23):** the night versions as built, with the x 262 rule for sky text at night.
+
+## MD3 · Three more metrics (2026-11-23)
+
+**Asked:** continue (open item: the other metrics' pages).
+
+**Built:** `md3-board.html`, the approved page (MD1 A + MD2 ranges, Month shown) for metrics that work differently from HRV; also opens with `?night=1`.
+- **Readiness** (a score): hero 86 with "↑ Above normal" and the normal 72–85; a shorter month chart (30-day average in its header); "How today's 86 is made": the shipped parts (`readinessParts`: HRV vs your average 40%, resting HR 25%, sleep 25%, blood oxygen and skin temp 10%) as one bar split by points (34 / 22 / 21 / 9, the shipped `shownPoints` rounding), ink strength per part and every part named with its reading.
+- **Weight** (logged): no band and no good/bad; entries as dots with a 7-day average through them; hero "63.9 kg · −0.9 kg since 14 Oct · Latest today 07:15"; the top-right button is WT1's ("✓ 63.9 kg"); the picked day shows Edit · Delete on an entry, "No entry · Log" otherwise (as shipped `WeightDayActions`); 30-day average "used for calories".
+- **Skin temperature** (a difference): hero "+0.1 °C · Near your average · 36.4 °C vs your average 36.3"; bars up and down from zero per night, band ±0.3, a night outside it hollow in coral either way (closer to zero is better); a card "Not core body temperature" that ties a rise with resting HR to the hazy sky (D6).
+
+**Measured:** as MD1 (glass 3.75, sky 5.55, number 7.04); part swatches are decoration (every part is named). Shots: `tools/visual-loop/md3.js` → `out/md3-0..3.png`.
+
+**Not done:** Daily score, Recovery and Sleep score pages (same pattern as Readiness), steps against pace, blood oxygen; phone check.
+
+**Board:** `md3-board.html`. STOP.
+
+**Approved (2026-11-23):** the three pages as built (Readiness with its parts, Weight, Skin temperature).
+
+## CO2 · Coach through the day (2026-11-23)
+
+**Asked:** continue (open item: Coach's line at night still read as a day plan). Phone not connected (adb lists no device), so the device check waits.
+
+**Built:** `co2-board.html`, CO1 A at four hours, each on its own sky and glass (07:15 `co2/am0715.png`, 15:10 `tr1/day1510.png`, 19:45 `co2/dusk1945.png`, 23:10 `nt1/night.png`). The read, its detail, the opening exchange and the two chips follow the hour:
+- 07:15 the plan: "A good day to train hard." (readiness, HRV).
+- 15:10 progress: "Ahead of your usual day. Keep it going." (steps by now, strain vs usual).
+- 19:45 recovery: "A hard day done. Ease off from here." "Will I recover by tomorrow?" answered from strain, HRV and usual sleep.
+- 23:10 bedtime: "Bed by 23:30 tonight." (usual sleep time); "How did today go?". First try ran to three lines left of the moon; rule: the read is one sentence, at most two lines.
+
+**Measured** (`g2.js`, `co2/measure.json`, floor 3.0, no veil): 07:15 glass 5.66, sky 7.14; 19:45 white glass at 26%, glass text 3.16, sky 3.33 (dark ink; the send button and your bubbles are white at dusk, by the G2 button rule); 23:10 as NT1 (glass 6.96, sky 4.11 with the sentence left of the moon).
+
+**Not done:** the rules that pick the line (thresholds, what counts as "ahead"), a poor day's lines, phone check.
+
+**Board:** `co2-board.html`. STOP.
+
+**Approved (2026-11-23):** the read following the hour, as built.
+
+## MD4 · The last metrics (2026-11-23)
+
+**Asked:** continue (open item: Daily score, Recovery, Sleep score, steps against your pace, blood oxygen).
+
+**Found (shipped):** Daily score = readiness 42% + sleep score 36% + strain 22% (`dailyParts`); Recovery = HRV × 0.92 + (90 − resting HR) × 0.72, today's values only (`recoveryParts`), not against your averages; Sleep score = duration 40% (full at 7h 30m), deep + REM share 20% (full at 38%), efficiency 10%, regular timing 15%, asleep by 02:00 15% (`sleepScoreParts`, staged night; capped at 70 when asleep after 03:00). A metric's normal is the 30 days before today, mean ± max(sd, floor): scores ± 3, SpO2 ± 1, steps ± 10% of the mean (`MetricInsights.baseline`). No step goal or pace exists in the app; the band stores step records with times, so "usual by this hour" can be built from them.
+
+**Built:** `md4-board.html` (also `?night=1`), six phones on the MD2 page:
+- **Daily score, Recovery, Sleep score:** Readiness's pattern (MD3): month with your normal, then "How today's N is made", one bar split by points (shipped `shownPoints` rounding) and a row per part with its reading. Daily score notes that strain still adds through the day. Recovery says why it can differ from Readiness. Sleep score's chart is shorter (60 px) so its five parts fit above the nav.
+- **Steps, Today** (opens here): the running total against your usual day by the hour (dotted, with a band for most of your days), "now", and the rest of today drawn as usual: "about 9,600". Hero "5,370 steps · ↑ Ahead of usual · Usually 4,100 by 15:10 · 1,270 ahead". At night the clock is 23:10 and the projection label is dropped (the day is done).
+- **Steps, Month:** full days as bars with your normal; today as a solid "so far" bar inside a dashed outline to the projection.
+- **Blood oxygen, 3M** (low nights are rare; none in the last 30 days): 7-day average, your normal as the band, the 95% line Today's alert uses; only nights under 95% are ringed (the ± 1 band alone ringed 15 nights at 96%, noise). The 93% night is picked with "Open 6 Oct" and that skin temp and resting HR were up too.
+
+**Measured:** same layout and screen areas as MD1/MD3, so the MD1 and NT1 measures hold (not re-run): day glass 3.75, sky 5.55, number 7.04; night glass 6.96, sky 4.11 (sky text kept left of the moon). Green today line and coral 95% line are non-text and always named in words.
+
+**Found:** `data.js` sets today's Daily score to 84 by hand; the shipped parts give 83 (86 × .42 + 82 × .36 + 78 × .22), so the page shows 83. Last night's sleep parts (27% deep + REM, 85% efficiency, midpoint 2h 06m late, asleep 00:40) are made up to give the data's 82.
+
+**Not done:** dusk/dawn versions of these and the earlier new screens; the steps-by-hour curve from real step records; phone check (no device on adb).
+
+**Board:** `md4-board.html`. STOP.
+
+**Approved (2026-11-23):** the five pages as built (Daily score, Recovery, Sleep score with their parts; Steps against your usual pace, Today and Month; Blood oxygen on 3M with the 95% line).
+
+## DD1 · The new screens at dawn and dusk (2026-11-23)
+
+**Asked:** continue with dusk and dawn (open item: Settings, Log weight and the metric pages were drawn by day and at night only).
+
+**Built:** `night.js` takes `?t=dawn` (06:30, the dawn keyframe) or `?t=dusk` (19:45, Coach's dusk in CO2) besides `?night=1`; `se1`, `wt1`, `md2`, `md3`, `md4` boards follow it. `dd1-board.html` shows Settings, Log weight (and after saving), HRV Month, Readiness, Steps Today and Blood oxygen at both hours; shots `tools/visual-loop/dd1.js` → `design-prototype/dd1/<t>-<name>.png`. Day shots and the other night shots are byte-identical to before; `nt1/settings.png` is re-shot for the sync times.
+- **Glass:** both hours keep the white day glass and dark ink. `g2.js` gained `MODE=light|dark` (force the glass) and records `needLight` / `needDark`; over all three screens' glass areas (x 12–400, y 286–851, and the nav) dusk needs 32% either way, so the day look wins: dawn 22%, dusk 34%.
+- **Buttons:** the button over the sky follows the measured sky button (dawn blue, dusk white with dark ink); buttons and toggles on the glass stay blue. Before, Settings' toggle went white at dusk and Log weight's header button stayed blue.
+- **Good/bad words at dusk:** TR2's green and coral fell to 2.35 / 2.27 on the dusk card, so dusk uses `#0E5A2C` / `#8A2A20`; dawn keeps the day pair.
+- **Hour fixes:** Log weight's morning check reads 06:24 at dawn (it said 07:11, after the clock); Steps before the day has started (usual by now under 500) says "Your day is starting · A full day is usually 8,400" and "too early to compare" instead of "Usually 0 · Ahead of usual"; Settings' "Last" and "Synced" times follow the hour (they said 15:02 at every hour, at night too).
+
+**Measured** (`dd1/measure.json`, floor 3.0, no veil): dawn glass 3.49, sky 7.46, number 7.59, blue button 3.23, green / coral 3.74 / 3.61; dusk glass 3.18, sky 3.88, number 3.33, white button 3.14, green / coral 3.19 / 3.30.
+
+**Open:** Coach at dusk uses 26% (CO2, measured over its own layout) and these screens 34%: one value for the hour would look the same across tabs. Phone check.
+
+**Board:** `dd1-board.html`. STOP.
+
+**Approved (2026-11-23):** dawn and dusk as built (white day glass with dark ink at both hours; dusk 34%, white buttons over the sky, darker green and coral).
+
+## CO3 · Coach's dusk glass (2026-11-23)
+
+**Asked:** Coach dusk glass (open item from DD1: Coach at 19:45 used 26% white, the other screens 34%).
+
+**Changed:** `co2-board.html` draws Coach at 19:45 on 34% white glass, as every other screen at that hour (DD1); dark ink, white send button and your white bubbles as before. Other hours unchanged.
+
+**Measured** (`g2.js` now takes `ALPHA=` to measure a set strength; `MODE=light ALPHA=.34`, dusk 19:45, the whole chat glass x 12–400, y 236–839, and the nav, floor 3.0): glass text 3.19 (was 3.16 at 26% over CO2's smaller areas; over the whole chat glass it needs 32%), primary 5.06, nav 3.29, sky text 3.37 (unchanged), white send button vs sky 3.13.
+
+**Shots:** `tools/visual-loop/co2.js` → `out/co2-2.png` (before / after with Settings and HRV at dusk: `out/co3-sheet.png`).
+
+**Board:** `co2-board.html`. STOP.
+
+**Approved (2026-11-23):** Coach at dusk on 34% white glass, one strength for every screen at that hour.
+
+## PH1 · The new screens on the phone (2026-11-23)
+
+**Asked:** phone check (open since CO1: none of the new screens had been seen on the Galaxy S21).
+
+**How:** `night.js` takes `?solo=N`: only that board's Nth phone, fitted to the device (`min(width/412, height/915)`; Chrome's address bar stays, so the screen shows at about 85% of the size the app would have full screen). `tools/visual-loop/ph1.js` opens each view in Chrome over adb (`adb reverse tcp:8765`) and takes a device screenshot: Coach at 07:15 / 19:45 / 23:10, Settings day / dusk / night, Log weight day / dawn, Readiness, Steps day / dusk, Blood oxygen at night → `out/ph1-*.png`, sheet `out/ph1-sheet.png`.
+
+**Seen on the device:** the glass blur, the white frost by day, the lilac glass at dusk and the land-hued glass at night render as on the PC; text over the sky and on the glass reads at every hour; the white buttons at dusk and night hold against the sky. The scene here is the saved render (static), not the live renderer, so this says nothing new about frame cost.
+
+**Fixed:** Steps at dusk: "now" sat under "about 9,600" at the top of the chart; after 17:00 "now" goes left of its line (day shot unchanged).
+
+**Found for lock:** chart legends and card footnotes are 11–11.5 px on a 412 px mock, about 10 dp on the S21 and below 9 dp in this check; they read, but only just. At lock, no text under 12 sp.
+
+**Note:** each view opened a new Chrome tab on the phone (13 tabs).
+
+**Board:** `out/ph1-sheet.png`. STOP.
+
+**Approved (2026-11-23):** the phone check as done; at lock, no text under 12 sp.
+
+**Gaps (2026-11-23, after the phone check):** the last card on Steps sat 3 px *under* the chart card and on Blood oxygen 9 px under it; the other metric pages ran 7–23 px apart. The cards under the range control now stack at the standard 12 px on every metric page (`stackCards()` in `night.js`, MD2–MD4 boards, the app's Column spacedBy 12 dp); all end above the nav (lowest 835). Re-shot: MD2–MD4, `nt1/metric-*.png`, `dd1/*-{metric-month,readiness,steps,spo2}.png`, phone Steps and Blood oxygen.
+
+## UH1 · Unhappy states (2026-11-23)
+
+**Asked:** the unhappy states (open since SE1, CO1, WT1, MD1: errors, offline, a disconnected or low band).
+
+**Found (shipped words):** sync pill `Band not found · Retry`, `Couldn't connect · Retry`, `Sync incomplete · Retry`, `Bluetooth off · Turn on`, `Allow Bluetooth`, stale after 6 h `Last sync … ago`; battery low under 20% ("charge your band"); Coach `Coach is offline, so here are your numbers.`; weight `Enter 30.0 to 300.0 kg`, `Couldn't save 63.9 kg for 23 Nov`, `Couldn't delete · Retry`; a metric's normal needs 7 days with data (`MIN_BASELINE_DAYS`). The morning check's failed / unsaved / no-band sheets were already drawn in MC2.
+
+**Built:** every board opens its unhappy states with `?uh=1` (also `&t=night`); approved views are unchanged. Shots `tools/visual-loop/uh1.js` → `out/uh1-{day,night}-0..7.png`, sheet `out/uh1-sheet.png`.
+- **Settings (`se1-board.html?uh=1`):** the hero carries the band's state: *Band not found* (battery when last seen, Retry), *Bluetooth is off* (Turn on), *Charge your band* (14%, Sync now). The Recent syncs row says the same.
+- **Today and Log weight (`wt1-board.html?uh=1`):** a failed sync puts one glass card on the lip (Band not found · last synced 13:40 · Retry) and the tiles move down 76 px, the numbers staying the last good ones; a typed 639 says *Enter 30.0 to 300.0 kg · did you mean 63.9?* in coral with a mark and the underline in coral, Save outlined until it is in range; a failed save keeps the snackbar with *Retry* instead of Undo.
+- **Coach (`co2-board.html?uh=1`):** the read on the sky still works (rules on the phone); a question gets the shipped fallback with your numbers, *From this phone · nothing was sent*, a *Try again* chip; the Claude app hand-off is replaced by "No connection".
+- **A new band (`md4-board.html?uh=1`):** HRV on day 4: *Building your normal · 4 of 7 days so far*, Week range, values plain (no band, no colour, no arrow), the days before the band shaded, and why it waits.
+
+**Measured:** no new colours or surfaces: the glass, ink and sky are the measured ones for each screen (Settings 15:10 3.75 / night 6.96; Today 07:15 3.79; coral on the day card 3.54, TR2). Sky text at night ends left of the moon.
+
+**Open:** with the alert card, Today's last tile (Daily score) goes under the nav, as with MC2's E1 entry card: Today scrolls, but the first screen loses it. Proposed: the sky leaves HRV's cirrus at its default until a normal exists (the "Why wait" card says so); not built in the scene.
+
+**Board:** `?uh=1` on the four boards. STOP.
+
+**Approved (2026-11-23):** the unhappy states as built (Settings hero states, Today sync card, weight range and save errors, Coach offline, a new band's metric).
+
+## PD1 · A poor day (2026-11-23)
+
+**Asked:** a poor day (open since CO2: a poor day's lines and how the screens read when readiness is low).
+
+**The day:** today with 4 Nov's body (`data.js`): HRV 46 ms (normal 55–63), resting HR 58 (normal 51–56), 6h 05m asleep (score 58), skin +0.4 °C, SpO2 96%. The shipped `readinessParts` give **58** (HRV 19, resting HR 15, sleep 15, vitals 9; the data's hand-set 54 for 4 Nov does not follow the formula), *Take it easy*, so the sky is the stratocumulus regime (50–64, D1).
+
+**Sky and glass** (`g2.js`, stratocumulus at 07:15 / 15:10 / 19:45 / 23:10, all screens' glass from y 236 and sky text to x 380, floor 3.0, no veil; `pd1/*.png`, `pd1/measure.json`): 07:15 white 22%, glass text 3.15, sky 8.24; 15:10 white 22%, 3.29, sky 8.08; 19:45 white **37%** (34% on a fair dusk), 3.19, sky 3.55, the white button falls under 3.1 against the grey dusk so the button is dark blue `#082F5A` (3.24); 23:10 land glass `#11225A` 22%, 5.73, sky 3.26.
+
+**Built:** `?poor=1` on three boards (also `&t=night`), shots `tools/visual-loop/pd1.js` → `out/pd1-*.png`, sheet `out/pd1-sheet.png`:
+- **Today** (`wt1-board.html?poor=1`): 58, *Take it easy*, "18 below your normal 76"; the tiles hold the day plainly (6h 05m · score 58 · 1h 07m less than usual; 3,240 steps · an easy day; HRV 46 ms · morning check), no colour, as on a good day.
+- **Coach** (`co2-board.html?poor=1`), the read eases off all day: 07:15 "An easy day will pay off tomorrow." (Should I still train? → keep it light, with the numbers); 15:10 "Easy so far. Keep it that way."; 19:45 "An easy day done. An early night next." (if skin temp and resting HR are still up tomorrow, another easy day); 23:10 "Bed by 23:00 tonight." (half an hour early: last night was short).
+- **Readiness** (`md3-board.html?poor=1`): 58, ↓ Below normal in coral, the 30 days to today, and the parts by the shipped formula (19 / 15 / 15 / 9).
+
+**Found:** the glass at dusk depends on the weather (34% fair, 37% stratocumulus) and so does the dusk button (white on fair, dark blue on grey). One rule for the hour would take the worst weather: 37% and a dark blue button at dusk. Not changed here.
+
+**Not done:** a very poor day (under 50, low stratus) and likely illness (haze, light rain, D6); the Calendar and Trends on a poor day.
+
+**Board:** `?poor=1` on Today, Coach and Readiness. STOP.
+
+## SH1 · The low cloud sheet repeated (2026-11-23)
+
+**Asked:** on the PD1 board "the clouds look way too repetitive".
+
+**Found:** the stratocumulus/stratus sheet (`sheetD`) took its cells from one 4.5 km tile of the 128³ shape noise, the same everywhere: overhead every lump had the same size, and toward the horizon the tile, seen edge-on and at full resolution, turned into a glittering band of identical tiny cells in rows. Nothing in the sheet used the weather map (the cumulus layer does).
+
+**Changed (`scene-gl.js`, `sheetD` only):**
+- The weather map at 34 km bends the cells by up to ±0.75 km and the cells are turned off the texture axes (36.9°), so the tile no longer lines up toward the horizon.
+- Seen edge-on the gaps close up: from 6 km out to 22 km the sheet merges into one soft band (`far`), and the fine detail erosion fades with it. This is what real stratocumulus does at the horizon, and it removes the glitter.
+- Tried and dropped: a second, larger cell scale blended in by region (made the sheet one flat white mass overhead) and patches of thicker/thinner cover from the weather map (same, and fewer lumps).
+
+**Checked:** fair, partly, night and the other cumulus skies are unchanged (sunny differs from the old shader by less than two runs of the new one differ from each other); stratus, rain, thunder and fog change in their sheet only. Load to converged 26.1 s (was ~25 s): compile cost holds (`loadT.js`). Shots `out/sh1-*.png`; renders before / after for the PD1 hours in `out/sh1-crop.png`.
+
+**Re-measured** (`pd1/measure.json`, floor 3.0, no veil): 07:15 white 23%, glass 3.18, sky 8.72; 15:10 22%, 3.27, 9.72; 19:45 37%, 3.18, 3.85, dark blue button; 23:10 land glass 22%, 6.29, sky 3.26. PD1 screens re-shot (`out/pd1-sheet.png`).
+
+**Not done:** the baked keyframes for the sheet weathers (stratocumulus, stratus, rain, thunder, fog) and `md1/nov4.png` (the Calendar's past day) still hold the old sheet: re-bake (`bakeAll.js`) and re-render before the phone sees them.
+
+**Board:** `?poor=1` on Today, Coach and Readiness. STOP.
+
+**Approved (2026-11-23):** the reworked sheet (SH1) and the poor day as built (PD1: Today, Coach through the day, Readiness; dusk at 37% with a dark blue button on grey skies).
+
+**Re-baked (2026-11-23, after SH1):** `bakeAll.js` re-baked the day's 17 keyframes (16 fair hours and stratocumulus 13:00, seed 20780 as before) in 78 s; the baked stratocumulus plays back like the live render (`out/bk-cmp.png`). The on-device cache goes to `sky-v5`, so phones drop skies they baked with the old sheet. `md1/nov4.png` (the Calendar's past day) re-rendered with MD1's screen areas (the fair sky reproduces 3.75 / 5.50 / 7.04): past-day glass 3.28 (was 3.29), sky text 4.75 (was 5.07), number 13.29; the boards' inlined values follow.
+
+## VP1 · A very poor day, and likely illness (2026-11-23)
+
+**Asked:** continue (open since PD1: a very poor day under 50, and likely illness, D6).
+
+**The days** (shipped `readinessParts`, normals from `data.js`):
+- **Very poor:** HRV 38 ms (normal 55–63), resting HR 59 (average 54), 4h 40m asleep (score 42), skin +0.1 °C, SpO2 96% → **46**. Not ill (skin under +0.3), so BodySky gives the stratus regime with full valley fog in the morning; HRV's veil is set but hidden.
+- **Likely illness:** 6 Oct's body (HRV 44, resting HR 60, 6h 05m score 56, skin +0.8 °C, SpO2 93%) → **49** (the vitals part drops to 54: skin far from average, SpO2 under 95). Skin ≥ +0.5 and resting HR ≥ +5 → light rain (D6); not under 35, so no storm (D2).
+
+**Sky** (`g2.js` now takes a 5th STATES element, a body, and renders `BodySky.bodySky(body, hour)` instead of a preset; `vp1/<day>-<hour>.png`). Control: PD1's stratocumulus 15:10 reproduces 3.27 / 9.69. Under stratus the HRV veil changes the sky by under one level per channel (veil vs none, top 37%, mean |Δ| 2.3 summed over RGB), so the sky note no longer claims "a milky veil of high cloud" in the stratus regime (`body-sky.js`; it already dropped it under rain).
+
+**Glass** (`vp1/measure.json`, floor 3.0, no veil, all screens' glass y 236–851 + nav, sky text to x 380):
+
+| | 07:15 | 15:10 | 19:45 | 23:10 |
+|---|---|---|---|---|
+| Very poor (stratus) | white 22%, 3.40, sky 7.15 | white 29%, 3.19, 8.38 | **white 41%**, 3.18, 3.19 | land `#11225A` 22%, 8.06, 9.99 |
+| Likely illness (rain) | white 22%, 3.23, 5.21; button `#082F5A` | white 22%, 3.28, 5.65; `#082F5A` | white 29%, 3.20, 3.71; `#082F5A` | land `#1E2739` 22%, 5.76, 6.64 |
+
+Dusk under stratus needs 41% white (34% fair, 37% stratocumulus); dark glass would need 31–33%. Kept white (the dusk rule, DD1/PD1).
+
+**Built** (`?bad=1` on two boards; shots `tools/visual-loop/vp1.js` → `out/vp1-wt1-*.png`, `out/vp1-co2-*.png`, sheets `out/vp1-wt1-sheet.png`, `out/vp1-co2-sheet.png`):
+- **Today** (`wt1-board.html?bad=1`): under 50 the word is **Rest** (Ready ≥ 80, Steady ≥ 65, Take it easy ≥ 50). Four hours per day, then the sky tapped (D4). Illness puts one card on the lip in words, *Your body may be fighting something* · *Skin +0.8 °C · resting HR 6 above usual* · **Why** (opens the same note as the sky), so the rain never carries it alone. Tiles stay plain.
+- **Coach** (`co2-board.html?bad=1`), very poor: *Rest today.* → *Resting so far. Good.* → *A quiet day done. Sleep early.* → *Bed now, if you can.* Illness: *Rest, and see how you feel.* (detail: the two signs) → *Keep it a rest day.* → *An early night helps most.* → *Bed early. Rest helps.* Answers use the D6 words ("can be an early sign of illness"), say when to talk to a doctor, and name their sources.
+- Coach's read now balances its line breaks (`text-wrap: balance`; Compose `LineBreak.Heading`): four reads had a one-word second line. Changes only how existing two-line reads break.
+
+**Found:** with a card on the lip (illness, UH1's sync card), Today's Daily score tile runs under the tab bar (the open "last tile" item). At night the moon shows through the rain sheet's gaps (minor).
+
+**Not done:** the storm (illness and readiness under 35, D2); Readiness, Calendar and Trends on these days; the haze-only day (skin and resting HR up a little, not ill).
+
+**Board:** `wt1-board.html?bad=1`, `co2-board.html?bad=1`. STOP.
+
+**Approved (2026-11-23):** VP1 as built (Rest under 50; the illness card on the lip with Why; Coach through both days; balanced read lines; white glass 41% at dusk under stratus).
+
+## LT1 · Today's last tile with a card on the lip (2026-11-23)
+
+**Asked:** continue (open since UH1 and VP1: with a card on the lip, Today's Daily score tile runs under the tab bar).
+
+**Found:** a card on the lip (the morning check, E1; a failed sync, UH1; likely illness, VP1) moves the tiles down 76 px; Daily score then spans y 800–884 and the tab bar starts at 851. With the standard 12 px gap above the bar it needs 45 px back.
+
+**Built** (`wt1-board.html?fit=1`; `tilesFor()` in the Today phone, `o.fit`; shots `Q=fit=1 TAG=lt1 node vp1.js wt1` → `out/lt1-wt1-*.png`, sheet `out/lt1-sheet.png`). Four situations (illness 15:10 and 23:10, the sync failed 07:15, morning check not done 07:15), three fits each, applied only while a card sits on the lip:
+- **A · as built:** Today scrolls; the first screen loses Daily score under the bar.
+- **B · compact:** Steps and HRV 76 px high (was 100) with their note on the label line, Sleep 164 (was 212); Daily score ends at 836. Nothing dropped.
+- **C · grid:** two rows of two, Sleep · Steps / HRV · Daily score ("so far today"), all 100 high; ends at 788. Sleep drops "less than usual".
+
+**Checked:** the as-built tiles came from the same new code byte-identical (VP1's ten Today shots). Every card stays inside the glass area VP1/WT1 measured (y 236–851) at the same text sizes, so those contrasts hold.
+
+**Board:** `wt1-board.html?fit=1`. STOP for the pick (A / B / C).
+
+**Picked (2026-11-23):** B · compact. Today now draws the compact tiles whenever a card sits on the lip (every board: MC2's E1 card, UH1's sync card, VP1's illness card); the LT1 board still shows A and C for comparison.
+
+## ST1 · The storm day (2026-11-23)
+
+**Asked:** continue (open since VP1: likely illness with readiness under 35, D2).
+
+**The day:** HRV 36 ms, resting HR 64 (average 54), 4h 50m asleep (score 40), skin +1.1 °C, SpO2 93% → **34** by the shipped `readinessParts` (HRV 10.5, resting HR 8.3, sleep 10, vitals 5.4). Skin ≥ +0.5 and resting HR ≥ +5 with readiness under 35: BodySky gives the thunder sky (denser rain, the bolt).
+
+**Found and fixed (`scene-gl.js`):**
+- **The bolt never drew.** Its `uBolt` uniform call had slid into the end of a `//` comment (G3's snow-colour line), so `uBolt` stayed 0 on every thunder render since G3 (the SH1-era `out/thunder.png` has no bolt). Moved back onto its own line.
+- **It struck through the number.** The bolt lived at x 0.30 of the width from the top edge, through the readiness number; at night it also sat behind the top-right button (white button 1.45:1). Now at x 0.74 from the cloud base (y 0.10) down to y ≈ 0.27, above the maple; shorter (12 + 7 steps); the branch stays on screen; the cull box leaves the glow under 1% at its edges (the first try cut a visible box at night).
+- Live it still flashes every ~9 s with one flicker (two flashes, under WCAG's 3 a second); still frames and reduced motion show it steady.
+
+**Rule:** on a storm day, sky text keeps left of x 262 by day as well, like at night (`SKY_RIGHT` also when `BOLT`): the bolt owns the right sky.
+
+**Measured** (`st1/measure.json`, floor 3.0, no veil; glass y 236–851 + nav; sky text to x 380 by day, x 262 at night; bolt on):
+
+| | 07:15 | 15:10 | 19:45 | 23:10 |
+|---|---|---|---|---|
+| Storm | white 26%, 3.19, sky 4.42; button `#082F5A` 4.15 | white 24%, 3.17, 4.86; 4.91 | white 31%, 3.19, 3.34; 3.23 | land `#1E2739` 22%, 3.72, 7.08; white 3.38 |
+
+Load to converged 20.1 s (`loadT.js`; SH1 26.1 s): compile cost holds.
+
+**Built** (`?bad=1`, third section on each board; shots `node vp1.js` → `out/vp1-wt1-10…14.png`, `out/vp1-co2-8…11.png`; sheets `out/st1-today.png`, `out/st1-coach.png`, skies `out/st1-skies.png`):
+- **Today:** 34, *Rest*, "42 below your normal 76"; the card on the lip (*Your body may be fighting something* · *Skin +1.1 °C · resting HR 10 above usual* · Why), compact tiles under it (LT1); the sky note says *A storm: … This can mean your body is fighting something; rest if you can.*
+- **Coach:** *Rest. Your body needs it.* (detail: the two signs) → *Rest is the plan today.* → *Wind down early tonight.* → *Sleep now if you can.* Answers say rest, and to talk to a doctor with a fever, if unwell, or if the signs stay up.
+
+**Not done:** Readiness, Calendar and Trends on the bad days; the haze-only day. Other boards that show `thunder` now show the bolt, at its new place.
+
+**Board:** `wt1-board.html?bad=1`, `co2-board.html?bad=1` (third section). STOP.
+
+**Approved (2026-11-24):** ST1 as built (the bolt fixed and moved to the right sky; storm-day sky text left of x 262; Today and Coach through the storm day).
+
+## BD1 · Readiness, Calendar and Trends on the bad days (2026-11-24)
+
+**Asked:** Readiness, Calendar and Trends on the bad days (open since PD1).
+
+**The days:** VP1's very poor day (46), likely illness (49) and ST1's storm day (34), at 15:10 under each day's own sky and glass (`vp1/`, `st1/` renders and measurements; every card sits inside the glass area measured there).
+
+**Built** (`?bad=1`; shots `BOARDS=md3,tr2 TAG=bd1 node vp1.js` → `out/bd1-md3-*.png`, `out/bd1-tr2-*.png`, sheet `out/bd1-sheet.png`):
+- **Readiness** (`md3-board.html?bad=1`): the MD3 page for a given day (`readinessPage(bd)`). The month chart's scale drops to 30 when a day is under 50 (grid 40 / 60 / 80), so today stays on it, filled coral below your normal. The parts follow the shipped `readinessParts`, vitals included: 12 / 14 / 11 / 9 (46), 17 / 13 / 14 / 5 (49), 11 / 8 / 10 / 5 (34), each summing to the score; on the illness days the vitals line reads "SpO₂ 93% (below 95%) · skin temp far from your average" (it was fixed to "near your average").
+- **Calendar** (`md3-board.html?bad=1`, illness and storm days): each day's glyph is the sky it had, from the body, not readiness alone: rain (grey cloud with three drops) when skin temp and resting HR are both up, a bolt when readiness is also under 35. A second key line says so ("skin temp and resting HR up", "both up, readiness under 35"); the subtitle reads "Each day's sky, from your body". Shape carries it, not colour.
+- **Trends** (`tr2-board.html?bad=1`): the TR2 list with today's values replaced. Very poor: 2 of 8 within your normal, "5 numbers need a look today". Illness days: 0 of 8, and the line names the pattern instead of a count: "Skin temp and resting HR are both up: your body may be fighting something" (as Today's card). Storm-day sky text keeps left of x 262 (ST1).
+
+**Measured:** TR2's colours against each day's glass at its worst page band (floor 3.0): very poor (29%) bad 3.68, good 3.81; illness (22%) bad 3.35, good 3.47; storm (24%) bad 3.30, good 3.42.
+
+**Found:** md3's coral colour constant is also called `BAD`, so the board tests `window.BAD` for the flag.
+
+**Not done:** the haze-only day; past bad days opened from the Calendar (only today is a bad day in the data); night versions of these pages.
+
+**Board:** `md3-board.html?bad=1`, `tr2-board.html?bad=1`. STOP.
+
+**Approved (2026-11-24):** BD1 as built (Readiness with the shipped parts and a scale to 30; the Calendar glyph from the body, rain and storm; Trends naming the illness pattern).
+
+## BD2 · The bad days at night, and the haze day (2026-11-24)
+
+**Asked:** night versions of Readiness, the Calendar and Trends on the bad days, and the haze-only day.
+
+**The haze day:** HRV 52 ms (just under normal), resting HR 57 (+3), 6h 50m (score 70), skin +0.4 °C, SpO2 96% → **67** by the shipped parts (24 / 16 / 18 / 9). Skin ≥ +0.3 and resting HR ≥ +3 but short of illness: BodySky gives partly cloudy with a humid haze (milky veil round the sun, high streaks). Renders `bd2/hz-day1510.png`, `bd2/hz-night.png`; `bd2/measure.json` (g2.js, floor 3.0, sky text to x 380 by day and x 262 at night): 15:10 white 22%, glass 4.07, sky 6.47; 23:10 land `#142257` 22%, glass 6.64, sky 4.08. No veil.
+
+**Built** (`md3-board.html?bad=1`, `tr2-board.html?bad=1`, and the same with `&t=night` for 23:10 on each day's night glass; `BAD_K()` in `night.js` picks the hour; shots `BOARDS=md3,tr2 TAG=bd2d|bd2n Q=… node vp1.js`, sheets `out/bd2-day.png`, `out/bd2-night.png`):
+- **Readiness:** the haze day joins the three (67, ↓ Below normal, the vitals line "skin temp near your average": +0.4 is not "far").
+- **Calendar:** the haze day's glyph is a sun over two haze lines. The weather key is now three full rows under the readiness key ("Skin temp and resting HR a little up", "Both up: your body may be fighting something", "Both up, and readiness under 35"): on one line the three wrapped into fragments.
+- **Trends:** the haze day counts 3 of 8, and its line names the pattern: "Skin temp and resting HR are a little up: your body is under some load". At 23:10 steps and strain are the full day's ("Below your usual").
+
+**Found and fixed: colour on the sky.** The metric pages drew the hero's "↓ Below normal" in coral on the sky, but only the ink was ever measured there. Coral (`#B23A2E`) against the sky behind the word (x 22–202, y 140–166): fair 3.48, haze 3.30, very poor 3.58, **illness 2.34, storm 1.99**, PD1's dusk 2.09, VP1's dusk 1.31 (the ink: 3.24–14.1). Rule now: on the sky the arrow and word take the sky ink; coral and green stay on the glass (chart, parts, list), where they are measured. Applied to the hero helpers of `md3-board.html` and `md4-board.html` (every metric page); arrow and word carry the meaning, as before.
+
+**Measured** (TR2 colours on each day's glass, worst page band, floor 3.0): 15:10 haze bad 3.52 / good 3.64, very poor 3.68 / 3.81, illness 3.35 / 3.47, storm 3.30 / 3.42; 23:10 (night colours) haze 7.13 / 8.90, very poor 7.28 / 9.08, illness 4.35 / 5.43, storm 4.38 / 5.47.
+
+**Not done:** the haze day on Today and Coach; `md1-board.html` (history) still draws its HRV hero word in colour; past bad days opened from the Calendar.
+
+**Board:** `md3-board.html?bad=1`, `tr2-board.html?bad=1`, each also with `&t=night`. STOP.
+
+**Approved (2026-11-24):** BD2 as built (the haze day; the bad days at 23:10; the Calendar weather key in three rows; sky hero words in the sky ink, colour on the glass only).
+
+## BD3 · The haze day on Today and Coach (2026-11-24)
+
+**Asked:** continue (open since BD2: the haze day on Today and Coach).
+
+**Skies** (`bd2/`, BodySky for the haze body at 07:15 / 15:10 / 19:45 / 23:10; 19:45 with the white glass forced, as every dusk): 07:15 white 22%, glass 4.12, sky 5.60; 15:10 white 22%, 4.07, 6.45; 19:45 white 30%, 3.19, **sky 3.25 with a 4% white veil**; 23:10 land `#142257` 22%, 6.64, 4.08.
+
+**Found:**
+- **The first dusk that needs a veil.** Behind the sky text the haze dusk is mid lavender with shaded cloud; the ink needs about 1% white under it (g2 adds its 3% margin: 4%). `skyVeil(g)` in `night.js` now draws the veil g2 asks for (a band over the sky text, fading out above the lip) on Today and Coach; it is 0 everywhere else, and G3 keeps it off at night.
+- **Two pace thresholds.** BodySky starts building cumulus at 1.0 × your usual pace ("ahead of your usual pace" in the sky note), while Trends calls a day "ahead" only past 1.15 ×. At 5,200 steps by 15:10 (1.08 ×) the sky note and the Steps tile disagreed. The haze day now has 4,700 by 15:10 (under both; 15:10 re-rendered and re-measured, BD2's Trends follow). One threshold should own both: open.
+
+**Built** (`?bad=1`, first section on each board; shots `TAG=bd3 node vp1.js` → `out/bd3-wt1-0…4.png`, `out/bd3-co2-0…3.png`, sheet `out/bd3-sheet.png`):
+- **Today:** 67, *Steady*, "9 below your normal 76"; no card on the lip (nothing to act on, so the sky and its note carry it; Trends and Coach say it in words); tiles plain. The sky tapped at 15:10: partly cloudy (readiness), streaks of high cloud (HRV 52), a humid haze (skin +0.4 °C, resting HR 57 against 54): "Your body is under some load."
+- **Coach:** *A steady day. Keep it moderate.* (detail: the two small rises) → *On pace. Keep it moderate.* → *A fair day done. Sleep on time.* → *Bed by 23:10 tonight.* No talk of illness: the numbers do not say it.
+
+**Not done:** one pace threshold for BodySky and Trends; past bad days opened from the Calendar; `md1-board.html`'s coloured hero word.
+
+**Board:** `wt1-board.html?bad=1`, `co2-board.html?bad=1` (first section). STOP.
+
+**Approved (2026-11-24):** BD3 as built (the haze day on Today and Coach; the sky veil drawn where g2 asks for one).
+
+## BD4 · One pace threshold, and a past bad day from the Calendar (2026-11-24)
+
+**Asked:** continue (open since BD3: one pace threshold; past bad days opened from the Calendar).
+
+**One threshold** (`body-sky.js`): BodySky now builds afternoon cumulus from **1.15 ×** your usual pace for the hour (was 1.0), where Trends starts saying "Ahead of your pace", so the sky note and the Steps tile cannot disagree. No committed render changes: every body-driven sky so far is under 1.0 or over 1.15.
+
+**The data's past bad days** (BodySky's rules against each day's 30 days before): **6 Oct** likely illness (skin +0.8 °C, resting HR 60 against 54); **4 Nov** haze (skin +0.4 °C, 58 against 53). No other day qualifies.
+
+**Built** (`md3-board.html?bad=1`, last section; shots `BOARDS=md3 TAG=bd4 node vp1.js` → `out/bd4-md3-7…9.png`, sheet `out/bd4-sheet.png`), browsing from an ordinary today (15:10, fair):
+- **The Calendar for any month** (`calendar(sel, { month, body })`): October 2026 (lead 3, 31 days), back and forward arrows live. With `body`, every day's glyph comes from its body, as the sky does: 6 Oct rain, 4 Nov haze. The haze glyph is now the day's own readiness glyph, smaller, with two haze lines under it (BD2's sun-and-lines ignored the cloud).
+- **A past bad day** (`pastBad()`): Today's layout under that day's sky (6 Oct = the illness body, so VP1's `ill-day1510` render and glass), "Looking back · 37 days ago", Back to today. The card on the lip states the fact in the past: *Skin temp and resting HR were up* · *Skin +0.8 °C · resting HR 6 above usual* · Why; LT1's compact tiles under it; "That week" uses the body glyphs too.
+
+**Found:**
+- `data.js` sets readiness by hand: on **74 of 90 days** it is more than 3 off the shipped formula (6 Oct: 63 against 49). The past day shows the formula's 49 (`READY_FIX`). The prototype data should be regenerated from the formula before lock.
+- **PD1's poor day and MD1's 4 Nov are haze days by their body** (skin +0.4, resting HR +4 / +5) but were rendered from the plain stratocumulus preset, so their skies miss the haze. Not re-rendered here.
+- "Your normal" is 79 on the metric pages and the past day (data.js `avg30`) and 76 on Today and Coach (hand-written).
+- `stackCards()` (the metric pages' 12 px stacking) also re-stacked Today's grid; a past day's phone is marked `.nostack`.
+
+**Not done:** the PD1 / 4 Nov haze re-render; one source for "your normal"; regenerated prototype data.
+
+**Board:** `md3-board.html?bad=1` (BD4, last section). STOP.
+
+**Approved (2026-11-24):** BD4 as built (one pace threshold at 1.15; Calendar glyphs from the body for any month; a past bad day under its own sky).
+
+## BD5 · The sample data from the app's formulas, and a stricter sleep score (2026-11-24)
+
+**Asked:** continue (open since BD4: regenerate the prototype data from the formula; one "your normal"; the PD1 / 4 Nov haze). Picked: both formulas (sleep score and readiness), then, on what that showed, draft a stricter sleep score.
+
+**Built:**
+- **`scores.js`**: the app's formulas, ported from `android-app/…/domain`: `sleepScoreParts` (stages available), `readinessParts`, `recoveryParts`, `dailyParts`, and "your normal" (`MetricInsights.baseline`: the 30 days before, mean ± max(SD, 3)). Plus **S2**, a proposed sleep score. Every board that loads `data.js` loads it first (wt1 and mc2 now load `data.js` too).
+- **`data.js`** scores all 90 days with them, each day against the days before it. Each night has inputs from a second generator (asleep time, deep + REM share, efficiency; every other series is unchanged). The hand pins are gone (today 86, 4 Nov 54, and the 6 Oct fix). The resting-HR series sits 1 bpm higher, so its 30-day mean is the 54 the pages and bad days were built on. `METRICS.readiness` (average, normal, chip) comes from the data, and `vsNormal(r)` writes "N below your normal 81".
+- **One "your normal": 81 (73–89)** on every board: metric pages, Today, Coach, the morning check (it was 79 / 72–85 on the metric pages and 76 on Today and Coach, both by hand).
+- **`bd5-board.html`**: both sleep scores and both readiness series over the 90 days, the bad days under each, and the S2 change. Every board runs S2; `?sleep=app` runs the app's.
+
+**Found: the app's sleep score barely drops after a poor night.** Duration is minutes ÷ 7h30 (4h40 earns 62 of 100), deep + REM is share ÷ 38%, and efficiency is the raw % (78% earns 78). Over the 90 days it reads 82–99 (median 96); a 4h40 night that starts at 01:20 scores 73. The consequences: BodySky's morning fog (from 78) shows on 0 of 90 nights, and the designed bad days can't happen. Under the app's score, with the nights below: haze 67 → 72, very poor 46 → 54 and illness 49 → 56 (both stratocumulus, not stratus), storm 34 → 42 (rain, no storm: that needs under 35).
+
+**S2** (proposed; the app is untouched until lock): the same five parts, weights and 03:00 cap. Duration 0 at 4h30 → 100 at 7h30; deep + REM 0 at 20% → 100 at 38%; efficiency 0 at 75% → 100 at 95%. Timing parts unchanged. Over the 90 days: 61–99, median 91, fog on 4 nights (6 Sep, 8 Sep, 6 Oct, 4 Nov). Readiness: normal 81 (app 82); last 30 days 16 fair / 13 partly / 1 stratocumulus (app 18 / 11 / 1). Today 12 Nov: sleep 98, readiness 90 under both. Each designed bad day now has a night (`SCORES.BAD_NIGHTS`) for which S2 gives exactly the sleep score its readiness was built on (haze 70, illness 56, very poor 42, storm 40), so those numbers and skies stay true. `md3` checks each body's sleep score against its night.
+
+**PD1's poor day is 4 Nov.** Same body. Its night (6h 05m, asleep 00:40, deep + REM 27%, 80% efficient) gives S2 sleep 61 and readiness **58**, PD1's number, now from the data on every page (the Readiness page recomputed 59 against fixed bases; Today's tile said sleep 58 by hand).
+
+**Re-rendered with its haze** (`g2.js` with PD1's body through BodySky: readiness 58, sleep 61, 6h 05m, HRV 46, skin +0.4 °C, resting HR 58 against 54 → stratocumulus, humid haze, morning fog; floor 3.0; glass y 236–851 + nav, sky text to x 380 by day and x 262 at night; 19:45 `MODE=light`). `pd1/*.png`, `pd1/measure.json`, `night.js` `POOR_G`: 07:15 white 22%, glass 3.81, sky 8.71; 15:10 white 22%, 3.57, sky 9.79; 19:45 white 35%, 3.19, sky 3.89, dark button `#082F5A` 3.74; 23:10 land `#11225A` 22%, 6.28, sky 3.27, number 3.22. No veil. `md1/nov4.png` = the 15:10 render (same body and hour; md1 now shows PD1's rects' values, sky 9.79, where it showed 4.75 with its own). The haze is subtle, as on BD2's haze day: a milky band over the far water at 07:15 and on the horizon by day and dusk. Compare: `tools/visual-loop/out/bd5-pd1.png` (preset above, BodySky below); boards `out/pd1-*.png`, `out/bd5-pd1-boards.png`, board `out/bd5-board.png`.
+
+**Not done (waits for the pick):** Today's own story is still hand-set (78 → 82 around the morning check, sleep "Score 81"); the data's today is 90 with sleep 98, both fair, so "the sky cleared with it" would no longer hold. The other metrics' normals stay hand-set: by the app's rule HRV is 54–64 (pages: 55–63) and resting HR 52–56 (51–56). The old round boards (R1–R5, S1–S4) pick up the new data unchanged.
+
+**Board:** `bd5-board.html`; PD1 with `?poor=1` on `wt1`, `co2`, `md3`. STOP.
+
+**Approved (2026-11-24):** BD5 as built, and **S2 adopted** as the sleep score (to replace `sleepScoreParts` in the app at lock). Review it after at least a week of real nights (TODOS.md).
+
+## BD6 · Today's morning-check story from the data (2026-11-24)
+
+**Asked:** continue (open since BD5: Today's own story was hand-set, 78 → 82 around the morning check, sleep "Score 81"). Picked: lower the overnight HRV so the sky still clears.
+
+**The numbers:** with the app's readiness and S2, today's night (7h 20m, deep + REM 47%, 95% efficient) scores sleep **98**. Before the check the app scores readiness with the overnight HRV (`scoreHrvMs`); at the old 57 ms that is 84, fair, so the check would not move the sky. Overnight HRV is now **51 ms** (`data.js` `today.hrvOvernight`): **79** before the check (partly cloudy), **90** after it with the check's 64 ms (fair). The story and every approved render stay; only the numbers change.
+
+**Built:** `data.js` adds `today.hrvOvernight`, `readinessOvernight`, `sleepUsual` (434 min, the 30 days before) and `sleepSub` ("6 min more than usual"). `wt1-board.html` and `mc2-board.html` read them (`TD`, `PRE`, `POST`): the hero (79 / 90, "2 below" / "9 above your normal 81"), the header line and HRV tile (51 ms overnight, 64 ms morning check), the sleep tile (Score 98, 6 min more than usual), the check result ("HRV 64 ms, above your normal (55–63)", the old sheet said 48–60; resting HR 52, it said 54; "Readiness 79 → 90"), the failed-check line and the 05:20 caption. Coach already read the data: "Readiness 90 · HRV 64 ms, above your normal"; its canned answers (64 ms is 8% over 59, recovery 86) match. `mc1-board.html` (superseded by MC2) is left as history.
+
+**Measured:** no new renders. Same skies, same text boxes; only digits change (two-digit hero, detail line one character longer than "2 above your normal 76"), so MC1/MC2/WT1's measurements hold (day: glass 5.45, sky text 6.58, number 5.69; night 05:20: glass 5.69, sky text 4.53, number 5.12; floor 3.0). Shots: `node wt1.js`, `node mc2.js`, `node co2.js` → `out/wt1-*.png`, `out/mc2-*.png`, `out/co2-*.png`; sheet `out/bd6.png`.
+
+**Board:** `wt1-board.html`, `mc2-board.html`, `co2-board.html`. STOP.
+
+**Approved (2026-11-24):** BD6 as built (overnight HRV 51: readiness 79 before the morning check, 90 after; Today, the check and Coach on the data).
+
+## BD7 · Every normal from the data, and md1's hero word in the sky ink (2026-11-24)
+
+**Asked:** continue. Open: the other metrics' normals were still hand-set (BD5); `md1-board.html` drew its hero word in colour on the sky (since BD2).
+
+**Built:**
+- **`data.js`**: every metric's normal follows the app's rule (`MetricInsights.baseline`: the 30 days before today, mean ± max(SD, floor); skin temp centred on 0). Was → now: HRV 55–63 → **54–64 ms**, resting HR 51–56 → **52–56 bpm**, sleep 6h 50m–7h 45m → **6h 50m–7h 37m**, steps 7k–10k → **6.8k–10k** (average 8,240 → 8,390), SpO₂ 95–99 → **96–98%**, strain 65–82 → **66–84**, skin ±0.3 °C (unchanged). Text, chips and status read them.
+- **Hand ranges replaced:** the haze day's sky note on Today, the poor and very poor days' Coach answers (HRV "below your normal 55–63").
+- **md1:** the hero word ("Within normal") takes the sky ink; colour stays on the glass (chart, chip), as BD2's rule.
+
+**Found:**
+- **Today's HRV 64 is now the top of the band.** By the band as shown (54–64) it is within; the app tests the unrounded band (54.1–63.7) and would say "↑ 9% vs your normal" next to "54–64". The prototype tests the shown band everywhere: md1 "Within normal", the morning check "At the top of your normal (54–64)", Coach "HRV 64 ms, at the top of your normal" (it said "above"; its canned answer now says "8% above your average", which is true). The app fix is a lock item in TODOS.md.
+- **The haze day's sky moves with the HRV band.** BodySky draws HRV 52 against the band: 55–63 gave the HRV layer 0.45 (hooked streaks 0.88), 54–64 gives 0.16 (hooks 0.21). Re-rendered `bd2/hz-*.png` (four hours, BodySky with the new band and steps usual 8,390; g2.js as BD2/BD3): 07:15 white 22%, glass 4.13, sky 6.96; 15:10 22%, 4.08, 6.51; 19:45 white 30%, 3.19, sky 3.45 with the 4% veil; 23:10 land `#142257` 22%, 6.63, 4.69. The high cloud has fewer hooks and straighter streaks (`out/bd7-hz.png`, before above, after below); the sky note still names the streaks. The other bad days (HRV 36–46) sit past the bottom of either band, so their skies are unchanged.
+
+**Shots:** `TAG=bd7 BOARDS=wt1,co2,md3 node vp1.js`, `node md1.js`, `node co2.js`, `node mc2.js`; sheet `out/bd7-sheet.png`. No page errors on any live board.
+
+**Board:** `md1-board.html`, the haze day on `wt1` / `co2` / `md3` (`?bad=1`), `mc2-board.html`. STOP.
+
+**Approved (2026-11-24):** BD7 as built (every normal from the data; status against the band as shown; md1's hero word in the sky ink; the haze day re-rendered).
+
+## CR1 · The rules that pick Coach's read (2026-11-24)
+
+**Asked:** the rules that pick Coach's line (open since CO2: each day's headline and detail were picked by hand).
+
+**Built:**
+- **`coach-rules.js`** (`CoachRules.read(body, hour)`): one pure function, like BodySky, on BodySky's own thresholds (haze, likely illness, the storm) and the shared pace (ahead from 1.15 × your usual for the hour, BD4). One priority list per part of the day; the first match wins. Illness and the storm come first at every hour.
+  - **Morning** (the plan): storm, illness, readiness under 50 (rest), under 65 (easy), haze (moderate), under 80 (steady), else train hard.
+  - **Afternoon** (progress): storm, illness, a low day ahead of pace ("More than planned. Ease off now."), rest, easy, haze by pace, then ahead, on pace or behind.
+  - **Dusk** (the day done): storm, illness, rest, easy, haze, then hard (≥ 1.15 ×), full or light (< 0.85 ×) by strain against your usual by this hour.
+  - **Night** (bedtime): storm, illness, rest ("Bed now"), then a short night (30+ min under your usual) bringing bedtime 30 min earlier, else your usual. "Your usual" is the median sleep time of the last 14 nights, to 5 min.
+  - The detail line always holds the numbers the read rests on: readiness and HRV, the two signs, steps and strain against your usual, or last night and your usual sleep time.
+- **`data.js` `COACH_DAYS`**: the six drawn days as bodies with steps and strain at the four hours (today and 4 Nov from the data; haze, very poor, illness and storm as built).
+- **`co2-board.html`** takes every read from the rules (24 hand lines and details removed); the chat answers stay as drawn (examples of Coach's answers, not rule-picked).
+- **`cr1-board.html`**: the rules, the drawn days approved vs now, every day in the data, and a fit check.
+
+**Measured:**
+- **The drawn days:** the rules give the approved read on **20 of 24**. The 4 that change were inconsistent by hand:
+  - Fair dusk said "a hard day" at strain 78. Your usual by 19:45 is 68, so that is 1.14 ×, just under hard (1.15 ×): now "A full day done. Sleep on time.", and its chat answer no longer says "you trained hard".
+  - Bedtimes: fair said "Bed by 23:30" beside "you usually fall asleep at 23:10", and PD1's "half an hour early" was 23:00. The data's usual is 23:20: fair and haze say 23:20, PD1 says 22:50, and the bad nights' details say 23:20.
+  - PD1's morning detail says HRV 46 is "well under your normal" (more than half the band under 54), as on the very poor day.
+- **Every day in the data** (60 days with a full 30 before them, 4 hours, 240 reads): morning 42 ready, 16 steady, 1 easy (4 Nov), 1 illness (6 Oct); afternoon 33 on pace, 14 ahead, 11 behind; dusk 48 full, 6 hard, 4 light; night 56 usual, 3 short (1, 2, 4 Nov). Every read resolves; no day falls through.
+- **Fit:** 37 distinct reads, each at the width it is shown (36 px light; 358 px by day, 240 px at night and under the storm's bolt): all fit in two lines. Same renders and text boxes as CO2/VP1/ST1, so their contrast holds.
+
+**Open:** before sunrise the moon narrows the morning read to 240 px, where three reads take three lines ("A steady day: train, but not to the limit.", "An easy day will pay off tomorrow.", "A steady day. Keep it moderate."). Coach has not been drawn before sunrise; shorter forms or a third line there is a choice for that round.
+
+**Shots:** `node co2.js`, `TAG=cr1 BOARDS=co2 node vp1.js`, `node pd1.js`; sheet `out/cr1-sheet.png`; board `out/cr1-board.png`.
+
+**Board:** `cr1-board.html`; Coach on `co2-board.html` (also `?poor=1`, `?bad=1`). STOP.
+
+**Approved (2026-11-24):** CR1 as built (Coach's read from `coach-rules.js` on BodySky's thresholds; the four hand inconsistencies fixed).
+
+## FW1 · The first week (2026-11-24)
+
+**Asked:** continue. Open since UH1: what the sky, the hero and Coach show before a normal exists. Since BD5–CR1 the sky, Today and Coach all stand on normals, so this is where they have none.
+
+**The app's minimums** (`android-app/…/domain`): readiness after 3 nights of HRV and resting HR (`MIN_READINESS_BASE_DAYS`, so **day 4**); a skin-temp average after 3 nights; a normal after 7 days (`MIN_BASELINE_DAYS`, **day 8**); a usual bedtime after 5 trusted nights (`BedtimeReminder.MIN_TRUSTED`, **day 5**); sleep regularity scores 100 until there is a night before. Readiness's own normal needs 7 readiness days, so it arrives on **day 11**.
+
+**Built:**
+- **`data.js` `FIRST_WEEK`**: the last 8 days of the data as if the band arrived on 5 Nov, each day knowing only the days since then: day 1–3 no readiness (sleep 88, 89, 89), day 4 readiness **82**, day 5 78, day 6 85, day 7 90, day 8 **93** (HRV normal 54–60 from 7 days; it is 90 with the full history). Each scored with `scores.js` on its short history.
+- **`coach-rules.js`** without the usuals: no readiness → *Getting to know you.* (Sleep score 88 · readiness from day 4); readiness but no normal → the readiness rules, with "HRV 57 ms, your normal from day 8"; no usual day → *Learning your usual day.* (steps and strain, no pace); no usual strain → *A day done. Sleep on time.*; under 5 nights → *Aim for seven and a half hours.* (Your usual bedtime after 5 nights · 1 so far). Haze, rain and the storm need a usual resting HR, so they wait for day 8; BodySky already does the same when its inputs are missing.
+- **Today (`wt1-board.html?first=1`)**: the header reads "Day N with your band"; the week strip shows — for the days with no readiness and nothing before the band; Sleep tile "your first night" / "your usual from day 8"; Steps "learning your day". Day 4 and 8: the number and its word as usual, the detail "Readiness · your normal from day 11". **Day 1 has no number, two ways:** **A** says the day ("Day 1", *Getting to know you*, readiness from day 4 · after 3 nights); **B** leads with the only score there is (88, *Slept well*, sleep score · 6h 59m).
+- **Coach (`co2-board.html?first=1`)**: day 1, 4 and 8 at 07:15, and day 1 and day 5 at 23:10 (*Aim for seven and a half hours* → *Bed by 22:50 tonight*, the first usual bedtime). Example answers for "When will my readiness show?", "Is 82 good?", "What changed today?".
+
+**The sky:** a plain fair sky until there is a readiness (BodySky: "A plain fair sky: there is no readiness score yet today"); from day 4 the low cloud follows readiness; the high cloud and haze wait for the normals (day 8). All three stages here read fair, so the existing fair renders (`wt1/am0715f.png`, `co2/am0715.png`, `nt1/night.png`) are the right skies: no new renders. Same text boxes, so their measurements hold (Today 07:15: glass 3.79, sky 7.13, number 7.55; "Day 1" sits inside the number's box).
+
+**Found:** with only 3–7 days behind it, readiness runs high: day 8 is 93 against 90 with the full history (a short base sits lower). The first week will read "Ready" more often than later; the detail says the normal is still coming.
+
+**Shots:** `out/fw1-0…8.png`, sheet `out/fw1-sheet.png`. No page errors on wt1, co2 (also `?bad=1`), cr1.
+
+**Board:** `wt1-board.html?first=1`, `co2-board.html?first=1`. Pick A or B for day 1. STOP.
+
+**Approved (2026-11-24):** FW1 with **A** for day 1: the hero says the day ("Day 1", *Getting to know you*, readiness from day 4 · after 3 nights). B (leading with the sleep score) removed from the board.
+
+## PS1 · Coach before sunrise (2026-11-24)
+
+**Asked:** continue with the open item from CR1: before sunrise the moon narrows Coach's morning read to 240 px (sky text left of x 262, NT1), where three reads took three lines.
+
+**Skies** (`g2.js` with each drawn day's body through BodySky at 05:20, `SHOOT=1 OUT=ps1`; bodies from `tools/visual-loop/ps1-states.js` → `out/ps1-states.json`, plus a steady day from the data, 22 Nov: readiness 73, HRV 53, resting HR 56, 7h 12m, sleep 87). Renders `ps1/<day>-am0520.png`: fair with the moon (today, 90), partly with the moon (steady 73, haze 67), stratocumulus over the moon (4 Nov, 58), stratus with valley fog (very poor, 46), rain (illness, 49), the storm with its bolt (34).
+
+**Measured** (`ps1/measure.json`, floor 3.0, no veil; glass y 236–851 + nav, sky text x ≤ 262 to y 300 so a third line is covered): every day takes the land glass at 22% (`#1C2738`–`#1F2832`), light ink, white button. Glass text 3.28 (storm) – 5.83, sky text 3.68 – 6.90, button 3.14 (storm) – 8.93.
+
+**Fit** (36 px light at 240 px, `text-wrap: balance`): of the eight morning rules, `am.easy` (*An easy day will pay off tomorrow.*), `am.haze` (*A steady day. Keep it moderate.*) and `am.steady` (*A steady day: train, but not to the limit.*) take three lines; the other five take one or two.
+
+**Built** (`co2-board.html?dawn=1`, seven days at 05:20 with each day's morning exchange; the PD1 and VP1/ST1 morning answers are now shared consts, `PD_AM`, `BADL`):
+- **A · Shorter words:** those three rules get one shorter wording each, used at **every** hour (one sentence per rule): *Train, but not to the limit.* · *Take it easy today.* · *Keep it moderate today.* All eight morning reads then fit two lines at 240 px. Today's hero word already names the day (Steady, Take it easy), so Coach's read can start with the plan.
+- **B · A third line before sunrise:** the words stay; the read takes three lines left of the moon and the detail moves down one line (box bottom y 283 against 241; the chat starts at 384).
+
+**Found:** at 240 px four dusk reads would also take three lines (*A quiet day done. Sleep early.*, *An easy day done. An early night next.*, *A hard day done. Ease off from here.*, *A light day done. Sleep on time.*). Today the 262 rule applies only at night (23:10) and on the storm day (whose dusk read fits), so nothing breaks now; it matters only if the moon rule starts before 21:30 (winter twilight).
+
+**Shots:** `TAG=ps1 BOARDS=co2 Q=dawn=1 node vp1.js` → `out/ps1-co2-0…6.png`, sheet `out/ps1-sheet.png`, skies `out/ps1-skies.png`, board `out/ps1-board.png`. No page errors.
+
+**Board:** `co2-board.html?dawn=1`. Pick A or B. STOP.
+
+**Approved (2026-11-24):** **A**, shorter words. `coach-rules.js`: `am.easy` *Take it easy today.*, `am.haze` *Keep it moderate today.*, `am.steady` *Train, but not to the limit.*, at every hour; the board shows A only (B removed). `cr1-board.html`: the rules table and the approved reads take the new words (still 20 of 24 against the approved reads; every read fits two lines at its width, and the before-sunrise note is gone because every morning read now fits at 240 px).
+
+## TW1 · Coach in twilight, under the moon (2026-11-24)
+
+**Asked:** continue. Found in PS1: four evening reads take three lines at 240 px, which matters if the moon rule starts before 21:30.
+
+**When the moon is up:** the scene's palette goes dusk (19:00) → night (21:00), and the moon disc shows once night passes .5 (fully by .7): **20:00 → 05:45**. Coach's evening read runs to 21:30, and by day its box reaches x 380, so from 20:00 it sat on the moon. Measured (`g2.js`, fair, floor 3.0, chat glass + nav, read box y 108–250):
+
+| | 19:45 | 20:00 | 20:15 | 20:30 | 21:00 | 21:30 |
+|---|---|---|---|---|---|---|
+| read to x 380 | dark ink 3.33, no veil | light veil 17%, 3.27 | 18%, 3.27 | 26%, 3.34 | 37%, 3.36 | 37%, 3.34 |
+| read to x 262 | 3.38, no veil | light veil 17%, 3.29 | **none**, light ink 3.10 | none, 3.70 | none, 4.01 | none, 4.12 |
+
+20:00 needs its 17% either way (the ink-swap minute G3 found). **Rule:** sky text keeps left of x 262 **while the moon is up (20:00 → 05:45)**, not only after 21:30; and on the storm day (ST1).
+
+**The evening reads at 240 px:** *A quiet day done. Sleep early.*, *An easy day done. An early night next.*, *A hard day done. Ease off from here.* and *A light day done. Sleep on time.* took three lines. Every evening read now takes one pattern, *A … day. What next.* (the hour says the day is done), in `coach-rules.js` at every hour:
+- `dusk.rest` *A quiet day. Sleep early.* · `dusk.easy` *An easy day. Sleep early.* · `dusk.hard` *A hard day. Ease off now.* · `dusk.full` *A full day. Sleep on time.* · `dusk.light` *A light day. Sleep on time.* · `dusk.haze` *A fair day. Sleep on time.*
+- Kept: *A day done. Sleep on time.* (first week), *Wind down early tonight.*, *An early night helps most.* (they fit).
+All nine evening rules fit two lines at 240 px; the read box ends at y 241 on every drawn day (chat from 384).
+
+**Skies at 20:30** (`ps1-states.js` now takes `H`, `I`, `TAG`; the six drawn days' bodies at 19:45's steps and strain; `tw1/<day>-pm2030.png`, `tw1/measure.json`; floor 3.0, no veil, sky text x ≤ 262): land glass 22% (`#1D2542`–`#202733`), light ink. Glass text 3.37 (storm) – 6.70, sky text 3.70 – 8.39, button 3.23 (storm) – 10.95.
+
+**Board:** `co2-board.html?tw=1` (the PS1 section is now the same code with `?dawn=1`; PD1's dusk exchange is a shared const, `PD_PM`). `cr1-board.html`'s rules table has the new words; its approved reads still hold the old evening words until this is picked (it counts 17 of 24 meanwhile).
+
+**Shots:** `TAG=tw1 BOARDS=co2 Q=tw=1 node vp1.js` → `out/tw1-co2-0…5.png`, sheet `out/tw1-sheet.png`, board `out/tw1-board.png`. No page errors on co2 (plain, `?bad=1`, `?poor=1`, `?first=1`, `?dawn=1`, `?tw=1`) or cr1. STOP.
+
+**Approved (2026-11-24):** TW1 as built: sky text keeps left of x 262 while the moon is up (20:00 → 05:45) and on the storm day; every evening read in the *A … day. What next.* pattern. `cr1-board.html`'s approved reads take the new evening words (back to 20 of 24; the four differences are the CR1 hand inconsistencies).
+
+## LOCK (2026-11-24)
+
+The user said **lock**. Every round above is approved; the work moves into `android-app/` following `docs/plans/2026-11-24-lock.md` (decisions: GLES 3.0 renderer, glass from the renderer's own blur, bake the likely sky, screen by screen behind a "Sky (preview)" switch, tint without blur on Android 8–9). Phase 1 first: the logic ports with parity tests against this prototype.
+
+## L1-P1 · Lock phase 1: the logic in the app, with parity tests (2026-11-24)
+
+**Built** (`android-app/`, no screen changes; under the current look):
+- **S2 sleep score** replaces the old formula in `SleepAndReadinessEngine.sleepScoreParts` (now a pure function on a night's numbers, which the session path calls). Applied to the no-stages variant too (duration and efficiency take the same S2 curves).
+- **"Your normal" as shown:** `MetricInsights.status` compares the value as shown with the band as shown (BD7): HRV 64 against a band shown as 54–64 is within it.
+- **`domain/sky/BodySky.kt`** (+ `SkyState`, `SkyRegime`, `SkyPalette`, `BodyInputs`): the weather of the body, 1:1 with `body-sky.js`, including the tap note and TalkBack text.
+- **`domain/CoachRules.kt`**: Coach's read, 1:1 with `coach-rules.js` (PS1 and TW1 words).
+- **`domain/sky/GlassRule.kt`**: the glass measured on the frame (`glass-check.js` + `g2.js` decision): mode, strength, nav, sky ink and veil, the button fill, from the renderer's pixels.
+- **Prototype fix:** `coach-rules.js` read "NaN steps … strain undefined" when a body had no step data; missing steps and strain now read as 0.
+- **Test fix:** the dashboard golden failed on Windows only because git checked it out with CRLF; `.gitattributes` keeps golden files LF.
+
+**Parity** (`tools/visual-loop/parity.js` writes `android-app/app/src/test/resources/parity/*.tsv` from the prototype's own functions; the Kotlin ports must match):
+- Sleep: 94 nights (the sample data and the four designed bad nights), every part to 1e-5 and every score exact.
+- BodySky: 622 bodies × hours (60 days at nine hours incl. 05:20 and 20:30, the six drawn days, the first week, an empty body, three rare branches): every SkyState field to 1e-9, regime, palette, layers and the TalkBack sentence exact.
+- CoachRules: the same 622: rule, line and detail exact; all 35 rules covered.
+- Glass: the 13 renders of PS1 and TW1 against g2.js's measurements: mode, sky ink and button exact; strengths within .02, contrasts within .05.
+- The dashboard golden re-recorded: 7-hour nights 97 → 93 under S2, readiness −1, daily −1 to −2; nothing else moved.
+
+**Tests:** 141, all pass (`./gradlew testDebugUnitTest`).
+
+**Next (plan §4):** the spikes on the S21 (renderer compile time and frame cost; the two-image hand-off and one glass card while scrolling), then the renderer port.

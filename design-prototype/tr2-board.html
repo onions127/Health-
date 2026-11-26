@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Health++ · Round TR2 · Trends list with good and bad</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:#E9EBEE; color:#14171A; font:400 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding:32px 32px 80px; }
+  header.board { max-width:1180px; margin-bottom:24px; } header.board h1 { font-size:26px; font-weight:600; margin-bottom:8px; } header.board p { color:#3A424B; max-width:110ch; margin-bottom:8px; }
+  section.dir { display:flex; gap:24px; align-items:flex-start; padding:28px 0; border-top:1px solid #D5DAE0; }
+  .sheet { width:340px; flex:none; background:#fff; border-radius:14px; padding:18px; font-size:12.5px; line-height:1.5; color:#30363D; }
+  .sheet h2 { font-size:19px; font-weight:600; color:#111; margin-bottom:4px; } .sheet h3 { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#6A727C; margin:12px 0 4px; } .sheet ul { padding-left:16px; }
+  table.m { border-collapse:collapse; font-size:11.5px; font-variant-numeric:tabular-nums; } table.m td, table.m th { padding:2px 6px; border-bottom:1px solid #E6E9ED; text-align:right; } table.m td:first-child, table.m th:first-child { text-align:left; } table.m th { color:#6A727C; font-weight:500; } .bad { color:#B3261E; font-weight:600; }
+  .sw { display:inline-block; width:12px; height:12px; border-radius:3px; vertical-align:-1px; margin-right:4px; }
+  .phones { display:flex; gap:16px; align-items:flex-start; } figure { margin:0; } figcaption { font-size:12px; color:#3A424B; margin-top:6px; }
+  .phone { position:relative; width:412px; height:915px; overflow:hidden; border-radius:30px; isolation:isolate; zoom:.72; box-shadow:0 1px 2px rgba(20,23,26,.08), 0 16px 40px rgba(20,23,26,.14); font-family:Roboto, "Segoe UI", system-ui, sans-serif; }
+  .phone img.scene { position:absolute; inset:0; width:100%; height:100%; display:block; z-index:0; }
+  .abs { position:absolute; z-index:1; } .glass { position:absolute; z-index:1; border-radius:26px; }
+  .btn { display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 18px; border-radius:24px; font-size:15px; font-weight:500; white-space:nowrap; }
+  .nav { position:absolute; left:0; right:0; bottom:0; height:64px; z-index:2; display:grid; grid-template-columns:repeat(4,1fr); align-items:center; text-align:center; font-size:12px; border-top:1px solid; }
+  .nav span { position:relative; padding-top:10px; } .nav span.on { font-weight:500; }
+  .nav span.on::before { content:""; position:absolute; top:-2px; left:50%; width:24px; height:3px; margin-left:-12px; border-radius:2px; background:currentColor; }
+  .ico { width:1em; height:1em; vertical-align:-0.12em; display:inline-block; }
+</style>
+</head>
+<body>
+<header class="board">
+  <h1>Round TR2 · Trends: the list, with good and bad</h1>
+  <p>A · List (picked in TR1). When a metric strays from your normal, its word, arrow and today's dot take a colour: <b>green when the change is good for you</b> (higher HRV, lower resting HR, more sleep, ahead of your step pace) and <b>coral when it is not</b> (the opposite, a raised skin temperature, low blood oxygen). Changes that are neither (strain above or below your usual) stay in the ink. Colour is never alone: the word ("Above normal") and the arrow say the same thing, so it reads in grey too. A thin bar at the row's left edge in the same colour lets you scan the list.</p>
+  <p>Two days: today at 15:10 (day glass; three changes, all good) and 4 Nov, a poor day, at 23:10 (night glass; most changes bad). Each glass has its own pair of colours, measured to 3:1 against the card.</p>
+</header>
+<section class="dir"><div class="sheet" id="sheet"></div><div class="phones" id="phones"></div></section>
+<main id="board"></main>
+<script src="scores.js"></script><script src="data.js"></script>
+<script src="night.js"></script>
+<script>
+const HD = window.HEALTH_DATA, days = HD.days, M = HD.METRICS;
+const rgba = (h, a) => `rgba(${[1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(',')},${a})`;
+const hmT = m => `${Math.floor(m / 60)}h ${String(Math.round(m % 60)).padStart(2, '0')}m`, n = v => Math.round(v).toLocaleString('en-US');
+// good / bad by direction: +1 = higher is good, -1 = higher is bad, 0 = neither; [above, below] when they differ
+const SENSE = { hrv: [1, -1], rhr: [-1, 1], sleep: [1, -1], readiness: [1, -1], steps: [1, -1], strain: [0, 0], spo2: [0, -1], skinTemp: [-1, 0] };
+const COL = { day: { good: '#17703C', bad: '#B23A2E' }, night: { good: '#7BE3A4', bad: '#FFA095' } };
+const FMT = { hrv: v => `${v} ms`, rhr: v => `${v} bpm`, sleep: v => hmT(v), readiness: v => `${v}`, steps: v => n(v), strain: v => `${v}`, spo2: v => `${v}%`, skinTemp: v => `${v >= 0 ? '+' : ''}${v.toFixed(1)} °C` };
+const LABEL = { hrv: 'HRV', rhr: 'Resting HR', sleep: 'Sleep', readiness: 'Readiness', steps: 'Steps', strain: 'Strain', spo2: 'Blood oxygen', skinTemp: 'Skin temp' };
+function rows(di, hour, over) {   // BD1: over = today's values on a bad day (replaces the last day of the 30)
+  const d = { ...days[di], ...(over || {}) }, last30 = days.slice(di - 29, di).concat([d]), pace = Math.min(1, Math.max(.05, (hour - 7) / 14));
+  return Object.keys(LABEL).map(id => { const m = M[id], key = m.dataKey || id, v = d[key], series = last30.map(x => x[key]);
+    let dir = v > m.normalMax ? 1 : v < m.normalMin ? -1 : 0, st = dir > 0 ? 'Above normal' : dir < 0 ? 'Below normal' : '', text = FMT[id](v);
+    if (id === 'steps') { const usual = m.avg30 * pace; dir = v > usual * 1.15 ? 1 : v < usual * .85 ? -1 : 0; st = pace < 1 ? (dir > 0 ? 'Ahead of your pace' : dir < 0 ? 'Behind your pace' : '') : (dir > 0 ? 'Above your usual' : dir < 0 ? 'Below your usual' : ''); series[29] = v / pace; if (pace < 1) text += ' so far'; }
+    const sense = dir ? SENSE[id][dir > 0 ? 0 : 1] : 0;
+    return { id, label: LABEL[id], v, text, series, lo: m.normalMin, hi: m.normalMax, dir, st, tone: !dir ? null : sense > 0 ? 'good' : sense < 0 ? 'bad' : 'flat' }; });
+}
+function spark(r, W, H, ink, c) {
+  const vs = r.series, lo = Math.min(r.lo, ...vs), hi = Math.max(r.hi, ...vs), pad = (hi - lo) * .12 || 1, y = v => H - 3 - (v - (lo - pad)) / ((hi + pad) - (lo - pad)) * (H - 6), x = k => 3 + k / (vs.length - 1) * (W - 9);
+  const L = vs.length - 1;
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true" style="overflow:visible;display:block"><rect x="0" y="${y(r.hi).toFixed(1)}" width="${W}" height="${(y(r.lo) - y(r.hi)).toFixed(1)}" fill="${ink}" fill-opacity=".10"/>
+    <path d="${vs.map((v, k) => `${k ? 'L' : 'M'}${x(k).toFixed(1)} ${y(v).toFixed(1)}`).join(' ')}" fill="none" stroke="${ink}" stroke-opacity=".85" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${x(L).toFixed(1)}" cy="${y(vs[L]).toFixed(1)}" r="3.6" fill="${c}"/>${r.dir ? `<circle cx="${x(L).toFixed(1)}" cy="${y(vs[L]).toFixed(1)}" r="6.4" fill="none" stroke="${c}" stroke-width="1.6"/>` : ''}</svg>`;
+}
+const chev = c => `<svg width="10" height="16" viewBox="0 0 10 16" aria-hidden="true"><path d="M2.5 2.5 8 8l-5.5 5.5" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const cal = '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M2 6.5h12M5.5 1.8v2.6M10.5 1.8v2.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+const list = a => a.join(', ').replace(/, ([^,]*)$/, ' and $1');
+function phone(img, g, satD, R, time, o = {}) {
+  const P = g.ink, S = g.skyInk, dark = g.mode === 'dark', C = COL[dark ? 'night' : 'day'], tc = r => r.tone === 'good' ? C.good : r.tone === 'bad' ? C.bad : P.primary;
+  const glass = `background:${rgba(g.tint, g.a)};-webkit-backdrop-filter:blur(22px) saturate(${dark ? satD : 1.6});backdrop-filter:blur(22px) saturate(${dark ? satD : 1.6});box-shadow:${dark ? 'inset 0 0 0 1px rgba(255,255,255,.10), inset 0 1px 0 rgba(255,255,255,.08), 0 10px 28px rgba(0,0,0,.12)' : '0 1px 1px rgba(14,42,67,.05), 0 10px 28px rgba(14,42,67,.10)'}`;
+  const outs = R.filter(r => r.dir), good = outs.filter(r => r.tone === 'good'), bad = outs.filter(r => r.tone === 'bad');
+  const detail = !outs.length ? 'Everything is where it usually is' : [good.length ? `${list(good.map(r => r.label))} ${good.length > 1 ? 'are' : 'is'} better than usual` : '', bad.length ? (bad.length > 3 ? `${bad.length} numbers need a look today` : `${list(bad.map(r => r.label))} ${bad.length > 1 ? 'need' : 'needs'} a look`) : ''].filter(Boolean).join('. ');
+  const rh = 56, det = o.detail || detail;
+  return `<div class="phone" style="color:${P.primary}"><img class="scene" src="${img}" alt="">
+    <div class="abs" style="top:12px;left:20px;font:500 12px Roboto, 'Segoe UI';color:${S.sky}">${time}</div>
+    <div class="abs" style="top:40px;left:20px;color:${S.sky}"><div style="font-size:19px;font-weight:500">Trends</div><div style="font-size:12px;margin-top:2px">Last 30 days · against your normal</div></div>
+    <div class="abs btn" style="top:40px;right:20px;background:${g.btn.fill};color:${g.btn.ink}">${cal}&nbsp;Calendar</div>
+    <div class="abs" style="top:112px;left:22px;right:${o.skyRight || 30}px;color:${S.sky}"><div style="font-size:72px;font-weight:300;line-height:1;letter-spacing:-0.035em;margin-left:-3px">${R.length - outs.length}<span style="font-size:.5em;letter-spacing:0"> of ${R.length}</span></div><div style="font-size:23px;line-height:1.25;margin-top:8px">within your normal</div><div style="font-size:15px;line-height:1.35;margin-top:4px">${det}</div></div>
+    <div class="glass" style="${glass};top:384px;left:12px;right:12px;height:${R.length * rh + 8}px;padding:4px 0;overflow:hidden">${R.map((r, k) => `<div style="position:relative;height:${rh}px;display:flex;align-items:center;gap:10px;padding:0 12px 0 16px;${k ? `border-top:1px solid ${rgba(P.primary, .10)}` : ''}">
+      ${r.tone === 'good' || r.tone === 'bad' ? `<i style="position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 2px 2px 0;background:${tc(r)}"></i>` : ''}
+      <div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:500">${r.label}</div><div style="font-size:12px;color:${P.secondary}">${r.text}${r.dir ? ` · <b style="font-weight:500;color:${tc(r)}">${r.dir > 0 ? '↑' : '↓'} ${r.st}</b>` : ''}</div></div>
+      ${spark(r, 112, 30, P.primary, tc(r))}<div style="width:16px;display:flex;justify-content:center">${chev(P.secondary)}</div></div>`).join('')}</div>
+    <nav class="nav" style="background:${rgba(g.tint, g.navA)};color:${P.secondary};border-top-color:${rgba('#FFFFFF', dark ? .14 : .6)};-webkit-backdrop-filter:blur(22px) saturate(${dark ? satD : 1.6});backdrop-filter:blur(22px) saturate(${dark ? satD : 1.6})">${['Today', 'Sleep', 'Trends', 'Coach'].map(l => `<span class="${l === 'Trends' ? 'on' : ''}" style="${l === 'Trends' ? 'color:' + P.primary : ''}">${l}</span>`).join('')}</nav></div>`;
+}
+// contrast of a colour over the glass on the page under the list, worst band (sRGB blending, as CSS does)
+const hx3 = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)), over = (f, b, a) => f.map((v, i) => v * a + b[i] * (1 - a));
+const lumi = c => { const l = c.map(v => (v /= 255) <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4); return .2126 * l[0] + .7152 * l[1] + .0722 * l[2]; };
+const cr = (a, b) => { const x = lumi(a), y = lumi(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+async function bandsOf(src) { const im = new Image(); im.src = src; await im.decode(); const cv = document.createElement('canvas'); cv.width = 412; cv.height = 915; const cx = cv.getContext('2d'); cx.drawImage(im, 0, 0, 412, 915);
+  const out = []; for (let y = 390; y <= 840; y += 15) { const px = cx.getImageData(12, y, 388, 1).data, a = [0, 0, 0]; for (let i = 0; i < px.length; i += 4) for (let j = 0; j < 3; j++) a[j] += px[i + j] / 388; out.push(a); } return out; }
+const LAST = 89, NOV4 = 81;
+(async () => {
+  const MD = await (await fetch('tr1/measure.json?' + Date.now())).json(), MN = await (await fetch('s1/measure.json?' + Date.now())).json();
+  const gd = MD.m.day1510['3'], gn = MN.m.bed2310['3'], bd = await bandsOf('tr1/day1510.png'), bn = await bandsOf('s1/bed2310.png');
+  const worst = (g, bands, c) => Math.min(...bands.map(b => { const card = over(hx3(g.tint), b, g.a); return cr(hx3(c), card); }));
+  const meas = [['Day · good', COL.day.good, worst(gd, bd, COL.day.good)], ['Day · bad', COL.day.bad, worst(gd, bd, COL.day.bad)], ['Night · good', COL.night.good, worst(gn, bn, COL.night.good)], ['Night · bad', COL.night.bad, worst(gn, bn, COL.night.bad)]];
+  window.TR2M = Object.fromEntries(meas.map(([k, , v]) => [k, +v.toFixed(2)]));
+  document.getElementById('phones').innerHTML = `<figure>${phone('tr1/day1510.png', gd, 1, rows(LAST, 15 + 10 / 60), '15:10')}<figcaption>Today, 15:10: three changes, all good</figcaption></figure>`
+    + `<figure>${phone('s1/bed2310.png', gn, MN.m.bed2310.satD, rows(NOV4, 23 + 10 / 60), '23:10')}<figcaption>4 Nov, a poor day, at 23:10 (night glass)</figcaption></figure>`;
+  document.getElementById('sheet').innerHTML = `<h2>A · List, TR2</h2>
+    <h3>Good or bad, per metric</h3><ul><li>Good: HRV up, resting HR down, more sleep, readiness up, steps ahead of your pace</li><li>Bad: the opposite, skin temperature up, blood oxygen down</li><li>Neither: strain above or below your usual (stays in the ink, word only)</li></ul>
+    <h3>Where the colour goes</h3><ul><li>The arrow and word (“↑ Above normal”)</li><li>Today's dot and its ring in the line</li><li>A 3 px bar at the row's left edge, for scanning</li><li>The hero says it in words: “… better than usual”, “… needs a look”</li></ul>
+    <h3>Measured: colour against the card (worst page band, floor 3.0)</h3><table class="m"><tr><th>colour</th><th></th><th>contrast</th></tr>${meas.map(([k, c, v]) => `<tr><td><i class="sw" style="background:${c}"></i>${k}</td><td>${c}</td><td class="${v < 3 ? 'bad' : ''}">${v.toFixed(2)}</td></tr>`).join('')}</table>
+    <p style="margin-top:8px">Green and coral also differ in lightness, and the arrow and word carry the meaning, so it holds for colour-blind eyes.</p>`;
+  if (BAD) {   // BD1: Trends on the three bad days at 15:10, under each day's sky; colours measured against each day's glass
+    const K = BAD_K(), NT = K === 'night', AT = NT ? '23:10' : '15:10';   // BD2: steps and strain at 23:10 are the full day's
+    const BODY = { hz: { hrv: 52, rhr: 57, sleepMin: 410, readiness: 67, steps: NT ? 7900 : 4700, strain: NT ? 58 : 36, spo2: 96, skinTemp: .4 }, vp: { hrv: 38, rhr: 59, sleepMin: 280, readiness: 46, steps: NT ? 4600 : 2900, strain: NT ? 31 : 24, spo2: 96, skinTemp: .1 }, ill: { hrv: 44, rhr: 60, sleepMin: 365, readiness: 49, steps: NT ? 3300 : 2400, strain: NT ? 26 : 20, spo2: 93, skinTemp: .8 },
+      st: { hrv: 36, rhr: 64, sleepMin: 290, readiness: 34, steps: NT ? 1500 : 1100, strain: NT ? 14 : 9, spo2: 93, skinTemp: 1.1 } };
+    const ILL = 'Skin temp and resting HR are both up: your body may be fighting something', HAZE = 'Skin temp and resting HR are a little up: your body is under some load';
+    const figs = [], ms = [];
+    for (const [day, name] of [['hz', 'The haze day (67)'], ['vp', 'A very poor day (46)'], ['ill', 'Likely illness (49)'], ['st', 'The storm day (34)']]) {
+      const g = vp1G(day, K), img = badImg(day, K), R = rows(LAST, NT ? 23 + 10 / 60 : 15 + 10 / 60, BODY[day]), bands = await bandsOf(img), C = COL[g.mode === 'dark' ? 'night' : 'day'];
+      const outs = R.filter(r => r.dir).length; window.BD1_COUNT = Object.assign(window.BD1_COUNT || {}, { [day]: `${R.length - outs} of ${R.length}` });
+      ms.push([name, Math.round(g.a * 100), worst(g, bands, C.good), worst(g, bands, C.bad)]);
+      figs.push([phone(img, g, 1, R, AT, { detail: { hz: HAZE, vp: null, ill: ILL, st: ILL }[day], skyRight: day === 'st' || NT ? 150 : 30 }), `${name} · ${AT}`]); }
+    document.querySelector('section.dir').style.display = 'none';
+    addSection(`BD1 · Trends on the bad days, ${AT}`, `The same list. The hero counts what is within your normal; on the illness days its line names the pattern in words (skin temp and resting HR both up), as Today’s card does, instead of a count of numbers to look at. Coral against each day’s glass: ${ms.map(m => `${m[0]} ${m[1]}% glass, bad ${m[3].toFixed(2)}, good ${m[2].toFixed(2)}`).join('; ')}.`, figs, true);
+    window.BD1_M = ms; }
+})();
+</script>
+</body>
+</html>

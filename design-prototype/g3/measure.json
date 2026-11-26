@@ -1,0 +1,360 @@
+{
+ "floors": [
+  3
+ ],
+ "states": [
+  {
+   "id": "day13",
+   "label": "Day 13:00 (control)"
+  },
+  {
+   "id": "dusk1830",
+   "label": "Dusk 18:30"
+  },
+  {
+   "id": "dusk1945",
+   "label": "Dusk 19:45"
+  },
+  {
+   "id": "dusk2030",
+   "label": "Twilight 20:30"
+  },
+  {
+   "id": "night",
+   "label": "Night 23:00"
+  },
+  {
+   "id": "nightPartly",
+   "label": "Night, partly cloudy"
+  },
+  {
+   "id": "nightRain",
+   "label": "Night, rain"
+  },
+  {
+   "id": "nightSnow",
+   "label": "Night, snow"
+  },
+  {
+   "id": "dawn0530",
+   "label": "Dawn 05:30"
+  }
+ ],
+ "m": {
+  "day13": {
+   "3": {
+    "mode": "light",
+    "tint": "#FFFFFF",
+    "a": 0.22,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "skyInk": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "cardP": 8.76,
+    "cardS": 5.52,
+    "navS": 5.65,
+    "skyMode": "light",
+    "scrimT": "#FFFFFF",
+    "scrimA": 0,
+    "sky": 6.92,
+    "hero": 7.12,
+    "btn": {
+     "fill": "#0B5FA5",
+     "ink": "#FFFFFF"
+    },
+    "btnC": 3.32
+   },
+   "pageL": 79.98659197936757,
+   "lightT": "#FFFFFF",
+   "darkT": "#1E2929",
+   "satD": 1
+  },
+  "dusk1830": {
+   "3": {
+    "mode": "light",
+    "tint": "#FFFFFF",
+    "a": 0.22,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "skyInk": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "cardP": 5.89,
+    "cardS": 3.71,
+    "navS": 4.04,
+    "skyMode": "light",
+    "scrimT": "#FFFFFF",
+    "scrimA": 0,
+    "sky": 5.52,
+    "hero": 5.62,
+    "btn": {
+     "fill": "#082F5A",
+     "ink": "#FFFFFF"
+    },
+    "btnC": 5.83
+   },
+   "pageL": 64.95560944751091,
+   "lightT": "#FFFFFF",
+   "darkT": "#23272E",
+   "satD": 1
+  },
+  "dusk1945": {
+   "3": {
+    "mode": "light",
+    "tint": "#FFFFFF",
+    "a": 0.27,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "skyInk": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "cardP": 5.05,
+    "cardS": 3.18,
+    "navS": 3.29,
+    "skyMode": "light",
+    "scrimT": "#FFFFFF",
+    "scrimA": 0,
+    "sky": 3.88,
+    "hero": 3.37,
+    "btn": {
+     "fill": "#FFFFFF",
+     "ink": "#0B3A66"
+    },
+    "btnC": 3.14
+   },
+   "pageL": 54.58026804926308,
+   "lightT": "#FFFFFF",
+   "darkT": "#222732",
+   "satD": 1
+  },
+  "dusk2030": {
+   "3": {
+    "mode": "dark",
+    "tint": "#1E2640",
+    "a": 0.22,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "skyInk": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "cardP": 8.98,
+    "cardS": 6.15,
+    "navS": 7.96,
+    "skyMode": "dark",
+    "scrimT": "#1E2640",
+    "scrimA": 0,
+    "sky": 4.72,
+    "hero": 5.25,
+    "btn": {
+     "fill": "#FFFFFF",
+     "ink": "#0B3A66"
+    },
+    "btnC": 3.17
+   },
+   "pageL": 30.69928680673243,
+   "lightT": "#FFFFFF",
+   "darkT": "#1E2640",
+   "satD": 1
+  },
+  "night": {
+   "3": {
+    "mode": "dark",
+    "tint": "#152256",
+    "a": 0.22,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "skyInk": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "cardP": 13.56,
+    "cardS": 9.29,
+    "navS": 9.82,
+    "skyMode": "dark",
+    "scrimT": "#152256",
+    "scrimA": 0,
+    "sky": 4.61,
+    "hero": 4.12,
+    "btn": {
+     "fill": "#FFFFFF",
+     "ink": "#0B3A66"
+    },
+    "btnC": 7.32
+   },
+   "pageL": 18.6844686337391,
+   "lightT": "#FFFFFF",
+   "darkT": "#152256",
+   "satD": 1
+  },
+  "nightPartly": {
+   "3": {
+    "mode": "dark",
+    "tint": "#142257",
+    "a": 0.22,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "skyInk": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "cardP": 13.7,
+    "cardS": 9.39,
+    "navS": 9.85,
+    "skyMode": "dark",
+    "scrimT": "#142257",
+    "scrimA": 0,
+    "sky": 4.43,
+    "hero": 4.06,
+    "btn": {
+     "fill": "#FFFFFF",
+     "ink": "#0B3A66"
+    },
+    "btnC": 6.91
+   },
+   "pageL": 18.392676796771994,
+   "lightT": "#FFFFFF",
+   "darkT": "#142257",
+   "satD": 1
+  },
+  "nightRain": {
+   "3": {
+    "mode": "dark",
+    "tint": "#1E2739",
+    "a": 0.22,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "skyInk": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "cardP": 8.53,
+    "cardS": 5.84,
+    "navS": 6.45,
+    "skyMode": "dark",
+    "scrimT": "#1E2739",
+    "scrimA": 0,
+    "sky": 6.64,
+    "hero": 7.11,
+    "btn": {
+     "fill": "#FFFFFF",
+     "ink": "#0B3A66"
+    },
+    "btnC": 7.15
+   },
+   "pageL": 36.529410997919676,
+   "lightT": "#FFFFFF",
+   "darkT": "#1E2739",
+   "satD": 1
+  },
+  "nightSnow": {
+   "3": {
+    "mode": "dark",
+    "tint": "#1F2736",
+    "a": 0.22,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "skyInk": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "cardP": 6.81,
+    "cardS": 4.67,
+    "navS": 5.73,
+    "skyMode": "dark",
+    "scrimT": "#1F2736",
+    "scrimA": 0,
+    "sky": 3.17,
+    "hero": 3.2,
+    "btn": {
+     "fill": "#FFFFFF",
+     "ink": "#0B3A66"
+    },
+    "btnC": 3.44
+   },
+   "pageL": 42.53697119274915,
+   "lightT": "#FFFFFF",
+   "darkT": "#1F2736",
+   "satD": 1
+  },
+  "dawn0530": {
+   "3": {
+    "mode": "dark",
+    "tint": "#1D2831",
+    "a": 0.22,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "skyInk": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "cardP": 5.66,
+    "cardS": 3.88,
+    "navS": 5.39,
+    "skyMode": "dark",
+    "scrimT": "#1D2831",
+    "scrimA": 0,
+    "sky": 3.3,
+    "hero": 3.45,
+    "btn": {
+     "fill": "#082F5A",
+     "ink": "#FFFFFF"
+    },
+    "btnC": 3.28
+   },
+   "pageL": 46.40293810755873,
+   "lightT": "#FFFFFF",
+   "darkT": "#1D2831",
+   "satD": 1
+  }
+ }
+}

@@ -1,0 +1,48 @@
+{
+ "floors": [
+  3
+ ],
+ "states": [
+  {
+   "id": "day1510",
+   "label": "Day 15:10"
+  }
+ ],
+ "m": {
+  "day1510": {
+   "3": {
+    "mode": "light",
+    "tint": "#FFFFFF",
+    "a": 0.22,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "skyInk": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "cardP": 8.84,
+    "cardS": 5.57,
+    "navS": 5.63,
+    "skyMode": "light",
+    "scrimT": "#FFFFFF",
+    "scrimA": 0,
+    "sky": 6.85,
+    "hero": 7.04,
+    "btn": {
+     "fill": "#0B5FA5",
+     "ink": "#FFFFFF"
+    },
+    "btnC": 3.57
+   },
+   "pageL": 79.90966138977444,
+   "lightT": "#FFFFFF",
+   "darkT": "#1E2929",
+   "satD": 1
+  }
+ }
+}

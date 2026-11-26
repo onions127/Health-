@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Health++ · Round CO1 · Coach</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:#E9EBEE; color:#14171A; font:400 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding:32px 32px 80px; }
+  header.board { max-width:1180px; margin-bottom:24px; } header.board h1 { font-size:26px; font-weight:600; margin-bottom:8px; } header.board p { color:#3A424B; max-width:110ch; margin-bottom:8px; }
+  section.dir { display:flex; gap:24px; align-items:flex-start; padding:28px 0; border-top:1px solid #D5DAE0; }
+  .sheet { width:340px; flex:none; background:#fff; border-radius:14px; padding:18px; font-size:12.5px; line-height:1.5; color:#30363D; }
+  .sheet h2 { font-size:19px; font-weight:600; color:#111; margin-bottom:4px; } .sheet .thesis { font-size:13.5px; font-weight:500; color:#1D2125; margin-bottom:10px; }
+  .sheet h3 { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#6A727C; margin:12px 0 4px; } .sheet ul { padding-left:16px; }
+  table.m { border-collapse:collapse; font-size:11.5px; font-variant-numeric:tabular-nums; } table.m td, table.m th { padding:2px 6px; border-bottom:1px solid #E6E9ED; text-align:right; } table.m td:first-child, table.m th:first-child { text-align:left; } table.m th { color:#6A727C; font-weight:500; }
+  .phones { display:flex; gap:16px; align-items:flex-start; } figure { margin:0; } figcaption { font-size:12px; color:#3A424B; margin-top:6px; }
+  .phone { position:relative; width:412px; height:915px; overflow:hidden; border-radius:30px; isolation:isolate; zoom:.72; box-shadow:0 1px 2px rgba(20,23,26,.08), 0 16px 40px rgba(20,23,26,.14); font-family:Roboto, "Segoe UI", system-ui, sans-serif; }
+  .phone img.scene { position:absolute; inset:0; width:100%; height:100%; display:block; z-index:0; }
+  .abs { position:absolute; z-index:1; } .glass { position:absolute; z-index:1; border-radius:26px; }
+  .pill { display:inline-flex; align-items:center; height:48px; padding:0 16px; border-radius:24px; font-size:14px; font-weight:500; white-space:nowrap; }
+  .bub { max-width:296px; padding:10px 14px; border-radius:20px; font-size:15px; line-height:1.4; }
+  .nav { position:absolute; left:0; right:0; bottom:0; height:64px; z-index:2; display:grid; grid-template-columns:repeat(4,1fr); align-items:center; text-align:center; font-size:12px; border-top:1px solid; }
+  .nav span { position:relative; padding-top:10px; } .nav span.on { font-weight:500; }
+  .nav span.on::before { content:""; position:absolute; top:-2px; left:50%; width:24px; height:3px; margin-left:-12px; border-radius:2px; background:currentColor; }
+</style>
+</head>
+<body>
+<header class="board">
+  <h1>Round CO1 · Coach</h1>
+  <p>Coach is the fourth tab. Shipped, it is a graphite chat: three suggested questions, a text field with Ask, short answers (three lines at most) grounded in your own normal, and a link that copies 14 days of metrics into the Claude app. Here it moves onto the same sky as Today and leads with <b>the coach's read of today in one sentence</b> where Today has its number. Answers stay short and always name the number they rest on. The handoff to the Claude app stays as a quiet link.</p>
+</header>
+<main id="board"></main>
+<script src="scores.js"></script><script src="data.js"></script>
+<script src="night.js"></script>
+<script>
+const HD = window.HEALTH_DATA, t = HD.today, Mt = HD.METRICS, R = HD.COACH_RESPONSES;
+const rgba = (h, a) => `rgba(${[1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(',')},${a})`;
+const Q = Object.keys(R);   // the suggested questions, with their prototype answers
+const read = { line: t.readiness >= 80 ? 'A good day to train hard.' : t.readiness >= 65 ? 'A steady day: train, but not to the limit.' : 'An easy day will pay off tomorrow.',
+  detail: `Readiness ${t.readiness} · HRV ${t.hrv} ms, ${t.hrv > Mt.hrv.normalMax ? 'above' : 'within'} your normal` };
+const points = [['Readiness', `${t.readiness}`, `${Math.abs(t.readiness - Mt.readiness.avg30)} above your usual ${Mt.readiness.avg30}`], ['HRV', `${t.hrv} ms`, `above your normal ${Mt.hrv.normalMin}–${Mt.hrv.normalMax}`], ['Sleep', HD.formatSleep(t.sleepMin), `score ${t.sleepScore}, deep sleep 1h 35m`]];
+const send = c => `<svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6" fill="none" stroke="${c}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const out = c => `<svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-2px"><path d="M5 11 11 5M6 5h5v5" fill="none" stroke="${c}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+function phone(img, g, kind) {
+  const P = g.ink, S = g.skyInk, glass = `background:${rgba(g.tint, g.a)};${glassFx(g)}`;
+  const BLUE = g.btn.fill, ON = g.btn.ink;
+  const head = `<div class="abs" style="top:12px;left:20px;font:500 12px Roboto, 'Segoe UI';color:${S.sky}">${CLOCK}</div>
+    <div class="abs" style="top:40px;left:20px;color:${S.sky}"><div style="font-size:19px;font-weight:500">Coach</div><div style="font-size:12px;margin-top:2px">Grounded in your own normal</div></div>`;
+  const hero = `<div class="abs" style="top:108px;left:22px;right:${SKY_RIGHT(32)}px;color:${S.sky}"><div style="font-size:36px;font-weight:300;line-height:1.15;letter-spacing:-0.02em">${read.line}</div><div style="font-size:15px;line-height:1.35;margin-top:10px">${read.detail}</div></div>`;
+  const input = top => `<div class="glass" style="${glass};top:${top}px;left:12px;right:12px;height:60px;padding:6px 6px 6px 18px;display:flex;align-items:center;justify-content:space-between"><span style="font-size:15px;color:${P.secondary}">Ask about your recovery…</span><span style="width:48px;height:48px;border-radius:24px;background:${BLUE};display:flex;align-items:center;justify-content:center" aria-label="Ask">${send(ON)}</span></div>`;
+  const chips = (qs, top, wrap) => `<div class="abs" style="top:${top}px;left:12px;right:12px;display:flex;gap:8px;${wrap ? 'flex-wrap:wrap' : ''}">${qs.map(q => `<span class="pill" style="${glass};position:static;color:${P.primary}">${q}</span>`).join('')}</div>`;
+  const handoff = top => `<div class="abs" style="top:${top}px;left:24px;font-size:13px;color:${P.primary};height:48px;display:flex;align-items:center">Ask in the Claude app&nbsp;${out(P.primary)}<span style="color:${P.secondary};margin-left:6px">copies your last 14 days</span></div>`;
+  const coach = (txt, foot) => `<div class="bub" style="${glass};position:relative;color:${P.primary};border-bottom-left-radius:8px">${txt}${foot ? `<div style="font-size:12px;color:${P.secondary};margin-top:4px">${foot}</div>` : ''}</div>`;
+  const me = txt => `<div style="display:flex;justify-content:flex-end"><div class="bub" style="background:${BLUE};color:${ON};border-bottom-right-radius:8px">${txt}</div></div>`;
+  const nav = `<nav class="nav" style="background:${rgba(g.tint, g.navA)};color:${P.secondary};border-top-color:${navEdge(g)};${glassFx(g).split(';box-shadow')[0]}">${['Today', 'Sleep', 'Trends', 'Coach'].map(l => `<span class="${l === 'Coach' ? 'on' : ''}" style="${l === 'Coach' ? 'color:' + P.primary : ''}">${l}</span>`).join('')}</nav>`;
+  let body = '';
+  if (kind === 'chat') {
+    body = `<div class="abs" style="top:384px;left:12px;right:12px;display:flex;flex-direction:column;gap:10px">
+        ${me(Q[0])}${coach(R[Q[0]].slice(0, 2).join(' '), 'From HRV and readiness, this morning')}</div>`
+      + chips(Q.slice(1), 628, false) + handoff(684) + input(772);
+  } else if (kind === 'brief') {
+    body = `<div class="glass" style="${glass};top:384px;left:12px;right:12px;height:176px;padding:12px 16px"><div style="font-size:12px;color:${P.secondary}">Today's read</div>
+        ${points.map(([n, v, c]) => `<div style="display:flex;align-items:baseline;gap:8px;margin-top:10px"><span style="font-size:15px;font-weight:500;min-width:84px">${n}</span><span style="font-size:15px;font-weight:500;min-width:64px">${v}</span><span style="font-size:12px;color:${P.secondary}">${c}</span></div>`).join('')}
+        <div style="font-size:12px;color:${P.secondary};margin-top:12px">Every answer names the numbers it rests on.</div></div>`
+      + `<div class="abs" style="top:574px;left:24px;font-size:12px;color:${P.secondary}">Ask</div>` + chips(Q, 596, true) + handoff(712) + input(772);
+  } else {   // the sheet risen over the sky, holding the conversation
+    body = `<div class="glass" style="${glass};top:236px;left:12px;right:12px;bottom:76px;padding:8px 14px 14px;border-radius:26px">
+        <div style="width:36px;height:4px;border-radius:2px;background:${rgba(P.primary, .35)};margin:0 auto 10px"></div>
+        <div style="display:flex;flex-direction:column;gap:10px">${me(Q[0])}${coach(R[Q[0]].slice(0, 2).join(' '), 'From HRV and readiness, this morning')}${me(Q[2])}${coach(R[Q[2]].slice(0, 2).join(' '), 'From last night’s sleep stages')}</div></div>`
+      + `<div class="abs" style="top:765px;left:26px;right:26px;height:60px;padding:6px 6px 6px 18px;display:flex;align-items:center;justify-content:space-between;border-radius:30px;background:${rgba('#FFFFFF', .55)}"><span style="font-size:15px;color:${P.secondary}">Ask a follow-up…</span><span style="width:48px;height:48px;border-radius:24px;background:${BLUE};display:flex;align-items:center;justify-content:center">${send(ON)}</span></div>`;
+  }
+  return `<div class="phone" style="color:${P.primary}"><img class="scene" src="${img}" alt="">${head}${kind === 'sheet' ? `<div class="abs" style="top:108px;left:22px;right:${SKY_RIGHT(32)}px;color:${S.sky}"><div style="font-size:23px;font-weight:300;line-height:1.2">${read.line}</div><div style="font-size:13px;margin-top:4px">${read.detail}</div></div>` : hero}${body}${nav}</div>`;
+}
+const DIRS = [
+  { name: 'A · Chat on the sky', thesis: 'The coach’s read of today is the hero; under the horizon the conversation runs in glass bubbles, your questions in blue. Suggested questions sit as chips above the field, which is docked above the nav.',
+    pro: ['One screen, nothing hidden: read, talk, ask', 'The sentence on the sky answers the most common question before you ask', 'Bubbles name the data each answer rests on'], con: ['A long conversation pushes the read and the sky up and away', 'Chips scroll sideways: only two show'], shots: [['chat', 'After one question']] },
+  { name: 'B · Briefing, then a sheet', thesis: 'The tab opens on a briefing: the read of today on the sky, then “Today’s read” with the three numbers behind it, and the questions as chips. Asking raises a glass sheet over the sky that holds the conversation (Oura’s sheet rising from below); pulling it down returns to the briefing.',
+    pro: ['Opens on answers, not an empty chat', 'The conversation gets the whole screen when you want it', 'The read stays visible above the sheet'], con: ['Two states to learn', 'The sheet covers the scene while you talk'], shots: [['brief', 'Opening: the briefing'], ['sheet', 'After asking: the sheet']] },
+];
+(async () => {
+  const M = await (await fetch('co1/measure.json?' + Date.now())).json(), g = NIGHT ? NIGHT_G : M.m.day1510['3'];
+  for (const d of DIRS) {
+    const el = document.createElement('section'); el.className = 'dir';
+    el.innerHTML = `<div class="sheet"><h2>${d.name}</h2><div class="thesis">${d.thesis}</div><h3>For</h3><ul>${d.pro.map(x => `<li>${x}</li>`).join('')}</ul><h3>Against</h3><ul>${d.con.map(x => `<li>${x}</li>`).join('')}</ul>
+      <h3>Measured (15:10, floor 3.0, no veil)</h3><table class="m"><tr><th>what</th><th>contrast</th></tr><tr><td>Glass text, weakest (incl. the sheet over the land)</td><td>${g.cardS.toFixed(2)}</td></tr><tr><td>Sky text (read, detail, header)</td><td>${g.sky.toFixed(2)}</td></tr><tr><td>Blue send button / your bubbles (white on ${g.btn.fill})</td><td>${g.btnC.toFixed(2)} vs sky · 6.6 text</td></tr></table></div>
+      <div class="phones">${d.shots.map(([k, cap]) => `<figure>${phone(NIGHT ? NIGHT_IMG : 'tr1/day1510.png', g, k)}<figcaption>${cap}</figcaption></figure>`).join('')}</div>`;
+    document.getElementById('board').appendChild(el);
+  }
+})();
+</script>
+</body>
+</html>

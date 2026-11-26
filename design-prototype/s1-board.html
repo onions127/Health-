@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Health++ · Round S1 · Sleep</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:#E9EBEE; color:#14171A; font:400 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding:32px 32px 80px; }
+  header.board { max-width:1180px; margin-bottom:24px; } header.board h1 { font-size:26px; font-weight:600; margin-bottom:8px; } header.board p { color:#3A424B; max-width:110ch; margin-bottom:8px; }
+  section.dir { display:flex; gap:24px; align-items:flex-start; padding:28px 0; border-top:1px solid #D5DAE0; }
+  .sheet { width:340px; flex:none; background:#fff; border-radius:14px; padding:18px; font-size:12.5px; line-height:1.5; color:#30363D; }
+  .sheet h2 { font-size:19px; font-weight:600; color:#111; margin-bottom:4px; } .sheet .thesis { font-size:13.5px; font-weight:500; color:#1D2125; margin-bottom:10px; }
+  .sheet h3 { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#6A727C; margin:12px 0 4px; } .sheet ul { padding-left:16px; }
+  table.m { border-collapse:collapse; font-size:11.5px; font-variant-numeric:tabular-nums; } table.m td, table.m th { padding:2px 6px; border-bottom:1px solid #E6E9ED; text-align:right; } table.m td:first-child, table.m th:first-child { text-align:left; } table.m th { color:#6A727C; font-weight:500; }
+  .phones { display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; } figure { margin:0; } figcaption { font-size:12px; color:#3A424B; margin-top:6px; }
+  .phone { position:relative; width:412px; height:915px; overflow:hidden; border-radius:30px; isolation:isolate; zoom:.62; box-shadow:0 1px 2px rgba(20,23,26,.08), 0 16px 40px rgba(20,23,26,.14); font-family:Roboto, "Segoe UI", system-ui, sans-serif; }
+  .phone img.scene { position:absolute; inset:0; width:100%; height:100%; display:block; z-index:0; }
+  .abs { position:absolute; z-index:1; } .ico { width:1em; height:1em; vertical-align:-0.12em; display:inline-block; }
+  .glass { position:absolute; z-index:1; border-radius:26px; }
+  .btn { display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 18px; border-radius:24px; font-size:15px; font-weight:500; }
+  .nav { position:absolute; left:0; right:0; bottom:0; height:64px; z-index:2; display:grid; grid-template-columns:repeat(4,1fr); align-items:center; text-align:center; font-size:12px; border-top:1px solid; }
+  .nav span { position:relative; padding-top:10px; } .nav span.on { font-weight:500; }
+  .nav span.on::before { content:""; position:absolute; top:-2px; left:50%; width:24px; height:3px; margin-left:-12px; border-radius:2px; background:currentColor; }
+  .u { font-size:.5em; letter-spacing:0; margin:0 .12em 0 .04em; }
+</style>
+</head>
+<body>
+<header class="board">
+  <h1>Round S1 · Sleep</h1>
+  <p>Sleep is the second tab. Today it is a dark graphite screen: one night's stages, then trend charts. Here it moves onto the same scene and glass as Today. Each direction picks <b>which sky the night sits under</b>. The content is the same in all three: how long and how well you slept, the stages through the night, time in each stage against your normal, and a check that the times are right (the shipped app asks this too). Trends for 30 nights continue below the fold, in the same glass.</p>
+  <p>Contrast is measured on the rendered scene with the G2 glass (floor 3.0). Every text and the drawn night line pass with no veil.</p>
+</header>
+<main id="board"></main>
+<script src="scores.js"></script><script src="data.js"></script>
+<script>
+const HD = window.HEALTH_DATA, t = HD.today, days = HD.days, prev = days.slice(-31, -1), mean = k => prev.reduce((a, d) => a + d[k], 0) / prev.length;
+const hm = m => `${Math.floor(m / 60)}<span class="u">h</span>${String(Math.round(m % 60)).padStart(2, '0')}<span class="u">m</span>`, hmT = m => `${Math.floor(m / 60)}h ${String(Math.round(m % 60)).padStart(2, '0')}m`;
+const clock = m => { const x = (23 * 60 + 10 + m) % 1440; return `${String(Math.floor(x / 60)).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}`; };
+const word = s => s >= 85 ? 'Restful night' : s >= 70 ? 'Good night' : s >= 55 ? 'Light night' : 'Short night';
+const rgba = (h, a) => `rgba(${[1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(',')},${a})`;
+const NIGHTS = {
+  good: { min: t.sleepMin, score: t.sleepScore, diff: Math.round(t.sleepMin - mean('sleepMin')), hyp: HD.HYPNOGRAM, end: 440,
+    stages: HD.SLEEP_STAGES.map(s => [s.name, s.duration, s.context]) },
+  short: { min: 340, score: 52, diff: Math.round(340 - mean('sleepMin')), hyp: HD.HYPNOGRAM.filter(s => s.start < 340).map(s => Object.assign({}, s, { dur: Math.min(s.dur, 340 - s.start) })), end: 340,
+    stages: [['Deep', '1h 05m', '18 min under normal'], ['REM', '1h 10m', '30 min under normal'], ['Light', '3h 05m', 'Within normal'], ['Awake', '20m', 'Within normal']] },
+};
+const ROW = { Awake: 0, REM: 1, Light: 2, Deep: 3 };
+// the night's stages: one bar per stage run on its row, rows labelled (position carries the meaning, not colour)
+function hypChart(N, W, H, ink, sub, labels = true) {
+  const E = Math.max(...N.hyp.map(s => s.start + s.dur)), L = labels ? 44 : 0, x = m => L + m / E * (W - L), rh = H / 4, cy = s => ROW[s.stage] * rh + rh / 2;
+  const step = N.hyp.map((s, i) => `${i ? 'L' : 'M'}${x(s.start).toFixed(1)} ${cy(s).toFixed(1)} L${x(s.start + s.dur).toFixed(1)} ${cy(s).toFixed(1)}`).join(' ');
+  const bars = N.hyp.map(s => `<rect x="${x(s.start).toFixed(1)}" y="${(ROW[s.stage] * rh + rh * .18).toFixed(1)}" width="${Math.max(1.5, x(s.start + s.dur) - x(s.start) - 1).toFixed(1)}" height="${(rh * .64).toFixed(1)}" rx="3" fill="${ink}" fill-opacity="${s.stage === 'Awake' ? .45 : .85}"/>`).join('');
+  const lab = labels ? Object.keys(ROW).map(k => `<text x="0" y="${(ROW[k] * rh + rh * .68).toFixed(1)}" font-size="11" fill="${sub}">${k}</text>`).join('') : '';
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true">${lab}<path d="${step}" fill="none" stroke="${ink}" stroke-opacity=".35" stroke-width="1.2"/>${bars}</svg>`;
+}
+// C: the night as one soft line across the sky, deep at the bottom, awake at the top
+function nightLine(N, W, H, ink) {
+  const E = Math.max(...N.hyp.map(s => s.start + s.dur)), x = m => m / E * W, y = s => 4 + ROW[s.stage] / 3 * (H - 8);
+  const d = N.hyp.map((s, i) => `${i ? 'L' : 'M'}${(x(s.start) + (i ? 3 : 0)).toFixed(1)} ${y(s).toFixed(1)} L${(x(s.start + s.dur) - 3).toFixed(1)} ${y(s).toFixed(1)}`).join(' ');
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true" style="overflow:visible"><path d="${d}" fill="none" stroke="${ink}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity=".92"/></svg>`;
+}
+function phone(img, g, satD, o) {
+  const N = NIGHTS[o.night], P = g.ink, S = g.skyInk, dark = g.mode === 'dark';
+  const glass = `background:${rgba(g.tint, g.a)};-webkit-backdrop-filter:blur(22px) saturate(${dark ? satD : 1.6});backdrop-filter:blur(22px) saturate(${dark ? satD : 1.6});box-shadow:${dark ? 'inset 0 0 0 1px rgba(255,255,255,.10), inset 0 1px 0 rgba(255,255,255,.08), 0 10px 28px rgba(0,0,0,.12)' : '0 1px 1px rgba(14,42,67,.05), 0 10px 28px rgba(14,42,67,.10)'}`;
+  const diff = `${Math.abs(N.diff)} min ${N.diff >= 0 ? 'more' : 'less'} than usual`, span = `${clock(0)} – ${clock(N.end)}`;
+  const hero = o.c
+    ? `<div class="abs" style="top:104px;left:22px;color:${S.sky}"><div style="font-size:44px;font-weight:300;line-height:1;letter-spacing:-0.03em">${hm(N.min)}</div><div style="font-size:17px;margin-top:4px">${word(N.score)} · score ${N.score}</div><div style="font-size:13px;margin-top:1px">${diff}</div></div>
+       <div class="abs" style="top:206px;left:22px;right:22px;color:${S.sky}"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px"><span>${clock(0)} asleep</span><span>low = deep sleep, high = awake</span><span>${clock(N.end)} awake</span></div>${nightLine(N, 368, 48, S.sky)}</div>`
+    : `<div class="abs" style="top:112px;left:22px;color:${S.sky}"><div style="font-size:72px;font-weight:300;line-height:1;letter-spacing:-0.035em;margin-left:-3px">${hm(N.min)}</div><div style="font-size:23px;line-height:1.25;margin-top:8px">${word(N.score)}</div><div style="font-size:15px;line-height:1.35;margin-top:4px">Score ${N.score} · ${diff}</div></div>`;
+  const stagesCard = (top, h) => `<div class="glass" style="${glass};top:${top}px;left:12px;right:12px;height:${h}px;padding:12px 16px"><div style="font-size:12px;color:${P.secondary}">Time in each stage</div>
+      ${N.stages.map(([n, d, c]) => `<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:${o.c ? 7 : 5}px"><div><span style="font-size:15px;font-weight:500">${n}</span> <span style="font-size:12px;color:${P.secondary}">${c}</span></div><div style="font-size:15px;font-weight:500">${d}</div></div>`).join('')}</div>`;
+  const week = days.slice(-7), mx = Math.max(...week.map(d => d.sleepMin));
+  const weekCard = (top, h) => `<div class="glass" style="${glass};top:${top}px;left:12px;right:12px;height:${h}px;padding:12px 16px"><div style="font-size:12px;color:${P.secondary}">Last 7 nights · usual ${hmT(Math.round(mean('sleepMin')))}</div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;align-items:end;height:76px;margin-top:8px">${week.map((d, i) => `<div style="text-align:center"><div style="height:${Math.round(8 + (d.sleepMin - 240) / (mx - 240) * 46)}px;border-radius:4px;background:${rgba(P.primary, i === 6 ? .85 : .40)}"></div><div style="font-size:11px;margin-top:4px;color:${i === 6 ? P.primary : P.secondary};${i === 6 ? 'font-weight:500' : ''}">${i === 6 ? 'Last' : d.dowName}</div></div>`).join('')}</div></div>`;
+  const cards = o.c
+    ? stagesCard(384, 156) + weekCard(552, 148)
+    : `<div class="glass" style="${glass};top:384px;left:12px;right:12px;height:144px;padding:12px 16px"><div style="display:flex;justify-content:space-between;font-size:12px;color:${P.secondary}"><span>Stages</span><span>${span}</span></div><div style="margin-top:8px">${hypChart(N, 356, 92, P.primary, P.secondary)}</div></div>` + stagesCard(540, 160);
+  return `<div class="phone" style="color:${P.primary}"><img class="scene" src="${img}" alt="">
+    <div class="abs" style="top:12px;left:20px;font:500 12px Roboto, 'Segoe UI';color:${S.sky}">${o.time}</div>
+    <div class="abs" style="top:40px;left:20px;color:${S.sky}"><div style="font-size:19px;font-weight:500">${o.title}</div><div style="font-size:12px;margin-top:2px">${t.label} · ${span}</div></div>
+    ${hero}${cards}
+    <div class="glass" style="${glass};top:712px;left:12px;right:12px;height:64px;padding:8px 8px 8px 16px;display:flex;align-items:center;justify-content:space-between"><div style="font-size:15px">Times right?<div style="font-size:12px;color:${P.secondary}">${span}</div></div>
+      <div><span class="btn" style="color:${P.primary}">Edit</span><span class="btn" style="background:${dark ? '#FFFFFF' : '#0B5FA5'};color:${dark ? '#0B3A66' : '#FFFFFF'}">Looks right</span></div></div>
+    <nav class="nav" style="background:${rgba(g.tint, g.navA)};color:${P.secondary};border-top-color:${rgba('#FFFFFF', dark ? .14 : .6)};-webkit-backdrop-filter:blur(22px) saturate(${dark ? satD : 1.6});backdrop-filter:blur(22px) saturate(${dark ? satD : 1.6})">${['Today', 'Sleep', 'Trends', 'Coach'].map(l => `<span class="${l === 'Sleep' ? 'on' : ''}" style="${l === 'Sleep' ? 'color:' + P.primary : ''}">${l}</span>`).join('')}</nav></div>`;
+}
+const DIRS = [
+  { name: 'A · Last night', thesis: 'The screen shows the sky as you fell asleep: moon, stars, the dark loch. You look back at the night itself.',
+    pro: ['Reads as “sleep” at a glance, at any hour you open it', 'Calm and dark: easy on the eyes at bedtime', 'Same layout as Today: number, word, detail, then cards'],
+    con: ['Always night, so it does not change with the day or with how you slept', 'Dark glass all day long, unlike Today'],
+    shots: [['bed2310', 'good', 'The sky at 23:10 (bedtime)']], o: { title: 'Last night', time: '07:42' } },
+  { name: 'B · This morning', thesis: 'The screen shows the sky at the minute you woke (06:30, dawn). After a short night the valley mist from the body mapping is there too: the same morning sky Today shows.',
+    pro: ['Sleep and the sky agree: a short night leaves mist on both screens', 'Light, morning feel; same glass as Today by day', 'Changes with your wake time and the season'],
+    con: ['Dawn is a less obvious “sleep” cue than the moon', 'Very early wake times fall back to a night sky'],
+    shots: [['dawn0630', 'good', 'Woke 06:30, a good night'], ['dawnFog', 'short', 'Woke 06:30, a short night (valley mist)']], o: { title: 'This morning', time: '07:42' } },
+  { name: 'C · The night drawn', thesis: 'The night sky again, but the night itself is the picture: one soft light line crosses the sky from falling asleep to waking, low in deep sleep and high when awake. The number steps back.',
+    pro: ['Data drawn as art (the brief’s Oura reference)', 'The whole night is readable at once, above the fold', 'Leaves room for the last 7 nights on the first screen'],
+    con: ['The line is a chart over the scene: it competes with the clouds', 'Stages are read from a shape, so the stage card has to name them'],
+    shots: [['bed2310', 'good', 'The sky at 23:10, the night drawn across it']], o: { title: 'Last night', time: '07:42', c: true } },
+];
+(async () => {
+  const M = await (await fetch('s1/measure.json?' + Date.now())).json(), MC = await (await fetch('s1c/measure.json?' + Date.now())).json();
+  for (const d of DIRS) {
+    const rows = d.shots.map(([id]) => { const g = M.m[id]['3']; return `<tr><td>${M.states.find(s => s.id === id).label}</td><td>${g.mode === 'light' ? 'white' : 'land'} ${Math.round(g.a * 100)}%</td><td>${g.cardS.toFixed(2)}</td><td>${g.sky.toFixed(2)}</td><td>${g.hero.toFixed(2)}</td></tr>`; }).join('')
+      + (d.o.c ? `<tr><td>Night line over the sky</td><td>—</td><td>—</td><td>${MC.m.bed2310['3'].sky.toFixed(2)}</td><td>—</td></tr>` : '');
+    const el = document.createElement('section'); el.className = 'dir';
+    el.innerHTML = `<div class="sheet"><h2>${d.name}</h2><div class="thesis">${d.thesis}</div><h3>For</h3><ul>${d.pro.map(x => `<li>${x}</li>`).join('')}</ul><h3>Against</h3><ul>${d.con.map(x => `<li>${x}</li>`).join('')}</ul>
+      <h3>Measured (floor 3.0, no veil)</h3><table class="m"><tr><th>state</th><th>glass</th><th>cards</th><th>sky text</th><th>number</th></tr>${rows}</table></div>
+      <div class="phones">${d.shots.map(([id, night, cap]) => `<figure>${phone(`s1/${id}.png`, M.m[id]['3'], M.m[id].satD, Object.assign({ night }, d.o))}<figcaption>${cap}</figcaption></figure>`).join('')}</div>`;
+    document.getElementById('board').appendChild(el);
+  }
+})();
+</script>
+</body>
+</html>

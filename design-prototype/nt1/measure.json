@@ -1,0 +1,48 @@
+{
+ "floors": [
+  3
+ ],
+ "states": [
+  {
+   "id": "night",
+   "label": "23:10 fair"
+  }
+ ],
+ "m": {
+  "night": {
+   "3": {
+    "mode": "dark",
+    "tint": "#152256",
+    "a": 0.22,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "skyInk": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "cardP": 10.16,
+    "cardS": 6.96,
+    "navS": 9.82,
+    "skyMode": "dark",
+    "scrimT": "#152256",
+    "scrimA": 0,
+    "sky": 4.11,
+    "hero": 4.11,
+    "btn": {
+     "fill": "#FFFFFF",
+     "ink": "#0B3A66"
+    },
+    "btnC": 8.62
+   },
+   "pageL": 18.7273182706326,
+   "lightT": "#FFFFFF",
+   "darkT": "#152256",
+   "satD": 1
+  }
+ }
+}

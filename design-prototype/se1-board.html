@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Health++ · Round SE1 · Settings</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:#E9EBEE; color:#14171A; font:400 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding:32px 32px 80px; }
+  header.board { max-width:1180px; margin-bottom:24px; } header.board h1 { font-size:26px; font-weight:600; margin-bottom:8px; } header.board p { color:#3A424B; max-width:110ch; margin-bottom:8px; }
+  section.dir { display:flex; gap:24px; align-items:flex-start; padding:28px 0; border-top:1px solid #D5DAE0; }
+  .sheet { width:340px; flex:none; background:#fff; border-radius:14px; padding:18px; font-size:12.5px; line-height:1.5; color:#30363D; }
+  .sheet h2 { font-size:19px; font-weight:600; color:#111; margin-bottom:4px; } .sheet .thesis { font-size:13.5px; font-weight:500; color:#1D2125; margin-bottom:10px; }
+  .sheet h3 { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#6A727C; margin:12px 0 4px; } .sheet ul { padding-left:16px; }
+  table.m { border-collapse:collapse; font-size:11.5px; font-variant-numeric:tabular-nums; } table.m td, table.m th { padding:2px 6px; border-bottom:1px solid #E6E9ED; text-align:right; } table.m td:first-child, table.m th:first-child { text-align:left; } table.m th { color:#6A727C; font-weight:500; }
+  .phones { display:flex; gap:16px; align-items:flex-start; } figure { margin:0; } figcaption { font-size:12px; color:#3A424B; margin-top:6px; }
+  .phone { position:relative; width:412px; height:915px; overflow:hidden; border-radius:30px; isolation:isolate; zoom:.72; box-shadow:0 1px 2px rgba(20,23,26,.08), 0 16px 40px rgba(20,23,26,.14); font-family:Roboto, "Segoe UI", system-ui, sans-serif; }
+  .phone img.scene { position:absolute; inset:0; width:100%; height:100%; display:block; z-index:0; }
+  .abs { position:absolute; z-index:1; } .glass { position:absolute; z-index:1; border-radius:26px; }
+  .btn { display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 18px; border-radius:24px; font-size:15px; font-weight:500; white-space:nowrap; }
+  .row { display:flex; align-items:center; justify-content:space-between; min-height:48px; gap:12px; }
+  .tog { width:44px; height:26px; border-radius:13px; position:relative; flex:none; } .tog i { position:absolute; top:3px; width:20px; height:20px; border-radius:10px; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.25); }
+  .nav { position:absolute; left:0; right:0; bottom:0; height:64px; z-index:2; display:grid; grid-template-columns:repeat(4,1fr); align-items:center; text-align:center; font-size:12px; border-top:1px solid; }
+  .nav span { position:relative; padding-top:10px; } .nav span.on { font-weight:500; }
+  .nav span.on::before { content:""; position:absolute; top:-2px; left:50%; width:24px; height:3px; margin-left:-12px; border-radius:2px; background:currentColor; }
+</style>
+</head>
+<body>
+<header class="board">
+  <h1>Round SE1 · Settings</h1>
+  <p>Settings is the last tab. Shipped, it is a long graphite page: Profile (name, height, weight), Band (status, battery, background sync, Pair as companion, Sync now, Forget band), Backup to home server, Recent syncs, Units, Data (export), Morning summary, Bedtime reminder, About. Here it moves onto the same sky and glass. All the settings stay; they are grouped, and every row is at least 48 dp. Destructive actions (Forget band) sit last in their group and ask first, as now. The prototype uses a placeholder name.</p>
+  <p><b>Where Settings lives:</b> the new nav has four tabs (Today, Sleep, Trends, Coach), so Settings is no longer a tab. Proposed: a gear at the top of Today opens it as a page with a back arrow, as drawn here (no tab is lit).</p>
+</header>
+<main id="board"></main>
+<script src="night.js"></script>
+<script>
+const rgba = (h, a) => `rgba(${[1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(',')},${a})`;
+const chev = c => `<svg width="10" height="16" viewBox="0 0 10 16" aria-hidden="true"><path d="M2.5 2.5 8 8l-5.5 5.5" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const bat = (c, p) => `<svg width="30" height="16" viewBox="0 0 30 16" aria-hidden="true" style="vertical-align:-2px"><rect x="1" y="1" width="25" height="14" rx="3.5" fill="none" stroke="${c}" stroke-width="1.6"/><rect x="3.5" y="3.5" width="${(20 * p).toFixed(1)}" height="9" rx="1.5" fill="${c}"/><path d="M28 5.5v5" stroke="${c}" stroke-width="2" stroke-linecap="round"/></svg>`;
+const sync = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style="vertical-align:-3px"><path d="M13 6.5A5 5 0 0 0 3.6 5M3 9.5A5 5 0 0 0 12.4 11M3.4 2.4V5.2h2.8M12.6 13.6v-2.8H9.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function phone(img, g, kind) {
+  const P = g.ink, S = g.skyInk, BLUE = g.mode === 'dark' ? g.btn.fill : '#0B5FA5', ON = g.mode === 'dark' ? g.btn.ink : '#FFFFFF', SKYB = g.btn.fill, SKYON = g.btn.ink, line = rgba(P.primary, .10);
+  const glass = `background:${rgba(g.tint, g.a)};${glassFx(g)}`;
+  const tog = on => `<span class="tog" role="switch" aria-checked="${on}" style="background:${on ? (g.mode === 'dark' ? '#5B8FD6' : BLUE) : rgba(P.primary, .38)}"><i style="${on ? 'right:3px' : 'left:3px'}"></i></span>`;
+  const row = (l, r, sub, k) => `<div class="row" style="${k ? `border-top:1px solid ${line};` : ''}padding:4px 0"><div><div style="font-size:15px">${l}</div>${sub ? `<div style="font-size:12px;color:${P.secondary}">${sub}</div>` : ''}</div><div style="display:flex;align-items:center;gap:8px;font-size:15px;color:${P.secondary};white-space:nowrap;flex:none">${r}</div></div>`;
+  const card = (title, rows) => `<div class="glass" style="${glass};position:relative;padding:10px 16px 6px"><div style="font-size:12px;color:${P.secondary};margin-bottom:2px">${title}</div>${rows.map((r, k) => row(r[0], r[1], r[2], k)).join('')}</div>`;
+  const nav = `<nav class="nav" style="background:${rgba(g.tint, g.navA)};color:${P.secondary};border-top-color:${navEdge(g)};${glassFx(g).split(';box-shadow')[0]}">${['Today', 'Sleep', 'Trends', 'Coach'].map(l => `<span>${l}</span>`).join('')}</nav>`;
+  const head = (sub) => `<div class="abs" style="top:12px;left:20px;font:500 12px Roboto, 'Segoe UI';color:${S.sky}">${CLOCK}</div>
+    <div class="abs" style="top:40px;left:6px;width:48px;height:48px;display:flex;align-items:center;justify-content:center;color:${S.sky}" aria-label="Back"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5.5 8.5 12l6.5 6.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="abs" style="top:40px;left:56px;color:${S.sky}"><div style="font-size:19px;font-weight:500">Settings</div><div style="font-size:12px;margin-top:2px">${sub}</div></div>`;
+  const forget = `<span style="color:${P.primary};font-weight:500;text-decoration:underline;text-underline-offset:3px">Forget band…</span>`;
+  let body;
+  if (kind.startsWith('hero')) {   // UH1: hero-lost / hero-bt / hero-low are the band's unhappy states (shipped words: Band not found · Retry, Bluetooth off · Turn on, charge your band)
+    const st = { hero: ['61', 'Band connected', `Battery · synced ${SYNC}`, `${sync}&nbsp;Sync now`, `Last ${SYNC.slice(0, 5)}, 4 min of data`],
+      'hero-lost': ['61', 'Band not found', `Battery when last seen, ${LAST}`, `${sync}&nbsp;Retry`, `Last ${LAST} · not found at ${CLOCK}`],
+      'hero-bt': ['61', 'Bluetooth is off', `Turn it on to sync · last ${LAST}`, 'Turn on', `Last ${LAST} · Bluetooth off`],
+      'hero-low': ['14', 'Charge your band', `Battery low · synced ${SYNC.slice(0, 5)}`, `${sync}&nbsp;Sync now`, `Last ${SYNC.slice(0, 5)}, 4 min of data`] }[kind];
+    body = head('Band, data and reminders') + `<div class="abs btn" style="top:40px;right:20px;background:${SKYB};color:${SKYON}">${st[3]}</div>
+      <div class="abs" style="top:112px;left:22px;${kind === 'hero' ? '' : `right:${SKY_RIGHT(30)}px;`}color:${S.sky}"><div style="font-size:72px;font-weight:300;line-height:1;letter-spacing:-0.035em;margin-left:-3px">${st[0]}<span style="font-size:.5em;letter-spacing:0">%</span></div><div style="font-size:23px;line-height:1.25;margin-top:8px">${st[1]}</div><div style="font-size:15px;line-height:1.35;margin-top:4px">${st[2]}</div></div>`
+      + `<div class="abs" style="top:384px;left:12px;right:12px;display:flex;flex-direction:column;gap:12px">` + card('Band', [['Background sync', 'Every 30 min', 'Also when the app is closed'], ['Recent syncs', chev(P.secondary), st[4]], ['Forget this band', forget, 'Asks first']])
+      + card('You', [['Name', 'Sam&nbsp;' + chev(P.secondary)], ['Height', '170 cm&nbsp;' + chev(P.secondary)], ['Weight', '64.2 kg · 17 Nov&nbsp;' + chev(P.secondary)]])
+      + card('Reminders', [['Morning summary', tog(true), 'When your scores are ready']]) + '</div>';
+  } else {
+    body = head('Band, data and reminders') + `<div class="abs" style="top:104px;left:12px;right:12px;display:flex;flex-direction:column;gap:12px">` + card('Band', [[`${bat(P.primary, .61)}&nbsp; 61% · Connected`, `<span class="btn" style="background:${BLUE};color:${ON};height:44px;padding:0 14px;font-size:14px">${sync}&nbsp;Sync now</span>`, `Synced ${SYNC.slice(0, 5)} · every 30 min`], ['Recent syncs', chev(P.secondary)], ['Forget this band', forget]])
+      + card('You', [['Name', 'Sam&nbsp;' + chev(P.secondary)], ['Height', '170 cm&nbsp;' + chev(P.secondary)], ['Weight', '64.2 kg · 17 Nov&nbsp;' + chev(P.secondary)]])
+      + card('Reminders', [['Morning summary', tog(true), 'When your scores are ready'], ['Bedtime reminder', `23:00 ${tog(true)}`, 'Latest bedtime 23:30']])
+      + card('Data', [['Backup to home server', 'Not set&nbsp;' + chev(P.secondary)], ['Units', 'Metric&nbsp;' + chev(P.secondary)], ['Export all data', chev(P.secondary)]]) + '</div>';
+  }
+  return `<div class="phone" style="color:${P.primary}"><img class="scene" src="${img}" alt="">${body}${nav}</div>`;
+}
+const DIRS = [
+  { id: 'hero', name: 'A · Band as the hero', thesis: 'The band is what Settings is mostly for, so its state takes the hero’s place: battery large, “Band connected”, when it last synced and when it will next. Sync now is the top-right button, where Today has Log weight. The rest is grouped below the horizon and scrolls (Reminders, Data, About follow).',
+    pro: ['Answers “is my band OK?” at a glance', 'Same grammar as every other tab: number, word, detail', 'The one frequent action (Sync now) is the big button'], con: ['Only three groups fit on the first screen', 'A disconnected or low band needs its own hero states'] },
+  { id: 'list', name: 'B · List over the sky', thesis: 'No hero: one grouped list in glass starts right under the header, over the sky. The band row carries the battery icon and Sync now; four groups (Band, You, Reminders, Data) fit on the first screen.',
+    pro: ['More on the first screen', 'Plain and familiar, like the system settings', 'Battery and sync still first'], con: ['Covers most of the scene: the sky becomes a backdrop', 'Breaks the hero pattern the other tabs share'] },
+];
+(async () => {
+  const M = await (await fetch('se1/measure.json?' + Date.now())).json(), g = ALT ? ALT_G : M.m.day1510['3'];
+  for (const d of DIRS) {
+    const el = document.createElement('section'); el.className = 'dir';
+    el.innerHTML = `<div class="sheet"><h2>${d.name}</h2><div class="thesis">${d.thesis}</div><h3>For</h3><ul>${d.pro.map(x => `<li>${x}</li>`).join('')}</ul><h3>Against</h3><ul>${d.con.map(x => `<li>${x}</li>`).join('')}</ul>
+      <h3>Measured (15:10, floor 3.0, no veil)</h3><table class="m"><tr><th>what</th><th>contrast</th></tr><tr><td>Glass text, weakest (incl. over the sky, B)</td><td>${g.cardS.toFixed(2)}</td></tr><tr><td>Sky text / number</td><td>${g.sky.toFixed(2)} / ${g.hero.toFixed(2)}</td></tr><tr><td>Sync now button vs sky</td><td>${g.btnC.toFixed(2)}</td></tr></table></div>
+      <figure>${phone(ALT ? ALT_IMG : 'tr1/day1510.png', g, d.id)}</figure>`;
+    document.getElementById('board').appendChild(el);
+  }
+  const img = ALT ? ALT_IMG : 'tr1/day1510.png';
+  if (UH) uhSection('UH1 · Settings when the band is not OK', 'The hero carries the band’s state, in the shipped words; the top-right button is the one action that fixes it. The rest of the page stays as it is.',
+    [[phone(img, g, 'hero-lost'), 'Band not found: last battery, Retry'], [phone(img, g, 'hero-bt'), 'Bluetooth off: Turn on'], [phone(img, g, 'hero-low'), 'Battery under 20%: Charge your band']]);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Health++ · Round G2 · Scene glass, lower contrast</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:#E9EBEE; color:#14171A; font:400 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding:32px 32px 80px; }
+  header.board { max-width:1180px; margin-bottom:24px; }
+  header.board h1 { font-size:26px; font-weight:600; letter-spacing:-0.01em; margin-bottom:8px; }
+  header.board p { color:#3A424B; max-width:110ch; margin-bottom:8px; }
+  section.dir { display:flex; gap:24px; align-items:flex-start; padding:28px 0; border-top:1px solid #D5DAE0; }
+  .sheet { width:340px; flex:none; background:#fff; border-radius:14px; padding:18px; font-size:12.5px; line-height:1.5; color:#30363D; }
+  .sheet h2 { font-size:19px; font-weight:600; color:#111; margin-bottom:4px; }
+  .sheet .thesis { font-size:13.5px; font-weight:500; color:#1D2125; margin-bottom:10px; }
+  .sheet h3 { font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#6A727C; margin:12px 0 4px; }
+  .sheet ul { padding-left:16px; }
+  .sheet dl { display:grid; grid-template-columns:86px 1fr; gap:2px 10px; }
+  .sheet dt { color:#6A727C; }
+  .sw { display:grid; grid-template-columns:18px 70px 70px 1fr; gap:4px 8px; align-items:center; font-variant-numeric:tabular-nums; }
+  .sw i { width:18px; height:18px; border-radius:5px; box-shadow:inset 0 0 0 1px rgba(0,0,0,.14); }
+  code { font:500 11.5px/1 ui-monospace, "Cascadia Mono", Consolas, monospace; }
+  .phones { display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; }
+  figure { margin:0; } figcaption { font-size:12px; color:#3A424B; margin-top:6px; }
+  .phone { position:relative; width:412px; height:915px; overflow:hidden; border-radius:30px; isolation:isolate; zoom:.62;
+           box-shadow:0 1px 2px rgba(20,23,26,.08), 0 16px 40px rgba(20,23,26,.14); font-family:Roboto, "Segoe UI", system-ui, sans-serif; }
+  .phone img.scene { position:absolute; inset:0; width:100%; height:100%; display:block; z-index:0; }
+  .bare { width:206px; height:457px; border-radius:16px; overflow:hidden; box-shadow:0 8px 24px rgba(20,23,26,.12); }
+  .bare img { width:100%; height:100%; display:block; }
+  .abs { position:absolute; z-index:1; }
+  .ico { width:1em; height:1em; vertical-align:-0.12em; display:inline-block; }
+  .btn { display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 18px; white-space:nowrap; }
+  .glass { position:absolute; z-index:1; border-radius:26px; -webkit-backdrop-filter:blur(22px) saturate(1.6); backdrop-filter:blur(22px) saturate(1.6);
+           box-shadow:0 1px 1px rgba(14,42,67,.05), 0 10px 28px rgba(14,42,67,.10); }
+  .scrim { position:absolute; z-index:0; left:0; top:0; width:100%; height:340px; pointer-events:none; }
+  .phone.mini { zoom:.36; border-radius:36px; }
+  .minis { display:grid; grid-template-columns:repeat(5, auto); gap:8px 10px; }
+  .minis figcaption { font-size:11px; line-height:1.3; }
+  table.m { border-collapse:collapse; font-size:11.5px; font-variant-numeric:tabular-nums; margin-top:6px; }
+  table.m td, table.m th { padding:2px 5px; border-bottom:1px solid #E6E9ED; text-align:right; white-space:nowrap; } table.m th { color:#6A727C; font-weight:500; }
+  table.m td:first-child, table.m th:first-child { text-align:left; }
+  .sheet.wide { width:480px; }
+  .bad { color:#B3261E; font-weight:600; }
+  .nav { position:absolute; left:0; right:0; bottom:0; height:64px; z-index:2; display:grid; grid-template-columns:repeat(4,1fr); align-items:center; text-align:center; font-size:12px;
+         background:rgba(255,255,255,.55); color:#2E4A62; border-top:1px solid rgba(255,255,255,.6); -webkit-backdrop-filter:blur(22px) saturate(1.6); backdrop-filter:blur(22px) saturate(1.6); }
+  .nav span { position:relative; padding-top:10px; } .nav span.on { font-weight:500; }
+  .nav span.on::before { content:""; position:absolute; top:-2px; left:50%; width:24px; height:3px; margin-left:-12px; border-radius:2px; background:#0E2A43; }
+  .bare.sm { width:132px; height:293px; border-radius:12px; }
+  .strip { display:grid; grid-template-columns:repeat(5, 132px); gap:10px 12px; }
+  h4 { font-size:12px; font-weight:600; color:#3A424B; margin:14px 0 6px; }
+  .sheet p { margin:0; }
+  .meas { font-size:12px; color:#30363D; margin-top:10px; max-width:780px; }
+  h2.dec { font-size:20px; font-weight:600; margin:34px 0 4px; }
+  .zoom { width:412px; height:156px; overflow:hidden; border-radius:12px; box-shadow:0 8px 24px rgba(20,23,26,.12); position:relative; }
+  .zoom img { position:absolute; left:0; top:-240px; width:412px; height:915px; }
+  .yearrow { display:grid; grid-template-columns:repeat(4, 412px); margin-bottom:10px; gap:12px 14px; zoom:.72; }
+  .yearrow figcaption { font-size:15px; }
+</style>
+</head>
+<body>
+<header class="board">
+  <h1>Round G2 · Scene glass, lower contrast</h1>
+  <p><b>Why G1 felt cut off from the scene.</b> At night the text needs almost no glass: white ink passes AA at 12–16% glass on every clear, cloudy and rainy night. The navy slabs in G1 came from a <b>40% design floor</b>, not from contrast, and <code>saturate(1.6)</code> lifted the blue land under them above the page around them. In G2 the glass is <b>only as strong as the text needs</b>, with a floor of 22% at night, the same as by day (9.3:1 on a clear night). The night glass takes the <b>land's own hue</b> at a deep value and has no saturation boost, so it reads a little darker than the page around it, with a faint light edge. The day glass stays as decided: white, 22% or more.</p>
+  <p><b>Where contrast still costs glass:</b> dusk (18:00–20:00) and dawn, when the land under the cards is mid grey, and the sky text over the moonlit hero cloud. In those states the floor sets how milky the glass and the veil behind the number get. So the four sections are <b>one material at four contrast floors</b>: 4.5 (AA, control), 4.0, 3.5 and 3.0 (AA for large text only). Only dusk, dawn, snow and the sky text change between them. Deep night and day look the same in all four.</p>
+  <p><b>One decision: the floor.</b> Below 4.5 the small secondary text (12 px) no longer meets WCAG AA in those hours. The hero number (89 px) needs only 3:1 under every floor. Every number is measured on the rendered scene by <code>tools/visual-loop/g2.js</code>.</p>
+</header>
+<main id="board"></main>
+<script src="glass-rule.js"></script>
+<script src="scores.js"></script><script src="data.js"></script>
+<script>
+const HD = window.HEALTH_DATA, days = HD.days, t = HD.today, M = HD.METRICS;
+const n = v => v.toLocaleString('en-US');
+const fmtMin = m => `${Math.floor(m / 60)}h ${String(Math.round(m % 60)).padStart(2, '0')}m`;
+const prev = days.slice(-31, -1), mean = k => prev.reduce((a, d) => a + d[k], 0) / prev.length;
+const D = { time: '15:10', date: t.label, check: '07:12', ready: t.readiness, readyNorm: M.readiness.avg30, daily: t.dailyScore, sleep: fmtMin(t.sleepMin), sleepScore: t.sleepScore,
+  sleepDiff: Math.round(t.sleepMin - mean('sleepMin')), steps: n(t.steps), stepsUsual: n(M.steps.avg30), strain: t.strain, strainNorm: M.strain.avg30, hrv: t.hrv, hrvLo: M.hrv.normalMin, hrvHi: M.hrv.normalMax, rhr: t.rhr,
+  week: days.slice(-7).map((d, i) => ({ day: i === 6 ? 'Today' : d.dowName, v: d.readiness })) };
+const word = r => r >= 80 ? 'Ready' : r >= 65 ? 'Steady' : 'Take it easy';
+const diffTxt = `${Math.abs(D.ready - D.readyNorm)} ${D.ready >= D.readyNorm ? 'above' : 'below'} your normal`;
+const sleepDiffTxt = `${Math.abs(D.sleepDiff)} min ${D.sleepDiff >= 0 ? 'more' : 'less'} than usual`;
+const I = { check: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3.2L13 4.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  up: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13V3.5M4 7.2 8 3.2l4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  moon: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M12.8 10.6A5.6 5.6 0 0 1 5.4 3.2a5.6 5.6 0 1 0 7.4 7.4z" fill="currentColor"/></svg>',
+  scale: '<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.2" y="2.2" width="11.6" height="11.6" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.6 6.2a3.4 3.4 0 0 1 4.8 0M8 6.6l1-1.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' };
+const glyph = (v, INK) => { const st = ` stroke="${INK}" stroke-width="1.2"`, sun = `<circle cx="11" cy="9" r="5" fill="#FFC56B"${st}/>`, cloud = (x, s) => `<path transform="translate(${x} 8) scale(${s})" d="M4 12h10a3.5 3.5 0 0 0 0-7 5 5 0 0 0-9.6 1.3A2.9 2.9 0 0 0 4 12z" fill="#FFFFFF"${st}/>`;
+  return `<svg width="26" height="20" viewBox="0 0 26 20" aria-hidden="true">${v >= 75 ? sun : ''}${v < 80 ? cloud(v < 75 ? 2 : 7, v < 75 ? 1.15 : .9) : ''}</svg>`; };
+const hyp = [0, 2, 3, 3, 2, 1, 2, 3, 2, 1, 2, 1, 2, 1, 0, 2];
+const rgba = (h, a) => `rgba(${[1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(',')},${a})`;
+// Today (3.16 proportions) over a rendered scene, with the G1 glass g = one option's measured values for this state
+const today = (img, g, cls = '') => {
+  const P = g.ink, S2 = g.skyInk, glass = `background:${rgba(g.tint, g.a)}` + (g.mode === 'dark' ? `;-webkit-backdrop-filter:blur(22px) saturate(${SATD});backdrop-filter:blur(22px) saturate(${SATD});box-shadow:inset 0 0 0 1px rgba(255,255,255,.10), inset 0 1px 0 rgba(255,255,255,.08), 0 10px 28px rgba(0,0,0,.12)` : '');
+  const scrim = g.scrimA > 0 ? `<div class="scrim" style="background:linear-gradient(to bottom, ${rgba(g.scrimT, g.scrimA)} 0, ${rgba(g.scrimT, g.scrimA)} 272px, ${rgba(g.scrimT, 0)} 340px)"></div>` : '';
+  return `<div class="phone ${cls}" style="color:${P.primary}"><img class="scene" src="${img}" alt="">${scrim}
+  <div class="abs" style="top:12px;left:20px;font:500 12px Roboto, 'Segoe UI';color:${S2.sky}">${D.time}</div>
+  <div class="abs" style="top:40px;left:20px;color:${S2.sky}"><div style="font-size:19px;font-weight:500">${D.date}</div><div style="font-size:12px;margin-top:2px">${I.check} Morning check ${D.check} · synced 15:02</div></div>
+  <div class="abs btn" style="top:40px;right:20px;background:${g.btn.fill};color:${g.btn.ink};border-radius:24px;font-size:15px;font-weight:500">${I.scale}&nbsp;Log weight</div>
+  <div class="abs" style="top:112px;left:22px;right:120px;color:${S2.sky}"><div style="font-size:89px;font-weight:300;line-height:1;letter-spacing:-0.035em;margin-left:-4px">${D.ready}</div><div style="font-size:23px;line-height:1.25;margin-top:6px">${word(D.ready)}</div><div style="font-size:15px;line-height:1.35;margin-top:4px">Readiness · ${diffTxt} ${D.readyNorm}</div></div>
+  <div class="glass" style="${glass};top:384px;left:12px;right:12px;height:104px;padding:10px 14px"><div style="font-size:12px;color:${P.secondary}">Readiness this week</div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-top:4px">${D.week.map(w => `<div><div style="font-size:12px;${w.day === 'Today' ? 'font-weight:500' : 'color:' + P.secondary}">${w.day}</div>${glyph(w.v, P.primary)}<div style="font-size:15px;font-weight:500;line-height:1.2">${w.v}</div></div>`).join('')}</div></div>
+  <div class="glass" style="${glass};top:500px;left:12px;width:188px;height:212px;padding:14px 16px"><div style="font-size:12px;color:${P.secondary}">${I.moon} Sleep</div><div style="font-size:29px;font-weight:500;line-height:1.25;margin-top:2px">${D.sleep}</div><div style="font-size:15px">Score ${D.sleepScore}</div><div style="font-size:12px;color:${P.secondary}">${sleepDiffTxt}</div>
+    <svg width="150" height="44" viewBox="0 0 150 44" aria-hidden="true" style="margin-top:14px">${hyp.map((v, i) => `<rect x="${i * 9.4}" y="${v * 10}" width="7" height="${44 - v * 10}" rx="2" fill="${P.primary}" fill-opacity=".55"/>`).join('')}</svg></div>
+  <div class="glass" style="${glass};top:500px;left:212px;right:12px;height:100px;padding:14px 16px"><div style="font-size:12px;color:${P.secondary}">Steps</div><div style="font-size:29px;font-weight:500;line-height:1.25">${D.steps}</div><div style="font-size:12px;color:${P.secondary}">usual full day ${D.stepsUsual}</div></div>
+  <div class="glass" style="${glass};top:612px;left:212px;right:12px;height:100px;padding:14px 16px"><div style="font-size:12px;color:${P.secondary}">HRV</div><div style="font-size:29px;font-weight:500;line-height:1.25">${D.hrv} ms</div><div style="font-size:12px;color:${P.secondary}">${I.up} above normal ${D.hrvLo}–${D.hrvHi}</div></div>
+  <div class="glass" style="${glass};top:724px;left:12px;right:12px;height:84px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:12px;color:${P.secondary}">Daily score</div><div style="font-size:29px;font-weight:500;line-height:1.2">${D.daily}</div></div><div style="font-size:12px;color:${P.secondary};max-width:170px;text-align:right">Firms up as your day is logged</div></div>
+  <div class="glass" style="${glass};top:820px;left:12px;right:12px;height:72px;padding:12px 16px"><div style="font-size:15px">Resting HR ${D.rhr} bpm · normal</div><div style="font-size:12px;color:${P.secondary}">Strain ${D.strain}, normal ${D.strainNorm}</div></div>
+  <nav class="nav" style="background:${rgba(g.tint, g.navA)};color:${P.secondary};border-top-color:${rgba('#FFFFFF', g.mode === 'light' ? .6 : .14)}${g.mode === 'dark' ? `;-webkit-backdrop-filter:blur(22px) saturate(${SATD});backdrop-filter:blur(22px) saturate(${SATD})` : ''}">${['Today', 'Sleep', 'Trends', 'Coach'].map(l => `<span class="${l === 'Today' ? 'on' : ''}" style="${l === 'Today' ? 'color:' + P.primary : ''}">${l}</span>`).join('')}</nav></div>`;
+};
+const DIR = 'g1', MDIR = 'g2'; let SATD = 1;
+function section(html) { const el = document.createElement('section'); el.className = 'dir'; el.innerHTML = html; document.getElementById('board').appendChild(el); }
+const f2 = (v, min) => `<span class="${v < min ? 'bad' : ''}">${v.toFixed(2)}</span>`;
+const NAMES = { 4.5: ['4.5 · AA (control)', 'Every text at AA, as now, but with the new night glass (22%). Dusk stays milky (40–52% white), dawn needs 37%. After sunset a veil sits behind the sky text (13–40%).'],
+  4: ['4.0 · A little less', 'Secondary text at 4:1. The dusk glass drops from 52% to 44%, the veils behind the sky text drop 5–8 points.'],
+  3.5: ['3.5 · Less', 'Secondary text at 3.5:1. The 18:30 glass is back to the plain day glass (22%). The night veil behind the sky text nearly goes (11–15%). Dawn glass 22%.'],
+  3: ['3.0 · Least', 'Everything at 3:1 (AA for large text only). On a clear night the sky text stands on the scene with no veil. Dusk glass 27%; twilight and snow still need a 19–24% veil.'] };
+(async () => {
+  const M = await (await fetch(MDIR + '/measure.json?' + Date.now())).json();
+  const st = M.states, big = ['dusk1945', 'night']; SATD = M.m.night.satD;
+  for (const F of M.floors) {
+    const k = String(F), [name, thesis] = NAMES[F];
+    const rows = st.map(s => { const g = M.m[s.id][k]; return `<tr><td>${s.label}</td><td>${M.m[s.id].pageL.toFixed(0)}</td><td>${g.mode === 'light' ? 'white' : 'land'} ${Math.round(g.a * 100)}%</td><td>${f2(g.cardS, F)}</td><td>${f2(g.navS, F)}</td><td>${g.scrimA ? Math.round(g.scrimA * 100) + '%' : '—'}</td><td>${f2(g.sky, F)}</td><td>${f2(g.hero, 3)}</td><td>${f2(g.btnC, 3)}</td></tr>`; }).join('');
+    const worst = Math.min(...st.map(s => Math.min(M.m[s.id][k].cardS, M.m[s.id][k].navS, M.m[s.id][k].sky)));
+    section(`<div class="sheet wide"><h2>${name}</h2><div class="thesis">${thesis}</div>
+      <h3>Measured on the rendered scene (weakest text)</h3>
+      <table class="m"><tr><th>state</th><th>page L*</th><th>glass</th><th>cards</th><th>nav</th><th>veil</th><th>sky text</th><th>number</th><th>button</th></tr>${rows}</table>
+      <p style="margin-top:8px">Worst small text anywhere: <b>${worst.toFixed(2)}</b> ${worst >= 4.5 ? '(AA)' : '<span class="bad">below AA 4.5</span>'}. Night glass = the land's hue at a deep value (e.g. <code>${M.m.night.darkT}</code> at night, <code>${M.m.dusk2030.darkT}</code> at twilight); light ink <code>#FFFFFF</code> / <code>#C9D7EA</code>. Cards = secondary text (the weaker one).</p></div>
+      <div><div class="phones">${big.map(id => `<figure>${today(`${DIR}/${id}.png`, M.m[id][k])}<figcaption>${st.find(s => s.id === id).label}</figcaption></figure>`).join('')}</div>
+      <h4>Every state</h4><div class="minis">${st.map(s => `<figure>${today(`${DIR}/${s.id}.png`, M.m[s.id][k], 'mini')}<figcaption>${s.label}</figcaption></figure>`).join('')}</div></div>`);
+  }
+})();
+
+</script>
+</body>
+</html>

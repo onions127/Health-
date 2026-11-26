@@ -82,8 +82,8 @@ Each state also gets a text equivalent for TalkBack, for example "Clear sky, lig
 
 ## 8. The land (terrain lock, 2026-11-22)
 Rounds T0–T9 (LOG.md) settled the ground under the sky. One land, no variants left in the code:
-- **Open calm loch** (T3 `lochCalm`): wide still water mirroring the sky and the far shore, a mountain range far off on the left, two long low ranges, a shore with sand coves, near grass with reeds at the water.
+- **Open calm loch** (T3 `lochCalm`): wide still water mirroring the sky and the far shore, two long low ranges (the far mountain was removed in M8, 2026-11-23), a shore with sand coves, near grass with reeds at the water.
 - **Two maple trees** on the lip, right of the hero number: grown branching, fine leaf clumps (T4), thinning without holes (T7).
 - **A flat page under the cards** (T8 A): the land stops at the lip; the cards keep the calm gradient, everything under the glass ≥ L\* 71.
-- **What the land shows of the body and the day:** nothing new. Weather (fog banks, rain veil, overcast flattening, snow) and hour (sun side, dusk mirror, night silhouette) reach the land through the same SkyState and palette. The **season** is the land's own signal: grass green → straw (`DRY`), mountain snow line (`MSNOW`), the maples' year (bare, bud, green, yellow → red, bare), all by the day of the year.
+- **What the land shows of the body and the day:** nothing new. Weather (fog banks, rain veil, overcast flattening, snow) and hour (sun side, dusk mirror, night silhouette) reach the land through the same SkyState and palette. The **season** is the land's own signal: grass green → straw (`DRY`), the maples' year (bare, bud, green, yellow → red, bare), all by the day of the year.
 - **Data, not branches:** the land is numbers in uniforms (`LAND`, `TK`, `LEAF` in `scene-gl.js`), so it ports to AGSL as data. The shader keeps one call site per heavy function (T9 compile rule in CLAUDE.md).

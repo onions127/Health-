@@ -1,0 +1,48 @@
+{
+ "floors": [
+  3
+ ],
+ "states": [
+  {
+   "id": "bed2310",
+   "label": "Bedtime 23:10"
+  }
+ ],
+ "m": {
+  "bed2310": {
+   "3": {
+    "mode": "dark",
+    "tint": "#152256",
+    "a": 0.22,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "skyInk": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "cardP": null,
+    "cardS": null,
+    "navS": 9.82,
+    "skyMode": "dark",
+    "scrimT": "#152256",
+    "scrimA": 0,
+    "sky": 7.93,
+    "hero": 4.07,
+    "btn": {
+     "fill": "#FFFFFF",
+     "ink": "#0B3A66"
+    },
+    "btnC": 8.6
+   },
+   "pageL": 18.717935256053373,
+   "lightT": "#FFFFFF",
+   "darkT": "#152256",
+   "satD": 1
+  }
+ }
+}

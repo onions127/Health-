@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Health++ · Round X1 · Sky transitions</title>
+<style>
+  * { box-sizing:border-box; }
+  body { background:#E9EBEE; color:#14171A; font:400 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; margin:0; padding:28px 28px 80px; }
+  h1 { font-size:24px; font-weight:600; margin:0 0 8px; } h2 { font-size:18px; font-weight:600; margin:28px 0 8px; }
+  p { max-width:112ch; color:#3A424B; margin:0 0 8px; }
+  .lab { display:flex; gap:24px; align-items:flex-start; margin-top:12px; }
+  .phone { position:relative; width:412px; height:915px; border-radius:30px; overflow:hidden; flex:none; zoom:.72; box-shadow:0 16px 40px rgba(20,23,26,.16); font-family:Roboto, "Segoe UI", system-ui, sans-serif; }
+  .phone canvas { position:absolute; inset:0; width:412px; height:915px; display:block; }
+  .hero { position:absolute; top:112px; left:22px; color:#0E2A43; pointer-events:none; }
+  .hero .n { font-size:89px; font-weight:300; line-height:1; letter-spacing:-.035em; margin-left:-4px; } .hero .w { font-size:23px; margin-top:6px; }
+  .ctl { width:440px; background:#fff; border-radius:14px; padding:16px 18px; font-size:13px; }
+  .ctl .row { display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 12px; }
+  .ctl button { font:inherit; font-size:12px; padding:6px 10px; border-radius:16px; border:1px solid #C9D0D8; background:#F4F6F8; cursor:pointer; }
+  .ctl button.on { background:#0E2A43; color:#fff; border-color:#0E2A43; } .ctl button.play { background:#0B5FA5; color:#fff; border-color:#0B5FA5; font-size:13px; padding:8px 16px; }
+  .ctl .s { color:#6A727C; font-size:12px; margin-top:-6px; }
+  .strip { display:grid; grid-template-columns:150px repeat(5, 150px); gap:8px; align-items:start; margin:6px 0 18px; }
+  .strip .lbl { font-size:12px; color:#30363D; padding-top:4px; } .strip .lbl b { font-size:13px; color:#14171A; display:block; }
+  .strip .img { width:150px; height:190px; overflow:hidden; border-radius:10px; box-shadow:0 6px 18px rgba(20,23,26,.12); position:relative; }
+  .strip img { position:absolute; width:150px; top:0; left:0; } .strip .t { font-size:11px; color:#6A727C; text-align:center; margin-top:3px; }
+</style>
+</head>
+<body>
+<h1>Round X1 · How the sky changes</h1>
+<p>Until now a new state replaced the sky at once. The sky changes in two ways: <b>data syncs</b> (a new readiness score, last night's sleep, signs of illness) and <b>the hour moves</b>. The hour now follows the clock once a minute, eased, so it never jumps. For a data sync, there are three ways to bring in the new sky. They work the same live and with baked frames. The old picture holds until the new one is fully drawn, so no half-drawn frame ever shows. Then it gives way:</p>
+<p><b>A · Fade</b>, 1.8 s: the whole sky dissolves into the new one. <b>B · Front</b>, 3.5 s: the new weather blows in from the left behind a soft, cloud-torn edge. <b>C · Patches</b>, 3 s: the new sky opens in soft cloud-shaped patches. With reduced motion turned on, every style becomes a plain 1.2 s fade.</p>
+
+<h2>Play it</h2>
+<div class="lab">
+  <div class="phone"><canvas id="c"></canvas><div class="hero"><div class="n" id="hn">—</div><div class="w" id="hw"></div></div></div>
+  <div class="ctl">
+    <div>What changes</div><div class="row" id="sc"></div>
+    <div>How</div><div class="row" id="st"></div>
+    <div class="row"><button class="play" id="play">Play</button><button id="back">Reset to before</button></div>
+    <div class="s" id="msg">Loading the scene…</div>
+  </div>
+</div>
+
+<h2>Frame by frame</h2>
+<p>Each row shows a change at 0, 25, 50, 75 and 100% of the way through. Rendered headless with <code>tools/visual-loop/x1.js</code>.</p>
+<div id="strips"></div>
+
+<script src="scene-gl.js"></script>
+<script src="body-sky.js"></script>
+<script src="b1-days.js"></script>
+<script src="x1-cases.js"></script>
+<script>
+const $ = id => document.getElementById(id), STY = [['fade', 'A · Fade'], ['front', 'B · Front'], ['patches', 'C · Patches']];
+let sc = X1_CASES[0].id, sty = 'front'; var S;
+const word = r => r == null ? 'No data yet' : r >= 80 ? 'Ready' : r >= 65 ? 'Steady' : r >= 50 ? 'Take it easy' : 'Rest';
+function btns(el, list, cur, on) { el.innerHTML = list.map(([id, l]) => `<button data-id="${id}" class="${id === cur ? 'on' : ''}">${l}</button>`).join(''); el.onclick = e => { const id = e.target.dataset.id; if (id) { on(id); [...el.children].forEach(b => b.classList.toggle('on', b.dataset.id === id)); } }; }
+btns($('sc'), X1_CASES.map(c => [c.id, c.label]), sc, id => { sc = id; reset(); });
+btns($('st'), STY, sty, id => sty = id);
+function show(state) { $('hn').textContent = state.r == null ? '—' : state.r; $('hw').textContent = word(state.r); }
+function reset() { const c = X1_CASES.find(x => x.id === sc), a = X1_state(c, 'from'); show(a); S.set(a.set); $('msg').textContent = c.note; }
+$('back').onclick = reset;
+$('play').onclick = () => { const c = X1_CASES.find(x => x.id === sc), b = X1_state(c, 'to'); show(b); S.set(Object.assign({ transition: sty }, b.set)); };
+S = SceneGL.mount($('c'), { readiness: 86, hour: 13, animate: true, post: true, seed: 20411 });
+reset();
+$('strips').innerHTML = X1_CASES.flatMap(c => STY.map(([s, l]) => `<div class="strip"><div class="lbl"><b>${l}</b>${c.label}</div>` +
+  [0, 25, 50, 75, 100].map(p => `<div><div class="img"><img src="x1/${c.id}-${s}-${p}.png?${Date.now()}" alt="${c.label}, ${l}, ${p}%"></div><div class="t">${p}%</div></div>`).join('') + '</div>')).join('');
+</script>
+</body>
+</html>

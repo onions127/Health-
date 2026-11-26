@@ -1,0 +1,89 @@
+{
+ "floors": [
+  3
+ ],
+ "states": [
+  {
+   "id": "day1510",
+   "label": "15:10 fair"
+  },
+  {
+   "id": "nov4",
+   "label": "4 Nov, 15:10 (BD5: BodySky, stratocumulus with haze; = pd1/day1510)"
+  }
+ ],
+ "m": {
+  "day1510": {
+   "3": {
+    "mode": "light",
+    "tint": "#FFFFFF",
+    "a": 0.22,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "skyInk": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "cardP": 5.95,
+    "cardS": 3.75,
+    "navS": 5.63,
+    "skyMode": "light",
+    "scrimT": "#FFFFFF",
+    "scrimA": 0,
+    "sky": 5.55,
+    "hero": 7.04,
+    "btn": {
+     "fill": "#0B5FA5",
+     "ink": "#FFFFFF"
+    },
+    "btnC": 3.5
+   },
+   "pageL": 79.91461437982811,
+   "lightT": "#FFFFFF",
+   "darkT": "#1E2929",
+   "satD": 1
+  },
+  "nov4": {
+   "3": {
+    "mode": "light",
+    "tint": "#FFFFFF",
+    "a": 0.22,
+    "needLight": 0.12,
+    "needDark": 0.62,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "skyInk": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "cardP": 5.66,
+    "cardS": 3.57,
+    "navS": 5.6,
+    "skyMode": "light",
+    "scrimT": "#FFFFFF",
+    "scrimA": 0,
+    "sky": 9.79,
+    "hero": 13.29,
+    "btn": {
+     "fill": "#0B5FA5",
+     "ink": "#FFFFFF"
+    },
+    "btnC": 4.34
+   },
+   "pageL": 79.10137276104396,
+   "lightT": "#FFFFFF",
+   "darkT": "#1E2929",
+   "satD": 1
+  }
+ }
+}

@@ -1,0 +1,174 @@
+{
+ "floors": [
+  3
+ ],
+ "states": [
+  {
+   "id": "am0715",
+   "label": "07:15"
+  },
+  {
+   "id": "day1510",
+   "label": "15:10"
+  },
+  {
+   "id": "dusk1945",
+   "label": "19:45"
+  },
+  {
+   "id": "night",
+   "label": "23:10"
+  }
+ ],
+ "m": {
+  "am0715": {
+   "3": {
+    "mode": "light",
+    "tint": "#FFFFFF",
+    "a": 0.22,
+    "needLight": 0.06,
+    "needDark": 0.59,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "skyInk": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "cardP": 6.04,
+    "cardS": 3.81,
+    "navS": 5.57,
+    "skyMode": "light",
+    "scrimT": "#FFFFFF",
+    "scrimA": 0,
+    "sky": 8.71,
+    "hero": 10.81,
+    "btn": {
+     "fill": "#0B5FA5",
+     "ink": "#FFFFFF"
+    },
+    "btnC": 4.06
+   },
+   "pageL": 77.53579686684397,
+   "lightT": "#FFFFFF",
+   "darkT": "#212828",
+   "satD": 1
+  },
+  "day1510": {
+   "3": {
+    "mode": "light",
+    "tint": "#FFFFFF",
+    "a": 0.22,
+    "needLight": 0.12,
+    "needDark": 0.62,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "skyInk": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "cardP": 5.66,
+    "cardS": 3.57,
+    "navS": 5.6,
+    "skyMode": "light",
+    "scrimT": "#FFFFFF",
+    "scrimA": 0,
+    "sky": 9.79,
+    "hero": 13.29,
+    "btn": {
+     "fill": "#0B5FA5",
+     "ink": "#FFFFFF"
+    },
+    "btnC": 4.34
+   },
+   "pageL": 79.10137276104396,
+   "lightT": "#FFFFFF",
+   "darkT": "#1E2929",
+   "satD": 1
+  },
+  "dusk1945": {
+   "3": {
+    "mode": "light",
+    "tint": "#FFFFFF",
+    "a": 0.35,
+    "needLight": 0.33,
+    "needDark": 0.44,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "skyInk": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "cardP": 5.07,
+    "cardS": 3.19,
+    "navS": 3.29,
+    "skyMode": "light",
+    "scrimT": "#FFFFFF",
+    "scrimA": 0,
+    "sky": 3.89,
+    "hero": 4.36,
+    "btn": {
+     "fill": "#082F5A",
+     "ink": "#FFFFFF"
+    },
+    "btnC": 3.74
+   },
+   "pageL": 54.58207761113178,
+   "lightT": "#FFFFFF",
+   "darkT": "#222732",
+   "satD": 1
+  },
+  "night": {
+   "3": {
+    "mode": "dark",
+    "tint": "#11225A",
+    "a": 0.22,
+    "needLight": 0.52,
+    "needDark": 0,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "skyInk": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "cardP": 9.17,
+    "cardS": 6.28,
+    "navS": 9.93,
+    "skyMode": "dark",
+    "scrimT": "#11225A",
+    "scrimA": 0,
+    "sky": 3.27,
+    "hero": 3.22,
+    "btn": {
+     "fill": "#FFFFFF",
+     "ink": "#0B3A66"
+    },
+    "btnC": 4.52
+   },
+   "pageL": 17.51040770558675,
+   "lightT": "#FFFFFF",
+   "darkT": "#11225A",
+   "satD": 1
+  }
+ },
+ "note": "BD5: BodySky for PD1's body (= 4 Nov in data.js: readiness 58, S2 sleep 61, 6h 05m, HRV 46, skin +0.4, resting HR 58 vs 54): stratocumulus with a humid haze, morning fog. g2.js FLOORS=3, glass y 236-851 + nav; sky text to x 380 by day, x 262 at night; 19:45 MODE=light. Was the plain stratocumulus preset (PD1)."
+}

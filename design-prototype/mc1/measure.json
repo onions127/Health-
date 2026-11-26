@@ -1,0 +1,87 @@
+{
+ "floors": [
+  3
+ ],
+ "states": [
+  {
+   "id": "am0710p",
+   "label": "07:10 partly"
+  },
+  {
+   "id": "am0710f",
+   "label": "07:10 fair"
+  }
+ ],
+ "m": {
+  "am0710p": {
+   "3": {
+    "mode": "light",
+    "tint": "#FFFFFF",
+    "a": 0.22,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "skyInk": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "cardP": 8.65,
+    "cardS": 5.45,
+    "navS": null,
+    "skyMode": "light",
+    "scrimT": "#FFFFFF",
+    "scrimA": 0,
+    "sky": 6.58,
+    "hero": 5.69,
+    "btn": {
+     "fill": "#082F5A",
+     "ink": "#FFFFFF"
+    },
+    "btnC": 6.02
+   },
+   "pageL": 80.44351055030161,
+   "lightT": "#FFFFFF",
+   "darkT": "#202828",
+   "satD": 1
+  },
+  "am0710f": {
+   "3": {
+    "mode": "light",
+    "tint": "#FFFFFF",
+    "a": 0.22,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "skyInk": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "cardP": 8.65,
+    "cardS": 5.45,
+    "navS": null,
+    "skyMode": "light",
+    "scrimT": "#FFFFFF",
+    "scrimA": 0,
+    "sky": 7.28,
+    "hero": 7.62,
+    "btn": {
+     "fill": "#0B5FA5",
+     "ink": "#FFFFFF"
+    },
+    "btnC": 3.22
+   },
+   "pageL": 80.47616415659242,
+   "lightT": "#FFFFFF",
+   "darkT": "#202828",
+   "satD": 1
+  }
+ }
+}

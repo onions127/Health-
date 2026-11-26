@@ -1,0 +1,174 @@
+{
+ "floors": [
+  3
+ ],
+ "states": [
+  {
+   "id": "hz-day1510",
+   "label": "hz 15:10"
+  },
+  {
+   "id": "hz-night",
+   "label": "hz 23:10"
+  },
+  {
+   "id": "hz-am0715",
+   "label": "hz 07:15"
+  },
+  {
+   "id": "hz-dusk1945",
+   "label": "hz 19:45"
+  }
+ ],
+ "m": {
+  "hz-day1510": {
+   "3": {
+    "mode": "light",
+    "tint": "#FFFFFF",
+    "a": 0.22,
+    "needLight": 0,
+    "needDark": 0.61,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "skyInk": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "cardP": 6.48,
+    "cardS": 4.08,
+    "navS": 5.61,
+    "skyMode": "light",
+    "scrimT": "#FFFFFF",
+    "scrimA": 0,
+    "sky": 6.51,
+    "hero": 6.45,
+    "btn": {
+     "fill": "#0B5FA5",
+     "ink": "#FFFFFF"
+    },
+    "btnC": 3.68
+   },
+   "pageL": 79.62329904660422,
+   "lightT": "#FFFFFF",
+   "darkT": "#1E2929",
+   "satD": 1
+  },
+  "hz-night": {
+   "3": {
+    "mode": "dark",
+    "tint": "#142257",
+    "a": 0.22,
+    "needLight": 0.51,
+    "needDark": 0,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "skyInk": {
+     "primary": "#FFFFFF",
+     "secondary": "#C9D7EA",
+     "sky": "#F2F6FB"
+    },
+    "cardP": 9.68,
+    "cardS": 6.63,
+    "navS": 9.85,
+    "skyMode": "dark",
+    "scrimT": "#142257",
+    "scrimA": 0,
+    "sky": 4.69,
+    "hero": 4.08,
+    "btn": {
+     "fill": "#FFFFFF",
+     "ink": "#0B3A66"
+    },
+    "btnC": 7.02
+   },
+   "pageL": 18.411019111729907,
+   "lightT": "#FFFFFF",
+   "darkT": "#142257",
+   "satD": 1
+  },
+  "hz-am0715": {
+   "3": {
+    "mode": "light",
+    "tint": "#FFFFFF",
+    "a": 0.22,
+    "needLight": 0,
+    "needDark": 0.61,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "skyInk": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "cardP": 6.55,
+    "cardS": 4.13,
+    "navS": 5.71,
+    "skyMode": "light",
+    "scrimT": "#FFFFFF",
+    "scrimA": 0,
+    "sky": 6.96,
+    "hero": 5.6,
+    "btn": {
+     "fill": "#0B5FA5",
+     "ink": "#FFFFFF"
+    },
+    "btnC": 3.11
+   },
+   "pageL": 79.8564260085616,
+   "lightT": "#FFFFFF",
+   "darkT": "#202828",
+   "satD": 1
+  },
+  "hz-dusk1945": {
+   "3": {
+    "mode": "light",
+    "tint": "#FFFFFF",
+    "a": 0.3,
+    "needLight": 0.28,
+    "needDark": 0.39,
+    "navA": 0.3,
+    "ink": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "skyInk": {
+     "primary": "#0E2A43",
+     "secondary": "#2E4A62",
+     "sky": "#0E2A43"
+    },
+    "cardP": 5.07,
+    "cardS": 3.19,
+    "navS": 3.29,
+    "skyMode": "light",
+    "scrimT": "#FFFFFF",
+    "scrimA": 0.04,
+    "sky": 3.45,
+    "hero": 3.26,
+    "btn": {
+     "fill": "#082F5A",
+     "ink": "#FFFFFF"
+    },
+    "btnC": 4.1
+   },
+   "pageL": 54.601920969300565,
+   "lightT": "#FFFFFF",
+   "darkT": "#222732",
+   "satD": 1
+  }
+ },
+ "note": "BD2: the haze-only day (readiness 67, skin +0.4, resting HR +3). g2.js FLOORS=3, glass y 236-851 + nav; sky text to x 380 by day, to x 262 at night. BD3: 07:15, and 19:45 with MODE=light (white glass at dusk). 15:10 re-rendered with 4,700 steps (BD3). BD7: all four re-rendered with HRV normal 54-64 (the app's rule; was 55-63 by hand): the high cloud has fewer hooks. Steps usual 8,390."
+}

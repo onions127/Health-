@@ -62,7 +62,7 @@ uniform float uCirrus, uCiHook, uCiVeil, uCiAng;
 uniform float uStyle, uPaintCov;   // 0 = volumetric sky, 1 = painted sky (soft airbrushed layer, after the weather-app reference)   // cirrus cover, hooked heads (mares' tails), milky veil with halo, streak direction   // sheet cloud amount, type (0 stratocumulus .. 1 stratus), base/top km; fog density, fog height; rain
 uniform vec3 uZen, uMid, uHor, uSunC, uCLit, uCDark, uFog, uH0, uH1, uH2, uH3, uTree, uPath, uKey;
 uniform vec3 uPg0, uPg1, uPg2, uPg3; uniform float uSnow;   // 3.15: far hills, lake, the page meadow under the cards (top .. bottom), snow on the ground
-uniform float uDry; uniform vec3 uTk[8]; uniform vec4 uLy[18], uLz[9], uLip[3]; uniform float uNL; uniform vec4 uGr[2], uTr[2]; uniform vec4 uLm[3], uTs[8], uSd, uTst; uniform highp sampler2D uTreeTex; uniform ivec2 uTreeN;   // T5: the trees' grown branching (2 texels per segment, one row per tree)   // T3: per-layer mountain (peak height, snow 0..1, rock, -); per-tree species and season (shape; leaf rgb + fullness; leaf2 rgb + bark red; bloom rgb + amount); shore (beach width, earth patches, litter, -)   // T2: per-layer woodland patches; grass rows (back dens, height, front dens, height; mask u0, u1, comb); two small trees (u, height, seed, on) and their colour
+uniform float uDry; uniform vec3 uTk[8]; uniform vec4 uLy[18], uLz[9], uLip[3]; uniform float uNL; uniform vec4 uGr[2], uTr[2]; uniform vec4 uLm[3], uPk[5], uTs[8], uSd, uTst; uniform highp sampler2D uTreeTex; uniform ivec2 uTreeN;   // T5: the trees' grown branching (2 texels per segment, one row per tree)   // T3: per-layer mountain (peak height, snow 0..1, rock, -); per-tree species and season (shape; leaf rgb + fullness; leaf2 rgb + bark red; bloom rgb + amount); shore (beach width, earth patches, litter, -)   // T2: per-layer woodland patches; grass rows (back dens, height, front dens, height; mask u0, u1, comb); two small trees (u, height, seed, on) and their colour
    // + per-layer crest shape (6 vec4 each), layer props (3 vec4 each), the lip's shape   // T1: terrain direction (0 = the 3.15 land, the control), season dryness (0 green .. 1 straw), the direction's colour tokens (sRGB albedo)
 uniform vec2 uSun; uniform float uSunR, uShowSun, uStepK, uFrame, uSlice, uSplit; uniform vec2 uOff, uMargin;   // depth slice to render (0 sky+far clouds+far ridge, 1 near clouds, 2 mid land, 3 near land), overscan margin (px)
 uniform vec2 uSeed; uniform vec4 uHero1, uHero2;   // day seed offset (km); hero clouds: x, z, radius (km), height
@@ -141,16 +141,24 @@ float cumulusD(vec3 p, bool full){
 float sheetD(vec3 p, bool full){
   if (uSheet <= 0. || p.y < uSB - .2 || p.y > uST + .2) return 0.;
   vec3 q = p + wind()*.6;
-  vec4 n = textureLod(uShape, q*vec3(1./4.5, 1./1.6, 1./4.5), 0.);     // cells flattened into a layer
-  float pw = clamp((n.r - .62)/.26, 0., 1.), wf = clamp(((n.g*.40 + n.b*.35 + n.a*.25) - .30)/.36, 0., 1.);
+  // SH1: the sheet's own large-scale order from the weather map (34 km): rows bend and patches run thicker and thinner;
+  // the cells are turned off the texture axes, so the 4.5 km tile never repeats in lines toward the horizon
+  vec4 w = textureLod(uWeather, (q.xz + uSeed*1.31 + vec2(17., 5.))/34., 0.);
+  float wr = clamp((w.r - .51)*3.3 + .5, 0., 1.);
+  vec2 xz = q.xz + (w.gr - .51)*3.;
+  vec2 xa = mat2(.8, .6, -.6, .8)*xz;
+  vec4 n = textureLod(uShape, vec3(xa.x/4.5, q.y/1.6, xa.y/4.5), 0.);   // cells flattened into a layer
+  float pw = clamp((n.r - .62)/.26, 0., 1.), wf = clamp(((n.g*.40 + n.b*.35 + n.a*.25) - .30)/.36, 0., 1.), cov = uSheet;
   float und = (pw - .5)*.22;                                            // base and top undulate
   float hf = (p.y - uSB - und)/(uST - uSB);
   float prof = smoothstep(0., .2, hf)*(1. - smoothstep(.5, 1., hf));
   if (prof <= 0.) return 0.;
-  float cells = remap((wf*.65 + pw*.35)*prof, 1. - uSheet*.9, 1., 0., 1.);
-  float sheet = (.45 + .55*pw)*prof*uSheet;
+  float cells = remap((wf*.65 + pw*.35)*prof, 1. - cov*.9, 1., 0., 1.);
+  float sheet = (.45 + .55*pw)*prof*uSheet*mix(.85, 1.05, wr);
   float b = mix(cells, sheet, smoothstep(.45, 1., uSType));
-  if (full && b > 0.) { float dn = textureLod(uDetail, q/1.6, 0.).r; b = remap(b, (1. - dn)*.30*(1. - uSType*.7), 1., 0., 1.); }
+  float far = smoothstep(6., 22., p.z);                                  // SH1: seen edge-on the gaps close up: far off the sheet merges into one soft band (the 4.5 km cells glittered there in rows)
+  b = mix(b, prof*uSheet*(.62 + .2*pw), far);
+  if (full && b > 0.) { float dn = textureLod(uDetail, q/1.6, 0.).r; b = remap(b, (1. - dn)*.30*(1. - uSType*.7)*(1. - far), 1., 0., 1.); }
   return clamp(b*1.25, 0., 1.);
 }
 float density(vec3 p, bool full){ float c = cumulusD(p, full); return uSheet > 0. ? max(c, sheetD(p, full)) : c; }
@@ -164,7 +172,8 @@ vec4 clouds(vec3 rd, vec3 sd, vec3 skyH, float jit, float tLo, float tHi){
   if (t0 >= t1) return vec4(0., 0., 0., 1.);
   float c = dot(rd, sd);
   float ph = min(mix(hgN(c, .50), hgN(c, -.20), .40), 2.4);   // capped so the side facing the sun glows without blowing out
-  vec3 sunL = toL(uCLit)*uSunI, ambHi = mix(toL(uMid), vec3(1.), .55)*.62, ambLo = mix(toL(uCDark), toL(uMid), .35)*.62;   // 3.15: high-key, low self-shadow contrast (reference)
+  const float AMBN = 1.;   // G3: after sunset the sky light on cloud tops is the dark sky, not white (white lit the moonlit hero cloud to L* 70-81 behind the sky text)
+  vec3 sunL = toL(uCLit)*uSunI, ambHi = mix(toL(uMid), vec3(1.), .55*(1. - AMBN*uNight))*.62, ambLo = mix(toL(uCDark), toL(uMid), .35)*.62;   // 3.15: high-key, low self-shadow contrast (reference)
   // the sun is at infinity: one direction for every cloud (the palette's key, which follows the sun's side). A point light placed over
   // the field (3.5) lit each lobe from its own angle and gave every billow a round highlight, like bubble wrap (3.14)
   vec3 Ld = normalize(uKey);
@@ -220,16 +229,22 @@ int tSlice(int i){ return int(uLz[i*3].z + .5); }                          // de
 float tMass(int i, float x){                                              // the designed massing only (height above y0): smooth, for slope light
   int k = i*6; float u = x/gAsp;
   vec4 a = uLy[k], b = uLy[k + 1], c = uLy[k + 2], d = uLy[k + 3];
-  return (a.y + a.z*bump(u, a.w, b.x) + b.y*bump(u, b.z, b.w) + c.x*smoothstep(c.y, c.z, u))*(1. - c.w + c.w*cos(u*d.x + d.y))*smoothstep(d.z, d.w, u);
+  float env = (a.y + a.z*bump(u, a.w, b.x) + b.y*bump(u, b.z, b.w) + c.x*smoothstep(c.y, c.z, u))*(1. - c.w + c.w*cos(u*d.x + d.y))*smoothstep(d.z, d.w, u);
+  if (uLm[i].x > 0.) {                                                      // M6: the mountain is a few designed peaks (photo reference): straight flanks, V notches,
+    float h = .55*env;                                                      // joined by a ridge at half the envelope, so it reads as one range
+    for (int p = 0; p < 5; p++) { vec4 q = uPk[p]; h = max(h, q.y - (u < q.x ? q.z : q.w)*abs(u - q.x)); }   // q: u, height, left slope, right slope
+    return h;
+  }
+  return env;
 }
 float tCrest(int i, float x){
   int k = i*6; float u = x/gAsp;
   vec4 a = uLy[k], e = uLy[k + 4], f = uLy[k + 5];
   float h = tMass(i, x);
   float pk = uLm[i].x;
-  if (pk > 0.) {                                                            // T4: a mountain range: sharp ridged detail that lives only on the massif, so the range ends and open horizon stays open
-    float m = clamp(h/(pk*.30), 0., 1.), r1 = 1. - abs(2.*noise(vec2(x*e.y, e.z)) - 1.), r2 = 1. - abs(2.*noise(vec2(x*e.y*2.3, e.z + 4.)) - 1.);
-    return a.x - h - m*(e.x*(r1*r1 - .35) + e.x*.45*(r2*r2 - .35) + e.w*(noise(vec2(x*f.x, e.z)) - .5));
+  if (pk > 0.) {                                                            // M6: the designed peaks plus fine rocky teeth along the crest (the photo's jagged edge), none at the foot
+    float j0 = 1. - abs(2.*noise(vec2(x*e.y*.33, e.z + 2.)) - 1.), j1 = 1. - abs(2.*noise(vec2(x*e.y, e.z)) - 1.), j2 = 1. - abs(2.*noise(vec2(x*e.y*2.3, e.z + 4.)) - 1.);
+    return a.x - h - smoothstep(.0, .012, h)*(e.x*(j1*j1 - .4) + e.x*.5*(j2*j2 - .4)) - h*.24*(j0 - .5);   // teeth on the crest; shoulders (j0) break the straight flanks
   }
   h += e.x*rdg(x, e.y, e.z) + e.w*noise(vec2(x*f.x, e.z));                 // ridge detail, fine break-up of the line
   return a.x - h;
@@ -356,23 +371,25 @@ float tShadow(float x, float d){                                            // t
   if (uCover + uSheet <= 0.) return 0.;
   return smoothstep(.0, .25, cDen(x, d));
 }
-float tCover(int i, float x, float y){
-  float c = tCrest(i, x), b = tBase(i), px = .8/uRes.y;
+float tCoverC(int i, float c, float y){                                     // M1: cover from a crest the caller already has (the crest is
+  float b = tBase(i), px = .8/uRes.y;                                       // computed once per layer per pixel: every call is an inlined copy, T9)
   return smoothstep(c - px, c + px, y)*(1. - smoothstep(b - px, b + px, y))*smoothstep(.0004, .0025, b - c);
 }
-vec3 tColor(int i, float x, float y, float shadow){                         // a far layer's colour (linear) at (x, y); shadow: cloud shadow, sampled once per pixel by the caller
+vec3 tColor(int i, float x, float y, float shadow, float c){                         // a far layer's colour (linear) at (x, y); shadow: cloud shadow, sampled once per pixel by the caller
   vec4 z0 = uLz[i*3], z1 = uLz[i*3 + 1], z2 = uLz[i*3 + 2];
   float d = z0.x, b = z0.y;
-  float c = tCrest(i, x), e = .004, sl = (tMass(i, x - e) - tMass(i, x + e))/(2.*e), t = max(y - c, 0.);   // slope from the smooth massing (y = y0 - h)
+  float e = .004, sl = (tMass(i, x - e) - tMass(i, x + e))/(2.*e), t = max(y - c, 0.);   // slope from the smooth massing (y = y0 - h)
   float lam = tLam(sl, x, y);
   vec3 a = mix(uTk[int(z1.w + .5)], grassAlb(), z2.x);                    // local colour: a token, part grass (the season)
   float rock = z2.w*step(b - .0045 - .0015*noise(vec2(x*120., 2.)), y);    // limestone at the waterline
   a = mix(a, mix(uTk[7], vec3(.55, .52, .48), .35), rock);
   vec4 mt = uLm[i];                                                         // T3: a high mountain far off: rock faces, snow above a line that follows the season, gullies carry it down
   if (mt.x > 0.) {
-    float hg = b - y, gq = noise(vec2(x*520., y*30.))*.7 + noise(vec2(x*1300., y*60.))*.3, gl2 = noise(vec2(x*95., 1.3));
+    float gq = noise(vec2(x*210., y*55.))*.7 + noise(vec2(x*640., y*110.))*.3, gl2 = noise(vec2(x*40., 1.3));
     a = mix(a, vec3(.50, .50, .52), mt.z*smoothstep(.2, 1.4, abs(sl)));      // steep faces: bare rock
-    float line = mt.x*(1. - .58*mt.y) + .012*(gl2 - .5) - .020*(gq - .45)*mt.y;   // snow runs down the gullies, rock ribs stay dark
+    // M1: an altitude snow line (the season moves it). The peaks now differ in height, so the tall ones wear caps and the low ones
+    // stay bare; the line wanders along the range and runs down the gullies, rock ribs stay dark
+    float hg = b - y, line = mt.x*(1. - .40*mt.y) + .020*(gl2 - .5) - .016*(gq - .45)*mt.y;
     float sn = mt.y*smoothstep(line - .0015, line + .0025, hg);
     a = mix(a, vec3(.95, .96, .99), sn);
     lam = clamp(lam + (gq - .5)*.45, 0., 1.);                               // ribs and gullies catch the light
@@ -391,14 +408,14 @@ vec3 tWater(vec3 rd, vec2 P, float aspect){                                 // l
   float n = (fbm3(wp*vec2(2.5, 16.) + vec2(uT*.02, uT*.06)) - .45)*fade;
   vec3 refl = skyBase(normalize(vec3(rd.x + n*.02, max(-rd.y + n*.012, .002), rd.z)));
   float mx = P.x + n*.003;
-  int ri = -1; float rcv = 0., ry = 0.;
+  int ri = -1; float rcv = 0., ry = 0., rc = 0.;
   for (int i = 2; i >= 0; i--) {                                            // the far shore mirrored about its foot, nearest layer first
     if (ri >= 0 || i >= tN()) continue;
     float b = tBase(i); if (b > 1. || P.y <= b) continue;
-    float cv = tCover(i, mx, 2.*b - P.y + n*.004);
-    if (cv > .01) { ri = i; rcv = cv; ry = 2.*b - P.y + n*.004; }
+    float c = tCrest(i, mx), cv = tCoverC(i, c, 2.*b - P.y + n*.004);
+    if (cv > .01) { ri = i; rcv = cv; ry = 2.*b - P.y + n*.004; rc = c; }
   }
-  if (ri >= 0) refl = mix(refl, tColor(ri, mx, ry, 0.)*.86, rcv*.85);
+  if (ri >= 0) refl = mix(refl, tColor(ri, mx, ry, 0., rc)*.86, rcv*.85);
   float ov = ovcF(), nr = smoothstep(.0, .035, dy);
   vec3 amb = toL(mix(uHor, uMid, .5))*.80 + toL(uSunC)*(uSunI/1.25)*.30*(1. - ov);
   vec3 body = toL(mix(uTk[5], uTk[6], nr))*amb;
@@ -523,20 +540,22 @@ void main(){
     // Slices 0 and 1 share ONE call of the cloud march: every call site of clouds() is a full inlined copy of the march (and of the
     // cloud density inside it) for the shader compiler, and three copies took the D3D11 compile to ~6 min.
     vec3 C = vec3(0.), col = vec3(0.); float A = 0., tLo = uSplit, tHi = 70.; bool need = true;
+    float crs[3], cva[3];                                                   // M1: each layer's crest and cover, once per pixel for both slices
+    for (int i = 0; i < 3; i++) { crs[i] = i < tN() ? tCrest(i, x) : 0.; cva[i] = i < tN() ? tCoverC(i, crs[i], y) : 0.; }
     if (uSlice < .5) {
       // ---- slice 0: sky, cirrus, far clouds, far hills, the lake (opaque; alpha carries the open-sky mask for light shafts)
       // far layers over the water, then the sky where they leave it open
       float cvs[3]; float fd = y > HOR ? .03/max(y - HOR, 1e-4) : 0.;  // coverage per layer; the front surface's distance
-      for (int i = 0; i < 3; i++) { cvs[i] = i < tN() && tSlice(i) == 0 ? tCover(i, x, y) : 0.; if (cvs[i] > .001) fd = tDist(i); }
+      for (int i = 0; i < 3; i++) { cvs[i] = tSlice(i) == 0 ? cva[i] : 0.; if (cvs[i] > .001) fd = tDist(i); }
       float sh = fd > 0. ? tShadow(x, fd) : 0.;                        // one cloud-shadow sample per pixel, at the front surface's distance
       if (y > HOR - 1./uRes.y) over(C, A, toS(tWater(rd, P, aspect)), smoothstep(HOR - .7/uRes.y, HOR + .7/uRes.y, y));
-      for (int i = 0; i < 3; i++) if (cvs[i] > .001) over(C, A, toS(tColor(i, x, y, sh)), cvs[i]);
+      for (int i = 0; i < 3; i++) if (cvs[i] > .001) over(C, A, toS(tColor(i, x, y, sh, crs[i])), cvs[i]);
       need = A < .999;
     } else {
       // ---- slice 1: near clouds, premultiplied (they may sit in front of the far hills)
       if (rd.y <= .004 || uStyle > .5) { o = vec4(0.); return; }
       tLo = 0.; tHi = uSplit;                                            // T2: the march stops at the terrain, so a ridge hides the clouds behind it
-      for (int i = 0; i < 3; i++) if (i < tN() && tCover(i, x, y) > .5) tHi = min(tHi, tDist(i));
+      for (int i = 0; i < 3; i++) if (cva[i] > .5) tHi = min(tHi, tDist(i));
     }
     vec4 cl = vec4(0., 0., 0., 1.);
     if (need) cl = clouds(rd, sd, sky(normalize(vec3(rd.x, .015, rd.z)), sd), jit, tLo, tHi);
@@ -568,12 +587,12 @@ void main(){
   float u = x/aspect;
   // one cloud-density sample per pixel for slices 2 and 3, at one call site (each call site is an inlined copy of the density for the compiler):
   // slice 2 at the mid layer's distance, slice 3 on the ground under the lip and the page
-  int mi = tN() - 1; float cv = uSlice < 2.5 && mi >= 0 && tSlice(mi) == 2 ? tCover(mi, x, y) : 0.;   // the one mid layer
+  int mi = tN() - 1; float mc = mi >= 0 ? tCrest(mi, x) : 0., cv = uSlice < 2.5 && mi >= 0 && tSlice(mi) == 2 ? tCoverC(mi, mc, y) : 0.;   // the one mid layer
   float gd = .03/max(y - HOR, .002), cloudy = uCover + uSheet;
   float shd = uSlice < 2.5 ? (cv > .001 && cloudy > 0. ? tDist(mi) : -1.) : (near > 0. ? gd : -1.);
   float dn = shd > 0. ? cDen(x, shd) : 0.;
   if (uSlice < 2.5) {
-    if (cv > .001) { over(C, A, toS(tColor(mi, x, y, smoothstep(.0, .25, dn))), cv); overM(M, vec2(0.), cv); }
+    if (cv > .001) { over(C, A, toS(tColor(mi, x, y, smoothstep(.0, .25, dn), mc)), cv); overM(M, vec2(0.), cv); }
     if (near > 0. && uGr[0].x > 0.) {
       vec3 b = blades(P, .0026, uGr[0].y, 3., uGr[0].x*smoothstep(uGr[1].x, uGr[1].y, u)*(1. - .8*bK));
       if (b.x > .01) { vec3 bc = mix(gS*.70, tip, b.y)*(.92 + .16*b.z); over(C, A, toS(tAir(toL(bc), 1.2, x)), b.x); overM(M, vec2(1., 0.), b.x); }
@@ -652,7 +671,7 @@ uniform sampler2D uS0, uS1, uS2, uS3, uM2, uM3; uniform vec2 uRes, uMargin, uSli
 uniform vec4 uXf;                                                       // canvas px -> frame px (scale, offset): a baked frame covers any screen aspect
 uniform vec2 uSun; uniform float uSunR, uShowSun, uVeil, uStars; uniform vec3 uSunDisc, uHalo;
 uniform float uT, uRain, uNight, uWind, uBirds, uDpr, uWindDbg; uniform vec3 uRainCol, uBirdCol;
-uniform float uSnowF, uBolt;                                            // 3.15: falling snow (0..1), lightning (review visual only: D2 keeps storms out of the body mapping)
+uniform float uSnowF, uBolt; uniform vec3 uSnowCol;                                            // 3.15: falling snow (0..1), lightning (review visual only: D2 keeps storms out of the body mapping)
 out vec4 o;
 float hash(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x*p.y); }
 float noise(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f*f*(3. - 2.*f);
@@ -746,14 +765,14 @@ float snowAt(vec2 P, float cs, float r, float blur, float sp, float seed){
 // a branching lightning bolt in the upper sky: jagged segments, a thin white core with a soft glow
 float segD(vec2 p, vec2 a, vec2 b){ vec2 pa = p - a, ba = b - a; return length(pa - ba*clamp(dot(pa, ba)/dot(ba, ba), 0., 1.)); }
 float bolt(vec2 P, float asp){
-  if (P.y > .36 || abs(P.x - asp*.30) > .16) return 0.;                 // cull: the bolt lives in a box in the upper sky (phone cost)
-  float d = 1e3, d2 = 1e3; vec2 a = vec2(asp*.30, -.01), br = vec2(0.);
-  for (int i = 0; i < 18; i++) {                                           // short jagged steps down to ~30% of the screen
+  if (P.y > .34 || P.y < .04 || abs(P.x - asp*.74) > .16) return 0.;    // cull (the glow has faded to < 1% at the box's edge): the bolt lives in a box in the upper sky (phone cost)
+  float d = 1e3, d2 = 1e3; vec2 a = vec2(asp*.74, .10), br = vec2(0.);    // ST1: right of the hero text (was x .30, through the readiness number) and below the top-right button (was from the top edge)
+  for (int i = 0; i < 12; i++) {                                           // short jagged steps from the cloud base down to ~27% of the screen, above the maple
     vec2 b = a + vec2((hash(vec2(float(i), 3.1)) - .5)*.030, .010 + .009*hash(vec2(float(i), 5.7)));
-    d = min(d, segD(P, a, b)); if (i == 7) br = b; a = b;
+    d = min(d, segD(P, a, b)); if (i == 5) br = b; a = b;
   }
   a = br;
-  for (int i = 0; i < 9; i++) { vec2 b = a + vec2(.007 + (hash(vec2(float(i), 9.3)) - .35)*.022, .009 + .005*hash(vec2(float(i), 2.9))); d2 = min(d2, segD(P, a, b)); a = b; }
+  for (int i = 0; i < 7; i++) { vec2 b = a + vec2(.003 + (hash(vec2(float(i), 9.3)) - .35)*.016, .009 + .005*hash(vec2(float(i), 2.9))); d2 = min(d2, segD(P, a, b)); a = b; }
   float px = 1./uRes.y;
   return (1. - smoothstep(.6*px*uDpr, 1.6*px*uDpr, d)) + .55*(1. - smoothstep(.4*px*uDpr, 1.2*px*uDpr, d2)) + .21*exp(-d/.012) + .15*exp(-d2/.008);
 }
@@ -772,10 +791,10 @@ void main(){
     c += uHalo*(.0035*hgN(cc, .90) + .004*hgN(cc, .45))*s0.a*hz;
     if (uStars > .001) {
       vec2 g = floor(P*300.); float h = hash(g);
-      if (h > .9968) {                                                  // one star in ~300 cells: a soft point at the cell centre
+      if (h > .9968) {                                                  // one star in ~300 cells: a soft point at the cell centre. G3: low intensity, as in the reference (full-strength stars read L* 70-78 under the sky text)
         float d = length(P - (g + .5)/300.)*uRes.y;
         float tw = .55 + .45*sin(uT*.8 + h*40.);
-        c += vec3(.70, .79, 1.)*(1. - smoothstep(.5*uDpr, 1.3*uDpr, d))*tw*(1. - smoothstep(.05, HOR, P.y))*uStars*s0.a;
+        c += vec3(.70, .79, 1.)*.30*(1. - smoothstep(.5*uDpr, 1.3*uDpr, d))*tw*(1. - smoothstep(.05, HOR, P.y))*uStars*s0.a;
       }
     }
   }
@@ -801,7 +820,7 @@ void main(){
     float s = snowAt(P, .085, 4.5, 5.5, .030, 1.)*.75                     // near: large, soft (depth of field)
             + snowAt(P, .045, 2.0, 1.6, .022, 5.)*.85                     // middle
             + snowAt(P, .022, .9, .3, .014, 9.);                          // far: small and sharp
-    c = mix(c, vec3(.96, .98, 1.), clamp(s, 0., 1.)*uSnowF);
+    c = mix(c, uSnowCol, clamp(s, 0., 1.)*uSnowF);                     // G3: white by day; at night lit like the cloud's moonlit side (pure white flakes read L* 96 on an L* 41 sky)
   }
   if (uBolt > 0.) {
     vec2 P = vec2(px.x/uRes.y, 1. - px.y/uRes.y);
@@ -827,6 +846,18 @@ vec3 dec(vec4 e){ vec3 g = e.rgb*e.a*R; return g*g; }
 void main(){ vec2 uv = gl_FragCoord.xy/uDst;                          // the hour between two baked keyframes: blend in linear light
   vec3 c = mix(dec(texture(uAc, uv)), dec(texture(uBc, uv)), uW); vec4 x = mix(texture(uAa, uv), texture(uBa, uv), uW);
   o = vec4(c, x.r); o2 = vec4(x.g, x.b, 0., x.r); }`;
+  // Round X1: transitions. The last picture on screen (uSrc, a snapshot) laid over the new one; alpha = how much of the old still shows.
+  // Styles: 1 fade, 2 a front that crosses from the left with a cloud-torn edge (the weather blowing in), 3 patches that open like clouds forming.
+  const XF = `#version 300 es
+precision highp float; uniform sampler2D uSrc; uniform vec2 uDst; uniform float uP, uStyle; out vec4 o;
+float hash(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x*p.y); }
+float vn(vec2 p){ vec2 i = floor(p), f = fract(p), u = f*f*(3. - 2.*f); return mix(mix(hash(i), hash(i + vec2(1., 0.)), u.x), mix(hash(i + vec2(0., 1.)), hash(i + vec2(1., 1.)), u.x), u.y); }
+float fbm(vec2 p){ float s = 0., a = .5; for (int i = 0; i < 4; i++) { s += a*vn(p); p = p*2.03 + 17.1; a *= .5; } return s/.9375; }
+void main(){ vec2 uv = gl_FragCoord.xy/uDst, q = uv*vec2(uDst.x/uDst.y, 1.); float r;
+  if (uStyle < 1.5) r = uP;
+  else if (uStyle < 2.5) { float e = uP*1.68 - .34; r = 1. - smoothstep(e - .22, e + .22, uv.x + .24*(fbm(q*vec2(2.5, 5.)) - .5)); }
+  else r = smoothstep(-.08, .08, uP*1.2 - .1 - clamp((fbm(q*3.5) - .5)*2.5 + .5, 0., 1.));   // fbm spread to ~0..1, so patches open evenly through the run
+  o = vec4(texture(uSrc, uv).rgb, 1. - r); }`;
   // Light shafts: march toward the sun gathering open sky near it. Soft by nature, so they run at quarter resolution and are
   // blurred (3.12: at full resolution this march was ~15 of the 24 ms a frame took on the phone).
   const RAYS = `#version 300 es
@@ -840,7 +871,7 @@ void main(){ vec2 uv = gl_FragCoord.xy/uDst;
   const FINAL = `#version 300 es
 precision highp float;
 uniform sampler2D uScene, uB1, uB2, uR; uniform vec2 uRes; uniform float uBloom, uRays, uSat, uCon, uT; uniform vec3 uGain, uLift, uSunCol;
-uniform vec2 uSunUV; uniform float uFlare, uRimK, uGhost;   // 3.15: sun optics (starburst, lens ghosts, silver rim), scaled by how much of the sun is in open sky
+uniform vec2 uSunUV; uniform float uFlare, uRimK, uGhost, uSpk, uSpkS;   // L1: uSpk = spike strength (0 at night: the moon has none), uSpkS = style (1 soft glare, 2 the 3.15 starburst)   // 3.15: sun optics (starburst, lens ghosts, silver rim), scaled by how much of the sun is in open sky
 const float HOR = .37;   // screen horizon (FINAL uv is bottom-up)
 out vec4 o;
 float msk(vec2 q){ return texture(uScene, q).a; }                  // open-sky mask: 1 where the sky is seen, 0 behind cloud or land
@@ -852,7 +883,9 @@ vec3 sunOptics(vec2 uv){
   vec2 d = (uv - uSunUV)*vec2(asp, 1.); float r = length(d) + 1e-5, ang = atan(d.y, d.x + 1e-6);
   // starburst: 10 thin diffraction spikes, long and short in turn, slowly turning with the hour; tapers with distance
   float tw = .02*sin(uT*.05);
-  float sp = pow(abs(cos(ang*5. + tw)), 600.)*exp(-r*24.) + .22*pow(abs(cos(ang*5. + 1.5708 + tw)), 700.)*exp(-r*45.);   // 10 spikes reach ~12% of the screen height; 10 faint short ones between
+  float burst = pow(abs(cos(ang*5. + tw)), 600.)*exp(-r*24.) + .22*pow(abs(cos(ang*5. + 1.5708 + tw)), 700.)*exp(-r*45.);   // 3.15: 10 hairline spikes reach ~12% of the screen height; 10 faint short ones between
+  float soft = (.55*pow(abs(cos(ang*3. + .4 + tw)), 18.) + .45)*exp(-r*38.)*.30;   // L1: an eye's glare, not a lens: a soft round glow with six broad, short petals (~4% of the height), no lines
+  float sp = mix(soft, burst, step(1.5, uSpkS))*uSpk;
   sp *= smoothstep(.004, .02, r);                                   // the disc and bloom own the centre
   vec3 c = vec3(1., .98, .95)*sp*1.1*vis;
   // lens ghosts on the line from the sun through the screen centre: faint, soft, slightly tinted
@@ -907,6 +940,8 @@ void main(){
   // Hour of day: palettes are keyframes, blended in linear light, so the scene moves smoothly through the day.
   const KEYS = [[0, 'night'], [5, 'night'], [6.5, 'dawn'], [9, 'day'], [16.5, 'day'], [19, 'dusk'], [21, 'night'], [24, 'night']];
   const SUN = [[5.5, [.10, .43]], [6.5, [.13, .355]], [8.5, [.22, .20]], [13, [.64, .15]], [16.5, [.80, .17]], [19, [.86, .35]], [20, [.90, .43]]];   // screen x, y from the top; horizon at .37 (3.15: was .58). Midday sun high, right of centre, as in the reference
+  const SPIKES = +(new URLSearchParams(typeof location !== 'undefined' ? location.search : '').get('rays') ?? 1);   // L1: sun spikes. 0 none, 1 soft glare, 2 the 3.15 starburst
+  const TWI = +(new URLSearchParams(typeof location !== 'undefined' ? location.search : '').get('twi') ?? .9);   // G3: twilight dip of the key light (0 = the old linear fade)
   const MOON = [.78, .12], HOURS = { dawn: 6.5, day: 13, dusk: 19, night: 23 };
   const sstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
   const toHex = a => '#' + a.map(c => Math.round(Math.min(1, Math.max(0, c)) ** (1 / 2.2) * 255).toString(16).padStart(2, '0')).join('');
@@ -958,9 +993,12 @@ void main(){
   // lip: [y0, rise, s0, s1,  bumpAmp, bumpU, bumpW, swellAmp,  swellF, swellSeed, fineK, ground (0 none, 1 water, 2 plane)]
   const H = .37, NO = [0, 0, -10, -9];                                      // HOR; NO: no headland end (smoothstep(-10, -9, u) = 1)
   // T3: the high mountain far off (55 km, ~7% of the screen high, centre-left between the swells); mtn: [peak height, -, rock on steep faces, -] (snow comes from the season)
-  const MTN = { crest: [H, 0, .046, .25, .37, .018, .40, .07, 0, 0, 1, .14, 34, .9, ...NO.slice(2), .016, 26, 2.7, .0014, 240, 0, 0, 0], props: [38, H + .0004, 0, .15, 0, -10, 0, 0, 0, 0, 0, 0], mtn: [.074, 0, .6, 0] };   // T5: a range from the left edge to ~u .66 (twice the T4 span), a little taller
-  const LAND = { lip: [.404, 0, 0, 1, -.014, 0, .16, .006, 2.0, 4, 1, 1], gr: [.40, .008, .50, .014], trees: [[.865, .108, 3, 1], [.655, .052, 7, 1]], species: 'maple', shore: [.0055, .20, 1, 0], layers: [   // the open loch: wide still water, long low ranges, the mountain beyond, land rising at the left
-    MTN,
+  // M1 (2026-11-22): a range of peaks on one long envelope (M4: 20% narrower, u 0 .. ~.69 where it is a quarter of its height), the T4/T5 second peak and the cos ripple gone; e = [saddle floor, ridge freq, seed, fine amp]
+  // M6: the shape after a photo of an alpine range: five peaks [u, height, left slope, right slope] (slope .36 ~ 39 deg on this screen),
+  // the main one centre-left, deep V notches between; the M4 footprint (u 0 .. ~.67, top .064). e = [teeth amp, teeth freq, seed, -]
+  const PEAKS = [[.02, .029, .30, .46], [.15, .042, .44, .27], [.30, .054, .28, .50], [.42, .039, .46, .30], [.56, .026, .34, .24]];   // M7: 15% lower
+  const MTN = { crest: [H, 0, .064, .26, .368, 0, 0, 1, 0, 0, 1, 0, 0, 0, ...NO.slice(2), .0035, 70, 2.7, 0, 0, 0, 0, 0], peaks: PEAKS, props: [38, H + .0004, 0, .15, 0, -10, 0, 0, 0, 0, 0, 0], mtn: [.061, 0, .6, 0] };   // T5: a range from the left edge to ~u .66 (twice the T4 span), a little taller
+  const LAND = { lip: [.404, 0, 0, 1, -.014, 0, .16, .006, 2.0, 4, 1, 1], gr: [.40, .008, .50, .014], trees: [[.865, .108, 3, 1], [.655, .052, 7, 1]], species: 'maple', shore: [.0055, .20, 1, 0], layers: [   // the open loch: wide still water, long low ranges, land rising at the left (M8, 2026-11-23: mountain removed; MTN kept unused for comparison)
     { crest: [H, .004, .018, .72, .42, .006, .22, .12, 0, 0, 1, 0, ...NO, .004, 6, 1.3, .0008, 150, 0, 0, 0], props: [26, H + .0004, 0, .18, 0, -10, 0, 1, .2, 0, 0, 0] },
     { crest: [H, .0015, .012, .12, .22, 0, 0, 1, 0, 0, 1, 0, ...NO, .003, 9, 4.1, .0008, 170, 0, 0, 0], props: [11, H + .0004, 0, .18, 0, -10, 0, 1, .35, 0, 0, 1] }] };
 
@@ -1099,9 +1137,10 @@ void main(){
     for (const [k, x] of Object.entries(p)) { if (k === 'g') continue; (Array.isArray(x) ? x : [x]).forEach(y => typeof y === 'string' ? v.push(...hex(y).map(c => c ** 2.2)) : typeof y === 'number' && v.push(y)); }
     return v.concat(p.night < .5 ? sunAt(h) : MOON); };
   // Hours baked per weather: densest where the light changes fastest; 21:00 holds the night until 05:00.
-  const KEYFRAMES = [5, 5.75, 6.5, 7.5, 9, 11, 13, 15, 16.5, 17.75, 19, 20, 21];
+  // G3: 5.5, 20.25 and 20.5 hold the twilight dip of the key light (TWI), which a blend of the neighbours misses (20:30 read 32.7 dB from 20 + 21).
+  const KEYFRAMES = [5, 5.5, 5.75, 6.5, 7.5, 9, 11, 13, 15, 16.5, 17.75, 19, 20, 20.25, 20.5, 21];
   const bracketHours = (h, list = KEYFRAMES) => { const L = list.slice().sort((a, b) => a - b), i = L.findIndex(x => x > ((h % 24) + 24) % 24); return [L[i <= 0 ? L.length - 1 : i - 1], L[i < 0 ? 0 : i]]; };
-  const SKY_CACHE = 'sky-v3';                                             // Cache Storage for layers baked on this device. Bump it whenever the sky's look changes: bakes from an older shader are then dropped (v2: 3.14 clouds, v3: 3.15 horizon and land)
+  const SKY_CACHE = 'sky-v5';                                             // Cache Storage for layers baked on this device. Bump it whenever the sky's look changes: bakes from an older shader are then dropped (v2: 3.14 clouds, v3: 3.15 horizon and land, v4: G3 night and twilight light, v5: SH1 low cloud sheet)
   const cached = async url => { if (G.caches) { const r = await (await G.caches.open(SKY_CACHE)).match(new URL(url, G.location.href).href); if (r) return r; } return fetch(url); };
   const regimeOf = r => r == null ? 'firstRun' : r >= 80 ? 'fair' : r >= 65 ? 'partly' : r >= 50 ? 'stratocumulus' : 'stratus';
   const DRIFT_ROOM = 72, DRIFT_V = .8;                                   // baked near clouds: CSS px of extra layer to drift into, CSS px per second (clouds ~10 km away at 10 m/s)
@@ -1129,12 +1168,13 @@ void main(){
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, SEG_MAX * 2, 2, 0, gl.RGBA, gl.FLOAT, null);
       [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER].forEach(k => gl.texParameteri(gl.TEXTURE_2D, k, gl.NEAREST)); PR.forEach(q => { gl.useProgram(q); gl.uniform1i(gl.getUniformLocation(q, 'uTreeTex'), 15); });
     }
-    const pB = prog(gl, BRIGHT), pBl = prog(gl, BLUR), pF = prog(gl, FINAL), pC = prog(gl, COMPOSE), pR = prog(gl, RAYS), Up = (q, n) => gl.getUniformLocation(q, n);
+    const pB = prog(gl, BRIGHT), pBl = prog(gl, BLUR), pF = prog(gl, FINAL), pC = prog(gl, COMPOSE), pR = prog(gl, RAYS), pX = prog(gl, XF), Up = (q, n) => gl.getUniformLocation(q, n);
     // Parallax: each slice slides by its own amount (CSS px at full tilt). Nearer slices slide further, as when the eye moves sideways;
     // the cards stay put, so the scene reads as a world behind the glass. Slices are rendered past the screen edge by MARGIN.
-    const AMP = [3, 9, 14, 22], MARGIN = 28, SPLIT = 30;                 // SPLIT: clouds nearer than this (km) go in the near-cloud slice. 30, not 14 (3.12): hero clouds reach ~24 km, and a cloud cut by the split tears apart when the near layer drifts or tilts; beyond 30 km clouds sit low enough to stay behind the far ridge
+    const AMP = [1, 3, 5, 7], MARGIN = 28,   // M2 (2026-11-22): about a third of the 3.10 shift [3, 9, 14, 22]: a faint depth, not a moving picture
+    SPLIT = 30;                 // SPLIT: clouds nearer than this (km) go in the near-cloud slice. 30, not 14 (3.12): hero clouds reach ~24 km, and a cloud cut by the split tears apart when the near layer drifts or tilts; beyond 30 km clouds sit low enough to stay behind the far ridge
     const cssDpr = () => st.dpr || Math.min(2, G.devicePixelRatio || 1);
-    let RT = null, man = null;
+    let RT = null, man = null, trn = null;                                // trn: the transition running (X1)
     function target(w, h, mat, fmt) {
       gl.activeTexture(gl.TEXTURE6);                                       // units 0-2 hold the noise; binding here must not replace them
       const tex = () => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
@@ -1158,11 +1198,11 @@ void main(){
       const CW = canvas.width, CH = canvas.height;
       const F = baked ? { W: man.W, H: man.H, dpr: man.dpr, E: man.E } : { W: CW, H: CH, dpr: cssDpr(), E: st.bake ? Math.round(DRIFT_ROOM * cssDpr()) : 0 };
       if (RT && RT.W === F.W && RT.H === F.H && RT.CW === CW && RT.CH === CH && RT.E === F.E) return false;
-      if (RT) [...RT.s, RT.acc, RT.a, RT.b, RT.c, RT.d, RT.r].forEach(drop);
-      k = 0;                                                               // new buffers: restart the average
+      if (RT) [...RT.s, RT.acc, RT.a, RT.b, RT.c, RT.d, RT.r, RT.o].forEach(drop);
+      k = 0; trn = null;                                                               // new buffers: restart the average
       const m = Math.ceil(MARGIN * F.dpr), q = n => [Math.max(1, Math.ceil(CW / n)), Math.max(1, Math.ceil(CH / n))];
       RT = { W: F.W, H: F.H, CW, CH, m, E: F.E, dpr: F.dpr, s: [0, 1, 2, 3].map(i => target(F.W + 2 * m + (i === 1 ? F.E : 0), F.H + 2 * m, i >= 2 ? true : baked ? false : 'pad')),
-        acc: target(CW, CH), a: target(...q(4)), b: target(...q(4)), c: target(...q(16)), d: target(...q(16)), r: target(...q(4)) };
+        acc: target(CW, CH), a: target(...q(4)), b: target(...q(4)), c: target(...q(16)), d: target(...q(16)), r: target(...q(4)), o: target(CW, CH, null, 'u8') };   // o: the last picture, held while a transition runs
       const kx = Math.min(RT.W / CW, RT.H / CH); RT.xf = [kx, kx, RT.W / 2 - CW / 2 * kx, RT.H / 2 - CH / 2 * kx];   // canvas px -> frame px, cover fit, centred
       return true;
     }
@@ -1187,7 +1227,8 @@ void main(){
       gl.uniform1f(Up(pC, 'uT'), st.animate ? (now - t0) / 1000 + 40 : 40); gl.uniform1f(Up(pC, 'uRain'), cur.w.rain); gl.uniform1f(Up(pC, 'uNight'), cur.p.night);
       gl.uniform3fv(Up(pC, 'uRainCol'), hex(mixV('#EDF2FA', cur.p.fog, cur.p.night)).map(v => v ** 2.2));   // light streaks by day, fog-coloured at night
       [2, 3].forEach((i, j) => { gl.activeTexture(gl.TEXTURE11 + j); gl.bindTexture(gl.TEXTURE_2D, RT.s[i].m); gl.uniform1i(Up(pC, 'uM' + i), 11 + j); });
-      gl.uniform1f(Up(pC, 'uSnowF'), cur.w.snow || 0); gl.uniform1f(Up(pC, 'uBolt'), cur.w.bolt || 0);
+      gl.uniform1f(Up(pC, 'uSnowF'), cur.w.snow || 0); gl.uniform3fv(Up(pC, 'uSnowCol'), hex(mixV('#FBFDFF', cur.p.cl, cur.p.night)).map(v => v ** 2.2 * (1 - .4 * cur.p.night)));   // G3: at night the flakes are lit like the cloud's moonlit side, a little under it (L* ~60)
+      gl.uniform1f(Up(pC, 'uBolt'), cur.w.bolt || 0);   // ST1: this call sat inside the comment above since G3, so the bolt never drew
       gl.uniform1f(Up(pC, 'uWind'), cur.w.wind); gl.uniform1f(Up(pC, 'uDpr'), dpr); gl.uniform1f(Up(pC, 'uWindDbg'), st.windDebug ? 1 : 0);
       gl.uniform1f(Up(pC, 'uBirds'), live ? (1 - cur.p.night) * (1 - cur.w.rain) * (1 - .8 * Math.min(1, cur.w.fog)) * (1 - .7 * cur.w.grey) : 0);   // day, dry, clear enough to see them; none when still
       gl.uniform3fv(Up(pC, 'uBirdCol'), hex(mixV('#2F3B48', cur.p.mid, .18)).map(v => v ** 2.2));   // dark, a little hazed by the air between
@@ -1224,7 +1265,7 @@ void main(){
         gl.uniform1f(Up(pF, 'uBloom'), g.bloom); gl.uniform1f(Up(pF, 'uRays'), rays);
         gl.uniform1f(Up(pF, 'uSat'), g.sat); gl.uniform1f(Up(pF, 'uCon'), g.con); gl.uniform1f(Up(pF, 'uT'), (now / 1000) % 100);
         const flare = st.post && st.showSun && sunUV[1] > 0 && sunUV[1] < 1.2 ? cur.sv * (1 - cur.w.style) * (1 - .9 * Math.min(1, cur.w.sheet)) * (1 - .93 * cur.p.night) : 0;   // no optics through a closed sheet; a faint one for the moon
-        gl.uniform2f(Up(pF, 'uSunUV'), sunUV[0], sunUV[1]); gl.uniform1f(Up(pF, 'uFlare'), flare); gl.uniform1f(Up(pF, 'uRimK'), 1.2); gl.uniform1f(Up(pF, 'uGhost'), 1 - cur.p.night);
+        gl.uniform2f(Up(pF, 'uSunUV'), sunUV[0], sunUV[1]); gl.uniform1f(Up(pF, 'uFlare'), flare); gl.uniform1f(Up(pF, 'uRimK'), 1.2); gl.uniform1f(Up(pF, 'uGhost'), 1 - cur.p.night); gl.uniform1f(Up(pF, 'uSpk'), SPIKES === 2 ? 1 : SPIKES ? 1 - sstep(.25, .5, cur.p.night) : 0); gl.uniform1f(Up(pF, 'uSpkS'), SPIKES);   // L1: the moon gets no spikes
         gl.uniform3fv(Up(pF, 'uGain'), g.gain); gl.uniform3fv(Up(pF, 'uLift'), g.lift); gl.uniform3fv(Up(pF, 'uSunCol'), hex(cur.p.sunC).map(c => c ** 2.2));
       });
     }
@@ -1245,7 +1286,7 @@ void main(){
       gl.uniform2f(U('uRes'), RT.W, RT.H); gl.uniform1f(U('uT'), st.animate ? (now - t0) / 1000 + 40 : 40);
       gl.uniform1f(U('uCover'), w.cover); gl.uniform1f(U('uTall'), w.tall); gl.uniform1f(U('uGrey'), w.grey); gl.uniform1f(U('uHaze'), w.haze);
       [['uStyle', w.style], ['uPaintCov', w.paintCov], ['uCirrus', w.cirrus], ['uCiHook', w.ciHook], ['uCiVeil', w.ciVeil], ['uCiAng', w.ciAng + (rndDay(12) - .5) * 1.1]].forEach(([n, v]) => gl.uniform1f(U(n), v));
-      [['uSnow', w.snow || 0], ['uSheet', w.sheet], ['uSType', w.sType], ['uSB', w.sb], ['uST', w.st], ['uFogD', w.fog], ['uFogH', w.fogH], ['uRain', w.rain]].forEach(([n, v]) => gl.uniform1f(U(n), v)); gl.uniform1f(U('uNight'), p.night); gl.uniform1f(U('uSunI'), p.I);
+      [['uSnow', w.snow || 0], ['uSheet', w.sheet], ['uSType', w.sType], ['uSB', w.sb], ['uST', w.st], ['uFogD', w.fog], ['uFogH', w.fogH], ['uRain', w.rain]].forEach(([n, v]) => gl.uniform1f(U(n), v)); gl.uniform1f(U('uNight'), p.night); gl.uniform1f(U('uSunI'), p.I * (1 - TWI * sstep(.35, .6, p.night) * (1 - sstep(.85, 1, p.night))));   // G3: twilight. Once the sun is down (night .35-.6) the key goes before the linear dusk->night blend would take it, and the moon takes over near full night: the cloud tops lose the light before the sky gaps go dark
       [['uPg0', w.pg ? w.pg[0] : p.pg[0]], ['uPg1', w.pg ? w.pg[1] : p.pg[1]], ['uPg2', w.pg ? w.pg[2] : p.pg[2]], ['uPg3', w.pg ? w.pg[3] : p.pg[3]], ['uZen', p.zen], ['uMid', p.mid], ['uHor', p.hor], ['uSunC', p.sunC], ['uCLit', p.cl], ['uCDark', p.cd], ['uFog', p.fog], ['uH0', p.h[0]], ['uH1', p.h[1]], ['uH2', p.h[2]], ['uH3', p.h[3]], ['uTree', p.tree], ['uPath', p.path]]
         .forEach(([n, c]) => gl.uniform3fv(U(n), hex(c)));
       gl.uniform3fv(U('uKey'), norm(p.key));
@@ -1263,7 +1304,7 @@ void main(){
           trs.forEach((t, i) => { const sg = treeSkel(spp[Math.min(i, spp.length - 1)], t[2] * 7 + 1); ns[i] = sg.length; sg.forEach((g, j) => buf.set(g, (i * SEG_MAX * 2 + j * 2) * 4)); });
           gl.activeTexture(gl.TEXTURE15); gl.bindTexture(gl.TEXTURE_2D, treeTex); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, SEG_MAX * 2, 2, gl.RGBA, gl.FLOAT, buf); treeN = ns; }
         gl.uniform2i(U('uTreeN'), treeN[0], treeN[1]); }   // every call: each program needs it
-      gl.uniform4fv(U('uLm'), L3.flatMap(l => l && l.mtn ? [l.mtn[0], lerpT(MSNOW, doy), l.mtn[2], 0] : [0, 0, 0, 0]));
+      gl.uniform4fv(U('uPk'), (L3[0] && L3[0].peaks || []).concat(Array(5).fill([0, -1, 1, 1])).slice(0, 5).flat()); gl.uniform4fv(U('uLm'), L3.flatMap(l => l && l.mtn ? [l.mtn[0], lerpT(MSNOW, doy), l.mtn[2], 0] : [0, 0, 0, 0]));
       gl.uniform4fv(U('uSd'), tp.shore);
       gl.uniform4fv(U('uTst'), LEAF);
       const day = st.seed != null ? st.seed : Math.floor(Date.now() / 864e5), rnd = k => { const x = Math.sin(day * 127.1 + k * 311.7) * 43758.5453; return x - Math.floor(x); };
@@ -1386,26 +1427,48 @@ void main(){
         setTarget(Math.abs(x) <= 1 && Math.abs(y) <= 1 ? x : 0, Math.abs(x) <= 1 && Math.abs(y) <= 1 ? y : 0);
       });
     }
+    // X1: lay the snapshot of the old picture over the new one. The old one holds until the new is ready (live: converged; baked: decoded), then gives way.
+    function xfade(now) {
+      const t = trn.hold != null ? trn.hold : trn.t0 == null ? 0 : Math.min(1, (now - trn.t0) / trn.dur), p = trn.style === 1 ? t * t * (3 - 2 * t) : t;   // the front and the patches move at an even pace; the fade eases
+      pass(pX, null, RT.o, () => { gl.uniform2f(Up(pX, 'uDst'), RT.CW, RT.CH); gl.uniform1f(Up(pX, 'uP'), p); gl.uniform1f(Up(pX, 'uStyle'), trn.style);
+        gl.enable(gl.BLEND); gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE); });   // keep the canvas opaque
+      gl.disable(gl.BLEND);
+      if (t >= 1 && trn.hold == null) { trn = null; dirty = true; }
+    }
     function loop(now) {
       const moving = step(now);
+      if (trn && !baked && trn.t0 == null && k >= 24) trn.t0 = now;
       if (baked) { if (ready) resizeBaked(); }
       else if (k < 24) accumulate(live ? now : t0);
       else if (live && gpu < DRIFT_MAX && now - last > Math.max(120, gpu * 4)) { accumulate(now); last = now; }   // cloud drift re-renders the slices: only where the GPU can afford it
       const ambient = live && now - lastC > 33;                            // wind, birds, baked drift: 30 fps is enough, and spares the battery
-      if ((!baked || ready) && (dirty || moving || ambient)) { compose(now); post(now); dirty = false; lastC = now; if (G.SCENE_T && G.__lt && !G.__lt.cp) { sync(); G.__lt('first compose + post, frame ' + k); G.__lt.cp = 1; } }
+      if ((!baked || ready) && (dirty || moving || ambient || trn)) { compose(now); post(now); if (trn) xfade(now); dirty = false; lastC = now; if (G.SCENE_T && G.__lt && !G.__lt.cp) { sync(); G.__lt('first compose + post, frame ' + k); G.__lt.cp = 1; } }
       if (G.SCENE_T && G.__lt && k === 24 && !G.__lt.k24) { G.__lt('24 frames accumulated'); G.__lt.k24 = 1; }
-      if ((baked ? !ready : k < 24) || live || moving) next(loop); else running = false;
+      if ((baked ? !ready : k < 24) || live || moving || trn) next(loop); else running = false;
     }
     function kick() { if (!running) { running = true; tilt.t = performance.now(); next(loop); } }
     if (baked) bakedScene().catch(e => { console.error(e); fail(canvas, 'Baked sky failed to load: ' + e.message); });
     else if (!st.manual) kick();                                           // manual: the on-device baker drives rendering itself (renderSliced)
     return {
-      set(o) { Object.assign(st, o); if (baked) { if (man) bakedScene(); dirty = true; kick(); } else { k = 0; if (!st.manual) kick(); } },
+      // o.transition: 'fade' | 'front' | 'patches' (X1) eases from the picture on screen to the new state; without it the change is instant
+      set(o) {
+        const style = { fade: 1, front: 2, patches: 3 }[o.transition];
+        if (style && RT && (baked ? ready : k >= 24)) {                    // the canvas keeps its last frame (preserveDrawingBuffer): copy it
+          gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null); gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, RT.o.f);
+          gl.blitFramebuffer(0, 0, RT.CW, RT.CH, 0, 0, RT.CW, RT.CH, gl.COLOR_BUFFER_BIT, gl.NEAREST); gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+          trn = { style: reduce ? 1 : style, dur: 1000 * (o.trSec || (reduce ? 1.2 : [0, 1.8, 3.5, 3][style])), t0: null, hold: null };   // reduced motion: a plain fade
+        }
+        Object.assign(st, o);
+        if (baked) { if (man) bakedScene().then(() => { if (trn && trn.t0 == null) trn.t0 = performance.now(); }); dirty = true; kick(); } else { k = 0; if (!st.manual) kick(); }
+      },
+      holdTransition(p) { if (trn) { trn.hold = p; dirty = true; kick(); } },   // review: freeze a transition at progress p (0..1); null lets it run
+      get transitioning() { return !!trn; }, get transitionReady() { return !!(trn && trn.t0 != null); },
       setTilt(x, y) { setTarget(x, y); },
       skip(sec) { t0 -= sec * 1000; dirty = true; kick(); },              // jump the clock (board: bring the birds now)
       get t() { return (performance.now() - t0) / 1000 + 40; },
       canvas, baked, get ready() { return baked ? ready : k >= 24; }, get loadMs() { return loadMs; }, get drift() { return RT ? driftAt(performance.now()) / RT.dpr : 0; },   // CSS px the baked near clouds have slid
-      get cost() { return cost; }, get gpu() { return gpu; }, get frames() { return k; }, get tilt() { return { x: tilt.x, y: tilt.y }; },
+      get cost() { return cost; }, get gpu() { return gpu; }, get frames() { return k; }, get pal() { if (!cur) state(); return cur.p; },   // G1: the hour's palette after weather (the UI picks its glass from it)
+      get tilt() { return { x: tilt.x, y: tilt.y }; },
       bench(kind, n) {                                                     // GPU timing for the board: n synchronous frames, waits for the GPU
         const px = new Uint8Array(4), sync = () => { gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); };
         sync(); const t = performance.now(), now = t;
