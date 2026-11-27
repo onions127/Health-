@@ -1639,3 +1639,28 @@ STOP.
 - A missed tap during the test turned Morning summary off (the whole card is its toggle); it was turned back on at once.
 
 STOP.
+
+## RP2 · Cheaper scroll frames (2026-11-27, lock plan §4 step 3, second part)
+
+**Changed** (`SkyRenderer.kt`; no shader change, no look change):
+- **Nothing past 200 px:** SC1's lift, blur and fade are complete at 200 CSS px, so the renderer clamps the scroll there; scrolling further draws nothing new (no scene frame, no glass image).
+- **The scroll band only:** a scroll frame between the live layer's 30 fps frames re-composites only rows 0.18–0.61 of the screen (scissor on the compose pass); the rest of the frame keeps the last full compose. Below 0.61 nothing moves (COMPOSE.glsl's `band` is 0); the highest thing moved is the taller maple's crown (lip ~0.387 − height 0.108 = 0.279), lifted up to 30 CSS px and reached by the blur taps (~80 frame px), so ~0.20; kept at 0.18. Bloom, shafts, grade and the glass still run on the whole frame. Full frames keep the live layer (birds, stars, rain, wind) at 30 fps while scrolling.
+- Debug builds: `adb shell setprop debug.sky.scroll 0` restores RP1's scroll frames (read every 2 s, so modes alternate in one session); `debug.sky.live 0` stills the live layer (for the seam check). Release builds use the band.
+
+**Measured on the S21** (Settings → Sky (preview), dusk ~20:00–21:30, real swipes via adb; skin 36.7–37.6 °C, battery 18%, slow USB):
+- RP1's test (24 long swipes) mostly pushed against the page's end: the preview page scrolls only ~225 px, so after the first swipe nothing moved (both modes 4.9%; only 8 band frames). The test now uses **short swipe pairs inside 0–200 px**, the range where a scroll re-renders.
+- **Interleaved blocks in one session** (12 swipes per block, modes 0 1 2 2 1 0 0 1 2, so heat and battery drift hit every mode alike):
+
+| Scroll frames | Janky | p50 / p90 / p95 | Page GPU p50 / p90 |
+|---|---|---|---|
+| RP1 (every change, full) | 10.4%, 14.1%, 15.7% | 17–19 / 28–36 / 34–40 ms | 6–7 / 13–18 ms |
+| **RP2 (clamp + band), adopted** | **6.7%, 6.9%, 6.5%** | 16–17 / 22–28 / 25–34 ms | 6–7 / 11–16 ms |
+| RP2 + 30 fps cap while scrolling | 27.0%, 32.3%, 25.5% | 19–20 / 40–46 / 53–61 ms | 5–6 / 21–23 ms |
+
+  The cap was dropped: with less of our work the page drew a third fewer frames and missed more (the governor lowering the GPU clock, as SP1 saw at rest, is the likely cause; not proven).
+- **Seam check:** live layer off, scrolled to the end, RP1's full frame against RP2's band frame (every frame after convergence a band frame): max difference **2/255** (the dither) at the band edges and everywhere else; 4–5/255 in the maples' crowns (each run's random convergence jitter), and the status bar clock. No seam.
+- Unit tests: all pass.
+
+**Still open:** 6.5–7% janky on real swipes (60 Hz), from RP1's 10–16%. The ¼-mask shafts (−3 ms, a look change, SP1) remain the next lever if the screens need more. Next in step 3: bakes and the bake worker.
+
+STOP.

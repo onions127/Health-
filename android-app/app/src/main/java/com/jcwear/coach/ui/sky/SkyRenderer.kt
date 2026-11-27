@@ -55,7 +55,7 @@ class SkyRenderer(private val ctx: Context, val W: Int, val H: Int, private val 
 
     fun start(out: Surface) { h.post { try { init(out); loop() } catch (t: Throwable) { lastError = t.message ?: t.toString(); Log.e(TAG, "sky renderer failed", t) } } }
     fun stop() { running = false; poke(); h.post { release() }; thread.quitSafely() }
-    fun pause() { paused = true }
+    fun pause() { paused = true; Log.i(TAG, "frames: ${frames[0]} full, ${frames[1]} band") }
     fun resume() { paused = false; poke() }
     /** A new sky (or hour, season, seed): converges again. */
     fun set(i: SceneParams.Input) { input = i; inputGen++; poke() }
@@ -288,8 +288,11 @@ class SkyRenderer(private val ctx: Context, val W: Int, val H: Int, private val 
             GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_LINEAR_MIPMAP_LINEAR) }
         mipDirty = false
     }
-    private fun compose(scroll: Float) {
+    private fun compose(scroll: Float, band: Boolean) {
         val o = prm ?: return
+        // RP2: a scroll-only frame re-composites only the rows the scroll changes (BAND_TOP..BAND_BOT); the rest of acc keeps the
+        // last full frame, which is what a full compose would draw there (apart from the live layer, refreshed by the next full frame)
+        if (band) { GLES30.glEnable(GLES30.GL_SCISSOR_TEST); val y0 = (H * (1f - BAND_BOT)).toInt(); GLES30.glScissor(0, y0, W, Math.ceil(H * (1.0 - BAND_TOP)).toInt() - y0) }
         apply(pC, o.compose)
         slices.forEachIndexed { i, x -> GLES30.glActiveTexture(GLES30.GL_TEXTURE7 + i); GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, x.t); u1i(pC, "uS$i", 7 + i); u2(pC, "uO$i", 0f, 0f) }
         listOf(2, 3).forEachIndexed { j, i -> GLES30.glActiveTexture(GLES30.GL_TEXTURE11 + j); GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, slices[i].m); u1i(pC, "uM$i", 11 + j) }
@@ -303,6 +306,7 @@ class SkyRenderer(private val ctx: Context, val W: Int, val H: Int, private val 
         u1(pC, "uScrK", kS); u1(pC, "uLift", .15f * minOf(sc, 200f) * dpr)
         if (!live) u1(pC, "uBirds", 0f)
         GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 3)
+        if (band) GLES30.glDisable(GLES30.GL_SCISSOR_TEST)
     }
     private fun post() {
         val o = prm ?: return
@@ -342,16 +346,33 @@ class SkyRenderer(private val ctx: Context, val W: Int, val H: Int, private val 
 
     // ---------------------------------------------------------------- the loop
     private var fence = 0L
-    private fun frame(scroll: Float, withGlass: Boolean) {
+    private fun frame(scroll: Float, withGlass: Boolean, band: Boolean = false) {
         // one frame in flight: the UI's own GPU work never queues behind several of ours (SP1)
         if (fence != 0L) { GLES30.glClientWaitSync(fence, GLES30.GL_SYNC_FLUSH_COMMANDS_BIT, 100_000_000L); GLES30.glDeleteSync(fence); fence = 0L }
-        compose(scroll); post(); present(withGlass)
+        compose(scroll, band); post(); present(withGlass)
         fence = GLES30.glFenceSync(GLES30.GL_SYNC_GPU_COMMANDS_COMPLETE, 0); GLES30.glFlush()
+        frames[if (band) 1 else 0]++
     }
+    /** Frames drawn since start: [full, band-only] (logged on pause, for the RP2 measurement). */
+    private val frames = IntArray(2)
+
+    /**
+     * Scroll frames (RP2). 1: clamped at 200 px, band-only between the live layer's 30 fps frames (adopted). 0: every scroll change
+     * in full, as RP1, for A/B in debug builds: `adb shell setprop debug.sky.scroll 0` (read every 2 s, so it can change while the
+     * page is open). A 30 fps cap while scrolling was measured too and dropped (RP2: 25-32% janky; the page itself drew fewer frames).
+     */
+    private var mode = 1
+    private fun prop(n: String) = try { Runtime.getRuntime().exec(arrayOf("getprop", n)).inputStream.bufferedReader().readText().trim() } catch (_: Exception) { "" }
 
     private fun loop() {
         var gen = -1; var lastScroll = Float.NaN; var last = 0L
+        val debuggable = (ctx.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0; var propAt = 0L
         while (running) {
+            if (debuggable && ms(propAt) > 2000) {   // debug A/B: the mode can change while the page is open
+                propAt = now(); val m = if (prop("debug.sky.scroll") == "0") 0 else 1
+                if (m != mode || frames.sum() == 0) { mode = m; Log.i(TAG, "scroll frames: mode $mode") }
+                if (frames.sum() == 0 && prop("debug.sky.live") == "0") { live = false; Log.i(TAG, "live layer off (debug)") }   // RP2's seam check
+            }
             if (paused) { idle(); continue }
             val g = inputGen
             if (g != gen) {   // a new sky: converge again from frame 0
@@ -360,7 +381,8 @@ class SkyRenderer(private val ctx: Context, val W: Int, val H: Int, private val 
                 gen = g; prm = SceneParams.build(i.copy(dpr = dpr.toDouble(), w = W, h = H, live = live, scroll = 0.0)); k = 0; converged = false
                 sceneT = 40f
             }
-            val sc = scrollCss; val moved = sc != lastScroll
+            // SC1's lift, blur and fade are complete at 200 CSS px: past it a scroll changes nothing the renderer draws (RP2)
+            val sc = if (mode > 0) scrollCss.coerceIn(0f, 200f) else scrollCss; val moved = sc != lastScroll
             if (k < 24) {
                 accumulate()
                 frame(sc, withGlass = true); lastScroll = sc; last = now()
@@ -369,8 +391,10 @@ class SkyRenderer(private val ctx: Context, val W: Int, val H: Int, private val 
             }
             val due = live && ms(last) >= 1000.0 / 30
             if (!moved && !due) { if (live) Thread.sleep(2) else idle(); continue }
-            // at rest the cards sit on the flat page (T8): their backdrop only changes while the page scrolls
-            frame(sc, withGlass = moved); lastScroll = sc; last = now()
+            // at rest the cards sit on the flat page (T8): their backdrop only changes while the page scrolls. A scroll between the
+            // live layer's full frames re-composites the scroll band only (RP2); `last` times the full frames
+            val band = mode == 1 && !due
+            frame(sc, withGlass = moved, band = band); lastScroll = sc; if (!band) last = now()
         }
     }
     private fun idle() = synchronized(wake) { wake.wait(250) }
@@ -385,6 +409,13 @@ class SkyRenderer(private val ctx: Context, val W: Int, val H: Int, private val 
 
     companion object {
         private const val TAG = "SkyRenderer"
+        /**
+         * The rows a scroll changes (screen fraction from the top), from COMPOSE.glsl's SC1 terms: below 0.60 nothing moves (band = 0);
+         * above, the highest thing moved is the taller maple's crown (lip ~0.387 - height 0.108 = 0.279), lifted up to 30 CSS px
+         * and reached by the blur's taps (~35 frame px at its top mip): 0.279 - (60 + 80)/1830 ~ 0.20; kept at 0.18 for a margin.
+         */
+        private const val BAND_TOP = .18f
+        private const val BAND_BOT = .61f
         const val VERT = "#version 300 es\nin vec2 a; void main(){ gl_Position = vec4(a, 0., 1.); }"
         // CSS saturate(s) (Filter Effects feColorMatrix), on the sRGB values
         const val GLASS = """#version 300 es
