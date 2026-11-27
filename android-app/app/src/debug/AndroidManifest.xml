@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug builds only: the LOCK phase 2 renderer spike (adb shell am start -n com.jcwear.coach/.skyspike.SkySpikeActivity). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <activity
+            android:name=".skyspike.SkySpikeActivity"
+            android:exported="true"
+            android:screenOrientation="portrait" />
+    </application>
+</manifest>

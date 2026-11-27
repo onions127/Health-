@@ -1587,3 +1587,34 @@ The user said **lock**. Every round above is approved; the work moves into `andr
 STOP.
 
 **Approved (2026-11-24):** SC1 as built. The renderer port carries it (COMPOSE's scroll uniforms and the land's mip chains); the S21 swipe-fps check runs with the renderer spike.
+
+## SP1 · The renderer spike on the S21 (2026-11-27, lock plan §4 step 2)
+
+**Run:** the debug-only `SkySpikeActivity` (renderer A: the prototype's shaders via `spike-export.js`, GLES 3.0 on its own thread; the scene and the 1/8 glass backdrop handed to Compose as hardware buffers through two `ImageReader`s; eight glass cards drawing their window of the glass image; SC1 scroll uniforms). Galaxy S21 (Mali-G78, driver r38p0), on USB, each run started at skin ≤ 33 °C, display at 60 Hz. Frame stats from `dumpsys gfxinfo` (reset after convergence) and the app's own FrameMetrics/GPU timers. Raw logs and screenshots: `tools/visual-loop/out/spike/s21-runs/` (local).
+
+**Measured (the renderer):**
+- Init to first frame 1.5–2.3 s: noise volumes (RGBA16F, half-float targets supported) shape 128³ 186–223 ms, detail 64³ 20–31 ms, weather 512² 6–10 ms. Scene programs from the binary cache 6–8 ms (a cache hit on every run; a cold compile is not in these runs); post programs 26–167 ms.
+- Converge (24 jittered frames, 4 slices): fair 13:00 7.9 s (~355 ms/frame, slice 1 the near clouds ~240 ms), dusk 20:10 7.9 s, stratus 13.2 s (slice 1 ~480 ms).
+- Per frame at rest, back to back: compose + post 9.4–9.8 ms, + glass and hand-off 10.8–11.9 ms (compose 3.6–3.9, bloom 1.6–2.0, rays 1.6–2.0, final 1.9–2.0, scene out 1.4–2.9, glass 2.8–4.2). Rays on a ¼ mask would save ~3 ms (not adopted: a look change).
+
+**Measured (the page), first build:** janky in every state. Scrolling (fair): 55% of frames late, p50 36 ms, scroll frame 22 ms GPU. Even a still sky at 30 fps ambient: 75% late (stratus, dusk), p50 25–26 ms.
+
+**Causes found and fixed in the spike (plumbing only, no look change):**
+1. The page recomposed on every scroll pixel (the cards took `scroll.value` as a parameter) and twice a second for the HUD; now scroll is read only in the cards' draw phase and the HUD recomposes alone.
+2. The renderer queued frames without limit (an `ImageReader` swap never blocks), so the UI's GPU work waited behind several of ours; now one frame in flight (`pace`: a fence per frame, wait on the previous before the next).
+
+**After the fixes (fair, scrolling, the same hand-off):** **0.28% janky** (5 of 1 803 frames), p50 15 ms, p90 21 ms, GPU p50 6 ms; the scene re-renders on scroll at ~60 fps (2 150 frames in 36 s), a scroll frame 15.3 ms GPU (timed with glFinish); hand-off delay median 16.3 ms (one frame, as the plan allows).
+
+**The still sky (no scroll, ambient 30 fps for wind, birds, stars):** still janky with the fixes: 77–80% of page frames late (fair, stratus, dusk alike), with the scene through a SurfaceView too (81%). Waking the renderer on the display's vsync did not help (83%) and hurt scrolling (9%), so it stays off. **Cause, measured:** the GPU governor. A still sky keeps the Mali at 221–312 MHz (busy 60–90%); scrolling holds it at 585–676 MHz. At the low clock our ~12 ms frame takes two to three times as long, and the page's own GPU work (14 ms p50 still, against 5 ms scrolling) waits behind it.
+
+**Fix (no look change):** the scene on a **SurfaceView** (SurfaceFlinger composites it; Compose never draws it) and the **glass image sent only while the page scrolls**: at rest the cards sit on the flat page (T8), so their blurred backdrop has nothing to change. Then a still sky costs the page nothing: **7 page frames in 20 s** (the debug HUD's text only). The scene itself reaches the screen at 30 fps by SurfaceFlinger's timestamps: of 126 intervals, 104 exactly two vsyncs, 15 three (a frame late, ~12%), 7 one (catching up).
+
+**Scrolling with the scene on a SurfaceView:** the same as the hand-off: **0.28% janky** (5 of 1 804), p50 14 ms, p90 19 ms, GPU p50 5 ms; scroll frame 14.9 ms GPU; the scene at ~60 fps.
+
+**Heat:** 3 minutes of continuous scrolling (the worst case: a full scene frame every vsync), from skin 35.8 °C: 39.8 at 30 s, 42.3 at 90 s, 44.6 at 180 s (AP 49.6 → 54.5). Janky frames 1.69% over the 3 minutes (p50 16 ms, p90 26 ms); scroll frames 16.7 ms GPU by the end.
+
+**Spike outcome (renderer A works on the S21):** shaders unchanged, half-float targets, programs from the binary cache in ~7 ms, first frame in ~2 s, the sky converged in 8–13 s. For the port: the scene on a SurfaceView, the glass blur handed to Compose only while scrolling (and on a sky change), at most one GPU frame in flight. **Still open:** ~12% of ambient scene frames a vsync late at the governor's low clock; heat from long scrolling (+9 °C in 3 min); a cold shader compile on the device was not in these runs.
+
+STOP.
+
+**Adopted (2026-11-27):** the setup for the port: the scene on a SurfaceView, the glass image only while scrolling, one GPU frame in flight (lock plan §3 and decision 2 updated). The spike now runs it by default (`--es scene image`, `--ez pace false`, `--ez glassOnScroll false` bring back the first build for comparison).
