@@ -1618,3 +1618,24 @@ STOP.
 STOP.
 
 **Adopted (2026-11-27):** the setup for the port: the scene on a SurfaceView, the glass image only while scrolling, one GPU frame in flight (lock plan §3 and decision 2 updated). The spike now runs it by default (`--es scene image`, `--ez pace false`, `--ez glassOnScroll false` bring back the first build for comparison).
+
+## RP1 · The renderer in the app, live (2026-11-27, lock plan §4 step 3, first part)
+
+**Built:**
+- `domain/sky/SceneParams.kt`: scene-gl.js's renderer inputs in Kotlin: the hour's palettes (keyframes mixed in linear light and quantized to 8-bit sRGB as the prototype's hex strings are), the weather's colours over them (less at night), sun and moon, the land (loch crests, props, tokens, lip, shore), the season (dryness, the maples' year), the day's seed (cirrus angle, formation, hero clouds), and the uniforms of the sky, land, compose, rays and final passes; the maples' branch texture (treeSkel, the same PRNG).
+- `ui/sky/SkyRenderer.kt`: the spike's GL path on those uniforms (set by name, typed from the program), with the setup adopted in SP1: scene on a SurfaceView, glass image only while scrolling or converging, one GPU frame in flight. A new sky converges over 24 frames with its clouds held still (alpha 1/(k+1)); then wind, birds and stars at 30 fps; a scroll re-composites at once; paused when the page is hidden. Program binaries cached (key includes the driver version).
+- `ui/sky/SkyPreviewScreen.kt` and **Settings → Sky (preview)** (off by default, Android 10+): the live sky for today's readiness at the clock's hour (re-set every 10 minutes), three glass cards scrolling over it (SC1). Sleep fog, HRV cirrus and activity come with the Today screen; bakes, tilt and transitions are the next parts of step 3.
+- The shaders now live in the app (`assets/sky/`, written by `spike-export.js`; byte-identical to scene-gl.js today); the debug spike reads them from there.
+
+**Measured:**
+- Parity (`SceneParamsParityTest`, fixtures from `tools/visual-loop/sky-parity.js`): 257 skies (the nine presets at 17 hours with seeds, seasons and scroll varied; 104 skies from the BodySky fixture), over 20 000 uniform values within 1e-6 of the prototype's, the rays pass on exactly when the prototype's is; the branch texture (6 400 floats) within 1e-6. Passed on the first run.
+- Unit tests: 143, all pass. `ThemeContrastTest`'s raw-colour rule now walks subfolders (it read `ui/` flat and failed on `ui/sky`); the preview's ink is a token (`HealthColors.GlassInk`).
+
+**On the S21** (Settings → Sky (preview), opened through the app's own UI, 19:35 on 27 Nov, readiness 82 → fair, dusk):
+- **Cold shader compile on the device: 1.2 s** for both scene programs (open since T9); init 2.5 s cold, **0.8 s from the binary cache**; the sky converged **6 s** after init.
+- **The look matches the prototype** at the same sky, hour, seed (epoch day 20784) and season (day 330: the maples red): the same formation, cirrus, palette, loch and trees.
+- The first build sized the frame from the screen's dp; the frame now takes the view's own aspect (BoxWithConstraints). The app window runs under an opaque status bar, so the top 99 px of sky are hidden behind it (the screens step decides the status bar).
+- **Scrolling with real finger swipes (adb input, 24 swipes): 7.8% janky** (p50 18 ms, p90 30 ms, GPU p50 10 ms), display at 60 Hz. The same real swipes on the spike: **5.6%** (p50 17 ms). SP1's 0.28% was a smooth programmatic scroll (animateScrollTo); real touch costs more on both, so this is the test, not the port. Still open: a scroll frame (~15 ms GPU) leaves little room for the page at 60 Hz; candidates for the port's next part (none changes the look unless said): re-render the land band only while scrolling, cap scroll re-renders below vsync while a finger is down, or the ¼-mask shafts (−3 ms, a look change, SP1).
+- A missed tap during the test turned Morning summary off (the whole card is its toggle); it was turned back on at once.
+
+STOP.

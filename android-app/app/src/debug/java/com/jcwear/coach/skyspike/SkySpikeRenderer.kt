@@ -82,7 +82,7 @@ class SkySpikeRenderer(
         check(EGL14.eglMakeCurrent(dpy, pbuf, pbuf, eglCtx))
     }
 
-    private fun asset(n: String) = ctx.assets.open("skyspike/$n").bufferedReader().readText()
+    private fun asset(n: String) = ctx.assets.open(if (n.endsWith(".glsl")) "sky/$n" else "skyspike/$n").bufferedReader().readText()   // shaders: the app's (main assets)
 
     private fun shader(type: Int, src: String): Int { val s = GLES30.glCreateShader(type); GLES30.glShaderSource(s, src); GLES30.glCompileShader(s); return s }
     private fun checkProg(p: Int, fs: Int, name: String) {

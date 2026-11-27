@@ -134,6 +134,8 @@ fun MainDashboardScreen(
     var useMetricUnits by remember { mutableStateOf(settings.useMetricUnits) }
 
     var profileName by remember { mutableStateOf(settings.profileName) }
+    var skyPreview by remember { mutableStateOf(settings.skyPreview) }
+    var showSky by remember { mutableStateOf(false) }
 
     // System back (button or edge swipe) does what the on-screen back does, innermost screen first.
     BackHandler(
@@ -185,6 +187,10 @@ fun MainDashboardScreen(
     }
 
     val today = days.last()
+    if (showSky && android.os.Build.VERSION.SDK_INT >= 29) {   // Sky (preview), full screen
+        com.jcwear.coach.ui.sky.SkyPreviewScreen(readiness = today.readiness, onBack = { showSky = false })
+        return
+    }
     LaunchedEffect(openNightKey, days) {
         val key = openNightKey ?: return@LaunchedEffect
         val idx = days.indexOfLast { it.sleep?.sessionKey == key }
@@ -393,6 +399,9 @@ fun MainDashboardScreen(
                         onToggleMorningNotify = onToggleMorningNotify,
                         bedtime = bedtime,
                         exportStatus = exportStatus,
+                        skyPreviewOn = skyPreview,
+                        onToggleSkyPreview = if (android.os.Build.VERSION.SDK_INT >= 29) ({ skyPreview = !skyPreview; settings.skyPreview = skyPreview }) else null,
+                        onOpenSky = { showSky = true },
                         onExportAll = {
                             if (exportStatus != EXPORTING) scope.launch {
                                 exportStatus = EXPORTING

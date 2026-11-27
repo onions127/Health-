@@ -103,7 +103,10 @@ internal fun SettingsTabView(
     onToggleMorningNotify: () -> Unit,
     bedtime: BedtimeUi,
     exportStatus: String?,
-    onExportAll: () -> Unit
+    onExportAll: () -> Unit,
+    skyPreviewOn: Boolean = false,
+    onToggleSkyPreview: (() -> Unit)? = null,
+    onOpenSky: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
@@ -252,6 +255,24 @@ internal fun SettingsTabView(
                 )
             }
             SecondaryActionButton(text = "Export all data", onClick = onExportAll)
+        }
+    }
+
+    // Sky (preview): the live sky while the screens are rebuilt on it (lock plan). Android 10+ only, for now.
+    if (onToggleSkyPreview != null) HealthCard {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Sky (preview)", color = HealthColors.TextPrimary, fontSize = HealthType.Body, fontWeight = FontWeight.Medium)
+                    Text("The new live sky, while it is being built", color = HealthColors.TextSecondary, fontSize = HealthType.Small)
+                }
+                SecondaryActionButton(text = if (skyPreviewOn) "On" else "Off", onClick = onToggleSkyPreview)
+            }
+            if (skyPreviewOn) SecondaryActionButton(text = "Open the sky", onClick = onOpenSky)
         }
     }
 

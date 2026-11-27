@@ -89,8 +89,8 @@ class ThemeContrastTest {
     /** R6.1: colour literals live in HealthColors only (Gradle runs unit tests from the module dir). */
     @Test
     fun noRawColourOutsideTokens() {
-        val raw = java.io.File("src/main/java/com/jcwear/coach/ui").listFiles()!!
-            .filter { it.name != "DashboardModels.kt" && "Color(0x" in it.readText() }.map { it.name }
+        val raw = java.io.File("src/main/java/com/jcwear/coach/ui").walkTopDown().filter { it.isFile }
+            .filter { it.name != "DashboardModels.kt" && "Color(0x" in it.readText() }.map { it.name }.toList()
         assertEquals(emptyList<String>(), raw)
     }
 }

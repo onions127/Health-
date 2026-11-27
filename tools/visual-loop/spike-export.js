@@ -1,8 +1,9 @@
-// LOCK phase 2 spike: the prototype's shaders and one state's uniforms, for the S21 renderer spike (android-app/app/src/debug).
+// The prototype's shaders for the app (android-app/app/src/main/assets/sky), and one state's uniforms for the S21 renderer spike (debug).
 // Records every uniform the prototype sets (per program, last value) and the trees' branch texture, while it renders a state.
 //   node spike-export.js            (needs the design-board server on :8765)
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
 const OUT = path.join(__dirname, '..', '..', 'android-app', 'app', 'src', 'debug', 'assets', 'skyspike');
+const SH = path.join(__dirname, '..', '..', 'android-app', 'app', 'src', 'main', 'assets', 'sky');   // the shaders are the app's (lock step 3)
 const STATES = { fair13: 'sky=fair&h=13', stratus13: 'sky=stratus&h=13', fair2010: 'sky=fair&h=20.17' };
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
@@ -39,7 +40,7 @@ const STATES = { fair13: 'sky=fair&h=13', stratus13: 'sky=stratus&h=13', fair201
       Object.assign(out.shaders, { VERT: src.VERT, GEN: src.GEN, SKY: part('SKY_ONLY'), LAND: part('LAND_ONLY'), COMPOSE: src.COMPOSE, FINAL: src.FINAL, BRIGHT: src.BRIGHT, BLUR: src.BLUR, RAYS: src.RAYS });
       return out;
     });
-    for (const [k, s] of Object.entries(data.shaders)) fs.writeFileSync(path.join(OUT, k + '.glsl'), s);
+    fs.mkdirSync(SH, { recursive: true }); for (const [k, s] of Object.entries(data.shaders)) fs.writeFileSync(path.join(SH, k + '.glsl'), s);
     fs.writeFileSync(path.join(OUT, `state-${name}.json`), JSON.stringify({ uniforms: data.uniforms, tree: data.tree }));
     await p.screenshot({ path: path.join(OUT, '..', '..', '..', '..', '..', '..', 'tools', 'visual-loop', 'out', `spike-ref-${name}.png`) });
     console.log(name, Object.keys(data.uniforms).join(','), 'tree', data.tree ? data.tree.length : 0);

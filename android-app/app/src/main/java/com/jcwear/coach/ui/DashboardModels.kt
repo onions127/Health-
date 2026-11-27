@@ -75,6 +75,8 @@ object HealthColors {
     val TextPrimary = Color(0xFFF8FAFC)
     val TextSecondary = Color(0xFFA6ADBA)
     val TextInverse = Color(0xFF0D0F13)
+    /** Sky (preview): the day glass's ink (DESIGN brief: #2E4A62 on 22% white); the hour's glass rules come with the design system. */
+    val GlassInk = Color(0xFF2E4A62)
 
     val AccentAmber = Color(0xFFFFB86B)
     val ScoreGreen = Color(0xFF34D399)

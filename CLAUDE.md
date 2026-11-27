@@ -39,6 +39,7 @@ Health++ is a personal recovery/readiness companion app for a JCWear band (Andro
 | `design-prototype/glass-check.js` | Measures real text contrast over the rendered scene under the glass. |
 | `design-prototype/bake.html`, `bake-server.py`, `sky-baker.js`, `baked/` | Keyframe baking (PC and on-device worker). |
 | `design-prototype/scene-gl-34.js`, `scene-kit.js` | Old versions (3.4 volumetric, 3.2 SVG). Comparison only. |
+| `android-app/…/domain/sky/SceneParams.kt`, `…/ui/sky/` | The app's sky: renderer inputs (parity with scene-gl.js, `tools/visual-loop/sky-parity.js`), `SkyRenderer`, Settings → Sky (preview). Shaders in `app/src/main/assets/sky/` (written by `spike-export.js`). |
 | `reference/` | Samsung Weather references (see below). |
 | `design-prototype/r4a-board.html` … `r4h-board.html`, `t1/` … `t8/` | Terrain rounds T1–T8 boards and their saved renders (history only: the live variants were removed at terrain lock; the boards' images still open). |
 | `reference/terrain/` | Terrain photo and stylised references (local only, gitignored). See "Terrain reference specs". |
