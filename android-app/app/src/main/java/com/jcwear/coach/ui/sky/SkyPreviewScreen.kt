@@ -85,16 +85,20 @@ fun SkyPreviewScreen(readiness: Int?, onBack: () -> Unit) {
 private fun SkyPage(readiness: Int?, onBack: () -> Unit, frameH: Int, pageH: androidx.compose.ui.unit.Dp) {
     val ctx = LocalContext.current
     val renderer = remember { SkyRenderer(ctx.applicationContext, 824, frameH, 2f) }
-    val glass = remember { GlassImage(renderer.glassReader) }
+    val glass = remember { GlassImage(renderer.glassReader!!) }
     val scroll = rememberScrollState()
     val root = remember { Box1() }
 
-    // the sky: today's readiness at the clock's hour (re-set every 10 minutes: a live change converges again, ~8 s of GPU)
+    // the sky: today's readiness at the clock's hour, re-set every minute: baked, the hour follows the clock (one decode pass);
+    // live, the renderer converges again only every ten minutes. Not baked yet: bake it now (in the background, short GPU bands),
+    // and every night on the charger from now on (RP3)
     LaunchedEffect(readiness) {
+        SkyBakes.remember(ctx, readiness, renderer.W, renderer.H)
+        SkyBakeWorker.bakeNow(ctx.applicationContext, readiness); SkyBakeWorker.scheduleNightly(ctx.applicationContext)
         while (true) {
             val now = LocalTime.now(); val date = LocalDate.now(); val hour = now.hour + now.minute / 60.0
             renderer.set(SceneParams.Input(SkyState.weather(readiness?.toDouble()), hour, date.toEpochDay().toInt(), date.dayOfYear - 1 + hour / 24))
-            delay(10 * 60_000L)
+            delay(60_000L - (System.currentTimeMillis() % 60_000L))
         }
     }
     LaunchedEffect(scroll) { snapshotFlow { scroll.value }.collect { renderer.setScroll(it * 412f / root.size.width.coerceAtLeast(1)) } }
@@ -122,8 +126,8 @@ private fun SkyPage(readiness: Int?, onBack: () -> Unit, frameH: Int, pageH: and
                 SkyRegime.STRATUS -> "Low grey cloud"; SkyRegime.FIRST_RUN -> "A plain fair sky"
             }
             GlassCard(glass, scroll, root, readiness?.let { "Readiness $it" } ?: "No readiness yet", word)
-            GlassCard(glass, scroll, root, "The live sky", "Rendered on this phone: shaders from the design prototype, converged over 24 frames.")
-            GlassCard(glass, scroll, root, "Still to come", "Your sleep, HRV and activity in the sky; bakes; tilt; transitions.")
+            GlassCard(glass, scroll, root, "The live sky", "Drawn on this phone from the design prototype's shaders, and baked for the day while it charges.")
+            GlassCard(glass, scroll, root, "Still to come", "Your sleep, HRV and activity in the sky; tilt; transitions.")
             Spacer(Modifier.height(400.dp))
         }
         TextButton(onClick = onBack, modifier = Modifier.statusBarsPadding().padding(8.dp)) { Text("‹ Back", color = HealthColors.GlassInk, fontSize = 16.sp) }

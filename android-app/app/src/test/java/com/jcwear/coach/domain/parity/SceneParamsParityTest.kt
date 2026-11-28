@@ -53,6 +53,18 @@ class SceneParamsParityTest {
         assertTrue(checked > 20000)
     }
 
+    /** Bakes (RP3): the two keyframes around an hour and the blend weight, as the prototype's bracket() (light projection). */
+    @Test
+    fun theBakeBlendMatchesThePrototype() {
+        val rows = File("src/test/resources/parity/bake_bracket.tsv").readLines().drop(1).filter { it.isNotBlank() }.map { r -> r.split('	').map { it.toDouble() } }
+        assertEquals(103, rows.size)
+        for (r in rows) {
+            val (a, b, w) = SceneParams.bracket(r[0])
+            assertEquals("hour ${r[0]} from", r[1], a, 0.0); assertEquals("hour ${r[0]} to", r[2], b, 0.0)
+            assertEquals("hour ${r[0]} weight", r[3], w, 1e-9)
+        }
+    }
+
     @Test
     fun theMaplesGrowAsInThePrototype() {
         val want = File("src/test/resources/parity/scene_tree.tsv").readText().trim().split(',').map { it.toDouble() }

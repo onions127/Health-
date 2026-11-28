@@ -109,6 +109,37 @@ object SceneParams {
     }
     fun palAt(hour: Double): Pal = seg(KEYS, wrap24(hour), ::mixP)
     fun sunAt(hour: Double): DoubleArray = seg(SUN, wrap24(hour), ::mixA)
+    // ------------------------------------------------------------------ bakes (3.12, G3): the hours baked per sky, and the blend between two
+    /** Hours baked per sky: densest where the light changes fastest; 21:00 holds the night until 05:00 (prototype KEYFRAMES). */
+    val KEYFRAMES = listOf(5.0, 5.5, 5.75, 6.5, 7.5, 9.0, 11.0, 13.0, 15.0, 16.5, 17.75, 19.0, 20.0, 20.25, 20.5, 21.0)
+    /** The palettes' own sun place (the prototype's `sun` field), mixed as the palettes are; it only enters the bake blend. */
+    private val PSUN = listOf(0.0 to MOON, 5.0 to MOON, 6.5 to doubleArrayOf(.20, .30), 9.0 to doubleArrayOf(.64, .15), 16.5 to doubleArrayOf(.64, .15),
+        19.0 to doubleArrayOf(.86, .35), 21.0 to MOON, 24.0 to MOON)
+    /** The light of an hour as numbers: palette colours in linear light, its scalars, and the sun's place (the grade is live, so left out). */
+    fun lightVec(hour: Double): DoubleArray {
+        val p = palAt(hour); val v = ArrayList<Double>()
+        fun c(h: String) = hex(h).forEach { v += pow(it, 2.2) }
+        c(p.zen); c(p.mid); c(p.hor); c(p.sunC); v += seg(PSUN, wrap24(hour), ::mixA).toList(); v += p.sunR; c(p.cl); c(p.cd); c(p.fog); c(p.path)
+        p.h.forEach(::c); c(p.tree); c(p.hill); c(p.water); p.pg.forEach(::c); v += p.night; v += p.i; v += p.key.toList()
+        v += (if (p.night < .5) sunAt(hour) else MOON).toList()
+        return v.toDoubleArray()
+    }
+    /**
+     * The two baked hours around [hour] (of [hours]) and how far between: where this hour's light sits on the line between the two
+     * keyframes' light (least squares), not how far the clock is, since palettes move along a smoothstep (05:23 is 16% of the way
+     * to 05:45, not 50%). Falls back to the clock when the two lights are the same (the night).
+     */
+    fun bracket(hour: Double, hours: List<Double> = KEYFRAMES): Triple<Double, Double, Double> {
+        val l = hours.sorted(); val h = wrap24(hour)
+        if (l.size == 1) return Triple(l[0], l[0], 0.0)
+        val i = l.indexOfFirst { it > h }; val b = l[if (i < 0) 0 else i]; val a = l[if (i <= 0) l.size - 1 else i - 1]
+        val va = lightVec(a); val vb = lightVec(b); val x = lightVec(h)
+        var num = 0.0; var den = 0.0
+        for (j in va.indices) { num += (x[j] - va[j]) * (vb[j] - va[j]); den += (vb[j] - va[j]) * (vb[j] - va[j]) }
+        val span = ((b - a) + 24) % 24; val into = ((h - a) + 24) % 24
+        return Triple(a, b, if (den > 1e-9) min(1.0, max(0.0, num / den)) else into / (if (span == 0.0) 24.0 else span))
+    }
+
     private fun shoulder(v: Double) = if (v < .8) v else 1 - .2 * StrictMath.exp(-(v - .8) / .2)
     private fun lin(h: String) = hex(h).map { pow(it, 2.2) }.toDoubleArray()
     private fun norm(v: DoubleArray): DoubleArray { val l = StrictMath.sqrt(v.sumOf { it * it }); return DoubleArray(v.size) { v[it] / l } }

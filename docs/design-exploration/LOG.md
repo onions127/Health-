@@ -1664,3 +1664,32 @@ STOP.
 **Still open:** 6.5–7% janky on real swipes (60 Hz), from RP1's 10–16%. The ¼-mask shafts (−3 ms, a look change, SP1) remain the next lever if the screens need more. Next in step 3: bakes and the bake worker.
 
 STOP.
+
+## RP3 · Bakes and the bake worker (2026-11-28, lock plan §4 step 3, third part)
+
+**Changed** (app only; the prototype's look is unchanged):
+- **Format** (`SkyBakes.kt`): the prototype's bake (3.12): per keyframe, the four slices as colour (RGBM in sqrt space) and aux (coverage, wind material), from its own ENCODE/DECODE shaders (now exported to `assets/sky`). Files are raw rows with PNG's "up" filter, deflated (an Android Bitmap would premultiply the RGBM alpha). A set is one day's whole sky (SkyState + seed) at one frame size from one version of the scene shaders (a hash of SKY/LAND/ENCODE, as the prototype bumps `SKY_CACHE`). One day kept: a new set drops earlier days and the day's other sets.
+- **Playback** (`SkyRenderer`): when both keyframes around the hour are baked, the slices are decoded from them, blended by where the hour's light sits between theirs (the prototype's `bracket()`, ported as `SceneParams.bracket`, with parity on 103 hours: same keyframes, weights within 1e-9). Files are read off the GL thread, at most two keyframes resident. The page now re-sets the hour every minute: baked, that is one decode pass; live, it converges again only after 10 minutes. The near-cloud slice is rendered and baked 72 CSS px wider and drifts into that room at 0.8 CSS px/s once shown (the prototype's baked drift; live too, since the room is there).
+- **Making** (`SkyRenderer.bake`, offscreen; `SkyBakeWorker`): converges each keyframe in horizontal bands with GPU timing per band (the prototype's `renderSliced`), encodes, reads back, writes. Two jobs: **night** (periodic, charging + idle): tomorrow's likely sky (the readiness the page last showed, tomorrow's seed); **now** (when a page shows a sky that is not baked): that sky, the two keyframes around the hour first. Keyframes already baked are skipped, so a stopped job carries on.
+- Debug builds: `adb shell setprop debug.sky.bake budget/gap/n` sets the bands and bakes only n keyframes (and ignores the screen).
+
+**Measured on the S21** (readiness 81, fair; frame 824×1832):
+- **Bands.** The prototype's 8 ms bands with 16 ms gaps took **150–215 s per keyframe** (68–82 s of measured GPU), screen on or off, 4–5× its own browser bake (3.13: 14–19 s GPU). Each band is a render pass over a whole float slice on the Mali tiler, and at a third of duty the GPU clock drops (the governor again, as SP1 and RP2). Per keyframe, screen off:
+
+| Bands / gaps | Wall | GPU |
+|---|---|---|
+| 8 / 16 ms | 150–215 s | 68–82 s |
+| **24 / 4 ms (adopted)** | **10–17 s** | 7–14 s |
+| whole slices | 10–13 s | 7–10 s |
+
+  With the screen on: beside the open sky page, 24/4 left **24–31%** of its scroll frames janky (p90 150 ms) and 12/12 **12–20%**, against 7.6–8.8% after the bake; under the idle home screen 12/12 slowed to 55–113 s per keyframe within minutes (skin 35 °C: the clock, not heat).
+- **So:** both jobs bake **only with the screen off**, in 24/4 bands; with the screen on a job holds (and retries in 5 minutes if it starts with it on). Checked: with the page open the job logs "screen on: bake later" and the page scrolls at **6.4–8.4%** janky, as with no bake.
+- **Size:** 0.8–0.95 MB per night keyframe, 1.2 MB per day keyframe: a day's set ~17 MB (the plan estimated ~20).
+- **Playback:** two keyframes read in 319–349 ms (off the GL thread), uploaded in 44–67 ms. Baked and live frames at 23:08/23:14 look the same; the near clouds had slid their 72 CSS px.
+- Unit tests: all pass (new: the bake blend's parity).
+
+**Not measured yet:** a full night (16 keyframes, ~3–4 min at the screen-off rate) through the real charging + idle constraints: it runs on the S21 tonight; read its `SkyBake` log next session. Heat over a whole set. The morning correction after a sync waits for the Today screen (the body's full sky arrives with it; the preview's sky is readiness only).
+
+**Next in step 3:** tilt, transitions (the X1 fade between the old and new sky), reduced motion.
+
+STOP.

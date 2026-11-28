@@ -37,7 +37,7 @@ const STATES = { fair13: 'sky=fair&h=13', stratus13: 'sky=stratus&h=13', fair201
         if (n) out.uniforms[n] = u;
       }
       const part = d => src.FRAG.replace('#version 300 es\n', '#version 300 es\n#define ' + d + '\n');
-      Object.assign(out.shaders, { VERT: src.VERT, GEN: src.GEN, SKY: part('SKY_ONLY'), LAND: part('LAND_ONLY'), COMPOSE: src.COMPOSE, FINAL: src.FINAL, BRIGHT: src.BRIGHT, BLUR: src.BLUR, RAYS: src.RAYS });
+      Object.assign(out.shaders, { VERT: src.VERT, GEN: src.GEN, SKY: part('SKY_ONLY'), LAND: part('LAND_ONLY'), COMPOSE: src.COMPOSE, FINAL: src.FINAL, BRIGHT: src.BRIGHT, BLUR: src.BLUR, RAYS: src.RAYS, ENCODE: src.ENCODE, DECODE: src.DECODE });
       return out;
     });
     fs.mkdirSync(SH, { recursive: true }); for (const [k, s] of Object.entries(data.shaders)) fs.writeFileSync(path.join(SH, k + '.glsl'), s);

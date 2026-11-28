@@ -21,6 +21,9 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
 import java.security.MessageDigest
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
 
 /**
  * The live sky (lock plan step 3, renderer A): the prototype's shaders unchanged on GLES 3.0, driven by [SceneParams].
@@ -32,11 +35,16 @@ import java.security.MessageDigest
  * Frames: a new sky converges over 24 jittered frames (shown as it sharpens), its clouds held still (a phone cannot afford the
  * prototype's drifting re-renders). Once converged, the wind, birds and stars move at 30 fps ([live]); a scroll re-composites
  * at once. [pause] stops all GPU work (the page is hidden).
+ *
+ * Bakes (RP3): when the day's sky is baked ([SkyBakes]) for the two keyframes around the hour, the slices are decoded from them
+ * (blended in linear light by where the hour's light sits between theirs) instead of rendered: no 24-frame convergence, and the
+ * hour can follow the clock for the cost of one decode pass. The near-cloud slice is rendered and baked 72 CSS px wider, and
+ * slides into that room at 0.8 CSS px/s once shown (the prototype's baked drift). [offscreen]: no surfaces, for [bake] only.
  */
 @RequiresApi(29)
-class SkyRenderer(private val ctx: Context, val W: Int, val H: Int, private val dpr: Float) {
+class SkyRenderer(private val ctx: Context, val W: Int, val H: Int, private val dpr: Float, private val offscreen: Boolean = false) {
     val GW = W / 8; val GH = H / 8
-    val glassReader: ImageReader = ImageReader.newInstance(GW, GH, PixelFormat.RGBA_8888, 4,
+    val glassReader: ImageReader? = if (offscreen) null else ImageReader.newInstance(GW, GH, PixelFormat.RGBA_8888, 4,
         HardwareBuffer.USAGE_GPU_SAMPLED_IMAGE or HardwareBuffer.USAGE_GPU_COLOR_OUTPUT)
 
     private val thread = HandlerThread("sky-gl").also { it.start() }
@@ -53,10 +61,15 @@ class SkyRenderer(private val ctx: Context, val W: Int, val H: Int, private val 
     @Volatile var converged = false; private set
     @Volatile var lastError: String? = null; private set
 
-    fun start(out: Surface) { h.post { try { init(out); loop() } catch (t: Throwable) { lastError = t.message ?: t.toString(); Log.e(TAG, "sky renderer failed", t) } } }
-    fun stop() { running = false; poke(); h.post { release() }; thread.quitSafely() }
-    fun pause() { paused = true; Log.i(TAG, "frames: ${frames[0]} full, ${frames[1]} band") }
-    fun resume() { paused = false; poke() }
+    /** Showing baked layers (true) or the live render (false); for the page's notes and tests. */
+    @Volatile var playingBaked = false; private set
+
+    fun start(out: Surface) { shown(true); h.post { try { init(out); loop() } catch (t: Throwable) { lastError = t.message ?: t.toString(); Log.e(TAG, "sky renderer failed", t) } } }
+    fun stop() { shown(false); running = false; poke(); h.post { release() }; thread.quitSafely(); loader.shutdownNow() }
+    fun pause() { shown(false); paused = true; Log.i(TAG, "frames: ${frames[0]} full, ${frames[1]} band") }
+    fun resume() { shown(true); paused = false; poke() }
+    private var isShown = false
+    private fun shown(v: Boolean) = synchronized(Companion) { if (!offscreen && v != isShown) { isShown = v; visiblePages += if (v) 1 else -1 } }
     /** A new sky (or hour, season, seed): converges again. */
     fun set(i: SceneParams.Input) { input = i; inputGen++; poke() }
     /** The page's scroll in CSS px (412 wide): SC1 lifts and blurs the land. */
@@ -69,7 +82,7 @@ class SkyRenderer(private val ctx: Context, val W: Int, val H: Int, private val 
     private fun now() = System.nanoTime()
     private fun ms(t0: Long) = (System.nanoTime() - t0) / 1e6
 
-    private fun egl(out: Surface) {
+    private fun egl(out: Surface?) {
         dpy = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
         val v = IntArray(2); check(EGL14.eglInitialize(dpy, v, 0, v, 1))
         val attrs = intArrayOf(EGL14.EGL_RED_SIZE, 8, EGL14.EGL_GREEN_SIZE, 8, EGL14.EGL_BLUE_SIZE, 8, EGL14.EGL_ALPHA_SIZE, 8,
@@ -79,8 +92,10 @@ class SkyRenderer(private val ctx: Context, val W: Int, val H: Int, private val 
         cfg = cs[0]!!
         eglCtx = EGL14.eglCreateContext(dpy, cfg, EGL14.EGL_NO_CONTEXT, intArrayOf(EGL14.EGL_CONTEXT_CLIENT_VERSION, 3, EGL14.EGL_NONE), 0)
         pbuf = EGL14.eglCreatePbufferSurface(dpy, cfg, intArrayOf(EGL14.EGL_WIDTH, 1, EGL14.EGL_HEIGHT, 1, EGL14.EGL_NONE), 0)
-        sceneSurf = EGL14.eglCreateWindowSurface(dpy, cfg, out, intArrayOf(EGL14.EGL_NONE), 0)
-        glassSurf = EGL14.eglCreateWindowSurface(dpy, cfg, glassReader.surface, intArrayOf(EGL14.EGL_NONE), 0)
+        if (out != null) {
+            sceneSurf = EGL14.eglCreateWindowSurface(dpy, cfg, out, intArrayOf(EGL14.EGL_NONE), 0)
+            glassSurf = EGL14.eglCreateWindowSurface(dpy, cfg, glassReader!!.surface, intArrayOf(EGL14.EGL_NONE), 0)
+        }
         check(EGL14.eglMakeCurrent(dpy, pbuf, pbuf, eglCtx))
     }
 
@@ -191,16 +206,18 @@ class SkyRenderer(private val ctx: Context, val W: Int, val H: Int, private val 
     private fun u1i(p: Int, n: String, v: Int) = GLES30.glUniform1i(loc(p, n), v)
 
     // ---------------------------------------------------------------- the scene
-    private var pSky = 0; private var pLand = 0; private var pB = 0; private var pBl = 0; private var pF = 0; private var pC = 0; private var pR = 0; private var pG = 0
+    private var pSky = 0; private var pLand = 0; private var pD = 0; private var pB = 0; private var pBl = 0; private var pF = 0; private var pC = 0; private var pR = 0; private var pG = 0
     private lateinit var slices: List<Tgt>; private lateinit var acc: Tgt; private lateinit var a: Tgt; private lateinit var b: Tgt
     private lateinit var c: Tgt; private lateinit var d: Tgt; private lateinit var r: Tgt; private lateinit var fin: Tgt
     private lateinit var g2: Tgt; private lateinit var g4: Tgt; private lateinit var g8: Tgt; private lateinit var g8b: Tgt
     private var margin = 0
+    /** The near-cloud slice's drift room (72 CSS px): rendered and baked, slid into once shown (the prototype's DRIFT_ROOM). */
+    private val E = Math.round(72 * dpr)
     private val t0 = System.nanoTime()
     private fun secs() = (System.nanoTime() - t0) / 1e9f
     private var prm: SceneParams.Out? = null
 
-    private fun init(out: Surface) {
+    private fun init(out: Surface?) {
         val tAll = now()
         egl(out)
         val ext = GLES30.glGetString(GLES30.GL_EXTENSIONS) ?: ""
@@ -213,11 +230,12 @@ class SkyRenderer(private val ctx: Context, val W: Int, val H: Int, private val 
         val (s, l) = scenePrograms(); pSky = s; pLand = l
         pB = program(asset("BRIGHT.glsl"), "BRIGHT"); pBl = program(asset("BLUR.glsl"), "BLUR"); pF = program(asset("FINAL.glsl"), "FINAL")
         pC = program(asset("COMPOSE.glsl"), "COMPOSE"); pR = program(asset("RAYS.glsl"), "RAYS"); pG = program(GLASS, "GLASS")
+        pD = program(asset("DECODE.glsl"), "DECODE")
         // the scene's samplers: noise 0-2, trees 15 (as the prototype)
         listOf(pSky, pLand).forEach { p -> GLES30.glUseProgram(p); u1i(p, "uShape", 0); u1i(p, "uDetail", 1); u1i(p, "uWeather", 2); u1i(p, "uTreeTex", 15) }
         margin = Math.ceil(28.0 * dpr).toInt()
         val sw = W + 2 * margin; val sh = H + 2 * margin
-        slices = (0..3).map { target(sw, sh, if (it >= 2) "mat" else "pad", mips = it != 1) }
+        slices = (0..3).map { target(sw + if (it == 1) E else 0, sh, if (it >= 2) "mat" else "pad", mips = it != 1) }
         acc = target(W, H); val q = { n: Int -> intArrayOf(maxOf(1, (W + n - 1) / n), maxOf(1, (H + n - 1) / n)) }
         a = target(q(4)[0], q(4)[1]); b = target(q(4)[0], q(4)[1]); c = target(q(16)[0], q(16)[1]); d = target(q(16)[0], q(16)[1]); r = target(q(4)[0], q(4)[1])
         fin = target(W, H, null, "u8")
@@ -253,6 +271,12 @@ class SkyRenderer(private val ctx: Context, val W: Int, val H: Int, private val 
     private var k = 0
     private var sceneT = 40f
     private fun accumulate() {
+        if (prm == null) return
+        frameUniforms(); for (i in 0..3) drawSlice(i, 0, slices[i].h)
+        k++; mipDirty = true
+    }
+    /** Frame k's scene uniforms in both programs (the jitter differs per frame; the clouds hold still: the same uT for all 24). */
+    private fun frameUniforms() {
         val o = prm ?: return
         val off = if (k == 0) floatArrayOf(0f, 0f) else floatArrayOf(Math.random().toFloat() - .5f, Math.random().toFloat() - .5f)
         listOf(pSky, pLand).forEach { p ->
@@ -260,13 +284,17 @@ class SkyRenderer(private val ctx: Context, val W: Int, val H: Int, private val 
             u2(p, "uRes", W.toFloat(), H.toFloat()); u2(p, "uMargin", margin.toFloat(), margin.toFloat()); u1(p, "uSplit", 30f)
             u2(p, "uOff", off[0], off[1]); u1(p, "uFrame", (k % 97).toFloat()); u1(p, "uT", sceneT)
         }
+    }
+    /** Rows y0 until y1 of slice i, blended into the running average at frame k. */
+    private fun drawSlice(i: Int, y0: Int, y1: Int) {
+        val x = slices[i]; val p = if (i < 2) pSky else pLand
         if (k == 0) GLES30.glDisable(GLES30.GL_BLEND) else { GLES30.glEnable(GLES30.GL_BLEND); GLES30.glBlendColor(0f, 0f, 0f, 1f / (k + 1)); GLES30.glBlendFunc(GLES30.GL_CONSTANT_ALPHA, GLES30.GL_ONE_MINUS_CONSTANT_ALPHA) }
-        slices.forEachIndexed { i, x ->
-            val p = if (i < 2) pSky else pLand
-            GLES30.glUseProgram(p); GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, x.f); GLES30.glViewport(0, 0, x.w, x.h); u1(p, "uSlice", i.toFloat())
-            GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 3)
-        }
-        GLES30.glDisable(GLES30.GL_BLEND); k++; mipDirty = true
+        GLES30.glUseProgram(p); GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, x.f); GLES30.glViewport(0, 0, x.w, x.h); u1(p, "uSlice", i.toFloat())
+        val part = y0 > 0 || y1 < x.h
+        if (part) { GLES30.glEnable(GLES30.GL_SCISSOR_TEST); GLES30.glScissor(0, y0, x.w, y1 - y0) }
+        GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 3)
+        if (part) GLES30.glDisable(GLES30.GL_SCISSOR_TEST)
+        GLES30.glDisable(GLES30.GL_BLEND)
     }
 
     private var vpW = W; private var vpH = H
@@ -294,11 +322,12 @@ class SkyRenderer(private val ctx: Context, val W: Int, val H: Int, private val 
         // last full frame, which is what a full compose would draw there (apart from the live layer, refreshed by the next full frame)
         if (band) { GLES30.glEnable(GLES30.GL_SCISSOR_TEST); val y0 = (H * (1f - BAND_BOT)).toInt(); GLES30.glScissor(0, y0, W, Math.ceil(H * (1.0 - BAND_TOP)).toInt() - y0) }
         apply(pC, o.compose)
-        slices.forEachIndexed { i, x -> GLES30.glActiveTexture(GLES30.GL_TEXTURE7 + i); GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, x.t); u1i(pC, "uS$i", 7 + i); u2(pC, "uO$i", 0f, 0f) }
+        val drift = driftPx()
+        slices.forEachIndexed { i, x -> GLES30.glActiveTexture(GLES30.GL_TEXTURE7 + i); GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, x.t); u1i(pC, "uS$i", 7 + i); u2(pC, "uO$i", if (i == 1) drift else 0f, 0f) }
         listOf(2, 3).forEachIndexed { j, i -> GLES30.glActiveTexture(GLES30.GL_TEXTURE11 + j); GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, slices[i].m); u1i(pC, "uM$i", 11 + j) }
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, acc.f); GLES30.glViewport(0, 0, W, H)
         u2(pC, "uRes", W.toFloat(), H.toFloat()); u2(pC, "uMargin", margin.toFloat(), margin.toFloat())
-        u2(pC, "uSliceRes", (W + 2 * margin).toFloat(), (H + 2 * margin).toFloat()); u2(pC, "uSliceRes1", (W + 2 * margin).toFloat(), (H + 2 * margin).toFloat())
+        u2(pC, "uSliceRes", (W + 2 * margin).toFloat(), (H + 2 * margin).toFloat()); u2(pC, "uSliceRes1", (W + 2 * margin + E).toFloat(), (H + 2 * margin).toFloat())
         GLES30.glUniform4f(loc(pC, "uXf"), 1f, 1f, 0f, 0f); u1(pC, "uT", if (live) 40f + secs() else 40f)
         // SC1: the scroll is the renderer's own (it moves faster than the sky is set)
         val sc = maxOf(0f, scroll); val kS = minOf(1f, sc / 200f)
@@ -307,6 +336,13 @@ class SkyRenderer(private val ctx: Context, val W: Int, val H: Int, private val 
         if (!live) u1(pC, "uBirds", 0f)
         GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 3)
         if (band) GLES30.glDisable(GLES30.GL_SCISSOR_TEST)
+    }
+    /** Frame px the near clouds have slid into their room since shown: 0.8 CSS px/s, easing to a stop as the room runs out (~70 s). */
+    private var driftT0 = 0L
+    private fun driftPx(): Float {
+        if (!live || driftT0 == 0L) return 0f
+        val d = ms(driftT0) / 1000.0 * .8 * dpr; val k0 = .8 * E
+        return (if (d < k0) d else k0 + .2 * E * (1 - Math.exp(-(d - k0) / (.2 * E)))).toFloat()
     }
     private fun post() {
         val o = prm ?: return
@@ -375,18 +411,31 @@ class SkyRenderer(private val ctx: Context, val W: Int, val H: Int, private val 
             }
             if (paused) { idle(); continue }
             val g = inputGen
-            if (g != gen) {   // a new sky: converge again from frame 0
+            if (g != gen) {   // a new sky or hour: baked when the two keyframes around the hour are, else live
                 val i = input
                 if (i == null) { idle(); continue }
-                gen = g; prm = SceneParams.build(i.copy(dpr = dpr.toDouble(), w = W, h = H, live = live, scroll = 0.0)); k = 0; converged = false
-                sceneT = 40f
+                gen = g
+                val next = SceneParams.build(i.copy(dpr = dpr.toDouble(), w = W, h = H, live = live, scroll = 0.0))
+                val dir = SkyBakes.dir(ctx, SkyBakes.key(ctx, i.sky, i.seed, W, H)); val (a, b, w) = SceneParams.bracket(i.hour)
+                if (halfFloat && SkyBakes.has(dir, a) && SkyBakes.has(dir, b)) {
+                    prm = next; want = Want(dir, a, b, w.toFloat()); playingBaked = true; liveIn = null
+                } else {
+                    want = null
+                    // the same sky within ten minutes of the hour converged: keep it (a live re-render is ~8 s of full GPU)
+                    val keep = !playingBaked && liveIn?.let { it.sky == i.sky && it.seed == i.seed && Math.abs(it.hour - i.hour) < 1.0 / 6 } == true
+                    if (!keep) { prm = next; k = 0; converged = false; sceneT = 40f; driftT0 = 0L; liveIn = i; playingBaked = false; Log.i(TAG, "live: no bake for ${i.hour} (${dir.name})") }
+                }
             }
             // SC1's lift, blur and fade are complete at 200 CSS px: past it a scroll changes nothing the renderer draws (RP2)
             val sc = if (mode > 0) scrollCss.coerceIn(0f, 200f) else scrollCss; val moved = sc != lastScroll
-            if (k < 24) {
+            val wb = want
+            if (wb != null) {
+                if (bakedStep(wb)) { frame(sc, withGlass = true); lastScroll = sc; last = now(); continue }
+                if (!converged) { Thread.sleep(4); continue }                // loading, and nothing on screen yet
+            } else if (k < 24) {
                 accumulate()
                 frame(sc, withGlass = true); lastScroll = sc; last = now()
-                if (k == 24) { converged = true; Log.i(TAG, "converged") }
+                if (k == 24) { converged = true; driftT0 = now(); Log.i(TAG, "converged") }
                 continue
             }
             val due = live && ms(last) >= 1000.0 / 30
@@ -399,16 +448,146 @@ class SkyRenderer(private val ctx: Context, val W: Int, val H: Int, private val 
     }
     private fun idle() = synchronized(wake) { wake.wait(250) }
 
+    // ---------------------------------------------------------------- bakes: play (RP3)
+    private class Want(val dir: File, val a: Double, val b: Double, val w: Float)
+    private var want: Want? = null
+    private var liveIn: SceneParams.Input? = null
+    private val loader = Executors.newSingleThreadExecutor()
+    /** Keyframes on the GPU: set/hour -> 8 textures (colour and aux per slice), at most the two in use. */
+    private val resident = HashMap<String, IntArray>()
+    private var pending: Future<Map<String, List<SkyBakes.Image>>>? = null
+    private fun rk(dir: File, hour: Double) = "${dir.name}/$hour"
+
+    /** One step toward showing [wb]: start reading what is missing, upload what arrived, or decode. True when decoded (draw now). */
+    private fun bakedStep(wb: Want): Boolean {
+        val p = pending
+        if (p != null) {
+            if (!p.isDone) return false
+            pending = null
+            val got = try { p.get() } catch (e: Exception) {
+                Log.e(TAG, "baked sky failed to load; live instead", e)
+                want = null; playingBaked = false; liveIn = input; k = 0; converged = false; driftT0 = 0L
+                return false
+            }
+            val t = now()
+            for ((n, imgs) in got) resident[n] = IntArray(8) { j -> upload(imgs[j]) }
+            Log.i(TAG, "baked: uploaded ${got.keys} in ${"%.0f".format(ms(t))} ms")
+            return false
+        }
+        val need = listOf(wb.a, wb.b).distinct().filter { rk(wb.dir, it) !in resident }
+        if (need.isNotEmpty()) {
+            val t = now(); val dir = wb.dir
+            pending = loader.submit<Map<String, List<SkyBakes.Image>>> {
+                need.associate { hr -> rk(dir, hr) to (0..3).flatMap { i -> listOf(SkyBakes.read(SkyBakes.file(dir, hr, i, false)), SkyBakes.read(SkyBakes.file(dir, hr, i, true))) } }
+                    .also { Log.i(TAG, "baked: read $need in ${"%.0f".format(ms(t))} ms") }
+            }
+            return false
+        }
+        val keepN = setOf(rk(wb.dir, wb.a), rk(wb.dir, wb.b))
+        resident.keys.filter { it !in keepN }.forEach { n -> resident.remove(n)?.let { GLES30.glDeleteTextures(8, it, 0) } }
+        decode(resident.getValue(rk(wb.dir, wb.a)), resident.getValue(rk(wb.dir, wb.b)), wb.w)
+        want = null; k = 24
+        if (!converged) Log.i(TAG, "baked: showing ${wb.a}-${wb.b} at ${"%.3f".format(wb.w)} (${wb.dir.name})")
+        converged = true; if (driftT0 == 0L) driftT0 = now()
+        return true
+    }
+    private fun upload(im: SkyBakes.Image): Int {
+        val t = IntArray(1); GLES30.glGenTextures(1, t, 0); GLES30.glActiveTexture(GLES30.GL_TEXTURE6); GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, t[0])
+        GLES30.glPixelStorei(GLES30.GL_UNPACK_ALIGNMENT, 4)
+        GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA8, im.w, im.h, 0, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, im.px)
+        listOf(GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_TEXTURE_MAG_FILTER).forEach { GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, it, GLES30.GL_NEAREST) }
+        listOf(GLES30.GL_TEXTURE_WRAP_S, GLES30.GL_TEXTURE_WRAP_T).forEach { GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, it, GLES30.GL_CLAMP_TO_EDGE) }
+        return t[0]
+    }
+    /** The hour between two baked keyframes: their slices blended in linear light into the live slices (colour, coverage, wind). */
+    private fun decode(ta: IntArray, tb: IntArray, w: Float) {
+        GLES30.glUseProgram(pD); GLES30.glDisable(GLES30.GL_BLEND)
+        slices.forEachIndexed { i, x ->
+            GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, x.f); GLES30.glViewport(0, 0, x.w, x.h)
+            listOf(ta[2 * i] to "uAc", ta[2 * i + 1] to "uAa", tb[2 * i] to "uBc", tb[2 * i + 1] to "uBa").forEachIndexed { j, (t, n) ->
+                GLES30.glActiveTexture(GLES30.GL_TEXTURE7 + j); GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, t); u1i(pD, n, 7 + j) }
+            u1(pD, "uW", w); u2(pD, "uDst", x.w.toFloat(), x.h.toFloat()); GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 3)
+        }
+        mipDirty = true
+    }
+
+    // ---------------------------------------------------------------- bakes: make (RP3, offscreen)
+    class KeyframeStat(val hour: Double, val ms: Double, val gpuMs: Double, val encodeMs: Double, val bytes: Long)
+    /**
+     * Offscreen only: bakes [hours] of [inp]'s day into [key]'s set (keyframes already there are skipped). Each converges over 24
+     * frames in horizontal bands sized to take about [budgetMs] of GPU, with [gapMs] between bands so the rest of the phone keeps
+     * the GPU most of the time (the prototype's renderSliced), then is encoded and written. Blocks the caller; [stop] is polled
+     * between bands (false returned: stopped, the finished keyframes kept). [inp].doy is the day's start; the hour is added.
+     */
+    fun bake(key: SkyBakes.Key, inp: SceneParams.Input, hours: List<Double>, budgetMs: Double, gapMs: Long, stop: () -> Boolean, each: (KeyframeStat) -> Unit): Boolean {
+        check(offscreen) { "bake needs an offscreen renderer" }
+        val done = CountDownLatch(1); var ok = false; var err: Throwable? = null
+        h.post {
+            try { if (!::dpy.isInitialized) init(null); check(halfFloat) { "no half-float targets: bakes need them" }; ok = bakeOn(key, inp, hours, budgetMs, gapMs, stop, each) }
+            catch (t: Throwable) { err = t } finally { done.countDown() }
+        }
+        done.await(); err?.let { throw it }; return ok
+    }
+    private fun bakeOn(key: SkyBakes.Key, inp: SceneParams.Input, hours: List<Double>, budgetMs: Double, gapMs: Long, stop: () -> Boolean, each: (KeyframeStat) -> Unit): Boolean {
+        val dir = SkyBakes.dir(ctx, key); dir.mkdirs()
+        val pE = program(asset("ENCODE.glsl"), "ENCODE")
+        val outs = HashMap<Int, Tgt>(); val px = ByteBuffer.allocateDirect(slices.maxOf { it.w * it.h * 4 }).order(ByteOrder.nativeOrder())
+        var bh = 32
+        for (hr in hours) {
+            if (SkyBakes.has(dir, hr)) continue
+            val t = now(); var gpu = 0.0
+            prm = SceneParams.build(inp.copy(hour = hr, doy = inp.doy + hr / 24, dpr = dpr.toDouble(), w = W, h = H, live = false, bake = true, scroll = 0.0))
+            sceneT = 40f; k = 0
+            while (k < 24) {
+                frameUniforms()
+                for (i in 0..3) {
+                    var y = 0; val sh = slices[i].h
+                    while (y < sh) {
+                        if (stop()) return false
+                        val hh = minOf(bh, sh - y); val tb = now()
+                        drawSlice(i, y, y + hh)
+                        val f = GLES30.glFenceSync(GLES30.GL_SYNC_GPU_COMMANDS_COMPLETE, 0); GLES30.glClientWaitSync(f, GLES30.GL_SYNC_FLUSH_COMMANDS_BIT, 2_000_000_000L); GLES30.glDeleteSync(f)
+                        val dt = ms(tb); gpu += dt
+                        bh = maxOf(4, minOf(sh, Math.round(hh * budgetMs / maxOf(dt, .25)).toInt()))   // next band: as tall as fits the budget at this one's cost
+                        y += hh; if (gapMs > 0) Thread.sleep(gapMs)
+                    }
+                }
+                k++
+            }
+            val te = now(); var bytes = 0L
+            for (i in 0..3) {
+                val x = slices[i]; val o = outs.getOrPut(x.w) { target(x.w, x.h, null, "u8") }
+                for (mode in 0..1) {
+                    GLES30.glUseProgram(pE); GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, o.f); GLES30.glViewport(0, 0, x.w, x.h)
+                    GLES30.glActiveTexture(GLES30.GL_TEXTURE3); GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, x.t); u1i(pE, "uC", 3)
+                    GLES30.glActiveTexture(GLES30.GL_TEXTURE4); GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, x.m); u1i(pE, "uM", 4)   // the sky slices' pad too, as the prototype's bake
+                    u1(pE, "uMode", mode.toFloat()); u1(pE, "uHasM", 1f); u2(pE, "uDst", x.w.toFloat(), x.h.toFloat())
+                    GLES30.glDrawArrays(GLES30.GL_TRIANGLES, 0, 3)
+                    GLES30.glPixelStorei(GLES30.GL_PACK_ALIGNMENT, 4); px.position(0)
+                    GLES30.glReadPixels(0, 0, x.w, x.h, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, px)
+                    val f = SkyBakes.file(dir, hr, i, mode == 1); SkyBakes.write(f, x.w, x.h, px); bytes += f.length()
+                }
+            }
+            val st = KeyframeStat(hr, ms(t), gpu, ms(te), bytes)
+            SkyBakes.done(dir, hr, "%.1f s, GPU %.1f s, encode %.1f s, %d bytes".format(java.util.Locale.ROOT, st.ms / 1000, gpu / 1000, st.encodeMs / 1000, bytes))
+            each(st)
+        }
+        return true
+    }
+
     private fun release() {
         if (!::dpy.isInitialized) return
         EGL14.eglMakeCurrent(dpy, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT)
-        EGL14.eglDestroySurface(dpy, sceneSurf); EGL14.eglDestroySurface(dpy, glassSurf); EGL14.eglDestroySurface(dpy, pbuf)
+        if (::sceneSurf.isInitialized) { EGL14.eglDestroySurface(dpy, sceneSurf); EGL14.eglDestroySurface(dpy, glassSurf) }
+        EGL14.eglDestroySurface(dpy, pbuf)
         EGL14.eglDestroyContext(dpy, eglCtx); EGL14.eglTerminate(dpy)
-        glassReader.close()
+        glassReader?.close()
     }
 
     companion object {
         private const val TAG = "SkyRenderer"
+        /** Sky pages on screen now: a bake holds while any is (RP3: baking beside the visible sky left 12-31% of its frames janky). */
+        @Volatile var visiblePages = 0; private set
         /**
          * The rows a scroll changes (screen fraction from the top), from COMPOSE.glsl's SC1 terms: below 0.60 nothing moves (band = 0);
          * above, the highest thing moved is the taller maple's crown (lip ~0.387 - height 0.108 = 0.279), lifted up to 30 CSS px
